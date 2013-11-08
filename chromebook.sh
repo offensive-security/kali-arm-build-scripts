@@ -160,7 +160,6 @@ patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
-cp ${basedir}/kernel/arch/arm/boot/exynos5250-snow-rev4.dtb ${basedir}/kernel/arch/arm/boot/dts/
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
 /dts-v1/;
@@ -181,7 +180,17 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
         };
         fdt@1{
             description = "exynos5250-snow-rev4.dtb";
-            data = /incbin/("dts/exynos5250-snow-rev4.dtb");
+            data = /incbin/("exynos5250-snow-rev4.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@2{
+            description = "exynos5250-snow-rev5.dtb";
+            data = /incbin/("exynos5250-snow-rev5.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -196,51 +205,15 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
             kernel = "kernel@1";
             fdt = "fdt@1";
         };
-    };
-};
-__EOF__
-cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-spring.its
-/dts-v1/;
-
-/ {
-    description = "Chrome OS kernel image with one or more FDT blobs";
-    #address-cells = <1>;
-    images {
-        kernel@1{
-   description = "kernel";
-            data = /incbin/("zImage");
-            type = "kernel_noload";
-            arch = "arm";
-            os = "linux";
-            compression = "none";
-            load = <0>;
-            entry = <0>;
-        };
-        fdt@1{
-            description = "exynos5250-spring.dtb";
-            data = /incbin/("exynos5250-spring.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-    };
-    configurations {
-        default = "conf@1";
-        conf@1{
+        conf@2{
             kernel = "kernel@1";
-            fdt = "fdt@1";
+            fdt = "fdt@2";
         };
     };
 };
 __EOF__
 cd ${basedir}/kernel/arch/arm/boot
-mkimage -f kernel-snow.its ${basedir}/bootp/vmlinux.uimg.snow
-mkimage -f kernel-spring.its ${basedir}/bootp/vmlinux.uimg.spring
-cd ${basedir}/bootp
-ln -sf vmlinux.uimg.snow vmlinux.uimg
+mkimage -f kernel-snow.its ${basedir}/bootp/vmlinux.uimg
 cd ${basedir}
 
 # Create boot.txt file
