@@ -312,9 +312,9 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/nv_uboot-spring.kpart ${basedir}/script
 
 echo "Generating sha1sum for kali-$1-spring.img"
-sha1sum ${basedir}/kali-$1-spring.img > ${basedir}/kali-$1-spring.img.sha1sum
+sha1sum kali-$1-spring.img > ${basedir}/kali-$1-spring.img.sha1sum
 echo "Compressing kali-$1-spring.img"
 pixz ${basedir}/kali-$1-spring.img ${basedir}/kali-$1-spring.img.xz
 rm ${basedir}/kali-$1-spring.img
 echo "Generating sha1sum for kali-$1-spring.img.xz"
-sha1sum ${basedir}/kali-$1-spring.img.xz > ${basedir}/kali-$1-spring.img.xz.sha1sum
+sha1sum kali-$1-spring.img.xz > ${basedir}/kali-$1-spring.img.xz.sha1sum

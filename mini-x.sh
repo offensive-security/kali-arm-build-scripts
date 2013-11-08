@@ -199,9 +199,9 @@ echo "Cleaning up temporary build system"
 rm -rf ${basedir}/*sunxi* ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
 
 echo "Generating sha1sum for kali-$1-mini-x.img"
-sha1sum ${basedir}/kali-$1-mini-x.img > ${basedir}/kali-$1-mini-x.img.sha1sum
+sha1sum kali-$1-mini-x.img > ${basedir}/kali-$1-mini-x.img.sha1sum
 echo "Compressing kali-$1-mini-x.img"
 pixz ${basedir}/kali-$1-mini-x.img ${basedir}/kali-$1-mini-x.img.xz
 rm ${basedir}/kali-$1-mini-x.img
 echo "Generating sha1sum for kali-$1-mini-x.img.xz"
-sha1sum ${basedir}/kali-$1-mini-x.img.xz > ${basedir}/kali-$1-mini-x.img.xz.sha1sum
+sha1sum kali-$1-mini-x.img.xz > ${basedir}/kali-$1-mini-x.img.xz.sha1sum

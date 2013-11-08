@@ -191,9 +191,9 @@ echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
 
 echo "Generating sha1sum for kali-$1-rpi.img"
-sha1sum ${basedir}/kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha1sum
+sha1sum kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha1sum
 echo "Compressing kali-$1-rpi.img"
 pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
 rm ${basedir}/kali-$1-rpi.img
 echo "Generating sha1sum for kali-$1-rpi.img.xz"
-sha1sum ${basedir}/kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha1sum
+sha1sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha1sum

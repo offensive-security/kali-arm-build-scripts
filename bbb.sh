@@ -234,8 +234,8 @@ losetup -d $loopdevice
 rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/kernel
 
 echo "Generating sha1sum for kali-$1-bbb.img"
-sha1sum ${basedir}/kali-$1-bbb.img > ${basedir}/kali-$1-bbb.img.sha1sum
+sha1sum kali-$1-bbb.img > ${basedir}/kali-$1-bbb.img.sha1sum
 echo "Compressing kali-$1-bbb.img"
 pixz ${basedir}/kali-$1-bbb.img
 echo "Generating sha1sum for kali-$1-bbb.img.xz"
-sha1sum ${basedir}/kali-$1-bbb.img.xz > ${basedir}/kali-$1-bbb.img.xz.sha1sum
+sha1sum kali-$1-bbb.img.xz > ${basedir}/kali-$1-bbb.img.xz.sha1sum

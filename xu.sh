@@ -273,9 +273,9 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
 
 echo "Generating sha1sum for kali-$1-odroidxu.img"
-sha1sum ${basedir}/kali-$1-odroidxu.img > ${basedir}/kali-$1-odroidxu.img.sha1sum
+sha1sum kali-$1-odroidxu.img > ${basedir}/kali-$1-odroidxu.img.sha1sum
 echo "Compressing kali-$1-odroidxu.img"
 pixz ${basedir}/kali-$1-odroidxu.img ${basedir}/kali-$1-odroidxu.img.xz
 rm ${basedir}/kali-$1-odroidxu.img
 echo "Generating sha1sum for kali-$1-odroidxu.img.xz"
-sha1sum ${basedir}/kali-$1-odroidxu.img.xz > ${basedir}/kali-$1-odroidxu.img.xz.sha1sum
+sha1sum kali-$1-odroidxu.img.xz > ${basedir}/kali-$1-odroidxu.img.xz.sha1sum

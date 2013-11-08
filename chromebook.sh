@@ -326,9 +326,9 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/nv_uboot-snow.kpart ${basedir}/script
 
 echo "Generating sha1sum for kali-$1-chromebook.img"
-sha1sum ${basedir}/kali-$1-chromebook.img > ${basedir}/kali-$1-chromebook.img.sha1sum
+sha1sum kali-$1-chromebook.img > ${basedir}/kali-$1-chromebook.img.sha1sum
 echo "Compressing kali-$1-chromebook.img"
 pixz ${basedir}/kali-$1-chromebook.img ${basedir}/kali-$1-chromebook.img.xz
 rm ${basedir}/kali-$1-chromebook.img
 echo "Generating sha1sum for kali-$1-chromebook.img.xz"
-sha1sum ${basedir}/kali-$1-chromebook.img.xz > ${basedir}/kali-$1-chromebook.img.xz.sha1sum
+sha1sum kali-$1-chromebook.img.xz > ${basedir}/kali-$1-chromebook.img.xz.sha1sum
