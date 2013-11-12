@@ -188,7 +188,7 @@ cd ${basedir}
 
 # Create boot.txt file
 cat << EOF > ${basedir}/bootp/boot.script
-etenv ramdisk uInitrd;
+setenv ramdisk uInitrd;
 setenv kernel uImage;
 setenv bootargs console=tty1 root=/dev/mmcblk0p2 rootwait rootfstype=ext4 rw quiet;
 \${loadcmd} \${ramdiskaddr} \${ramdisk};
