@@ -5,7 +5,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/chromebook-$1
+basedir=`pwd`/spring-$1
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-linux kali-menu kali-linux-full kali-defaults initramfs-tools"
@@ -116,18 +116,18 @@ umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
-echo "Creating image file for Chromebook"
-dd if=/dev/zero of=${basedir}/kali-$1-chromebook.img bs=1M count=7000
-parted kali-$1-chromebook.img --script -- mklabel gpt
-cgpt create -z kali-$1-chromebook.img
-cgpt create kali-$1-chromebook.img
+echo "Creating image file for Spring"
+dd if=/dev/zero of=${basedir}/kali-$1-spring.img bs=1M count=7000
+parted kali-$1-spring.img --script -- mklabel gpt
+cgpt create -z kali-$1-spring.img
+cgpt create kali-$1-spring.img
 
-cgpt add -i 1 -t kernel -b 8192 -s 32768 -l U-Boot -S 1 -T 5 -P 10 kali-$1-chromebook.img
-cgpt add -i 2 -t data -b 40960 -s 32768 -l Kernel kali-$1-chromebook.img
-cgpt add -i 12 -t data -b 73728 -s 32768 -l Script kali-$1-chromebook.img
-cgpt add -i 3 -t data -b 106496 -s `expr $(cgpt show kali-$1-chromebook.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 106496` -l Root kali-$1-chromebook.img
+cgpt add -i 1 -t kernel -b 8192 -s 32768 -l U-Boot -S 1 -T 5 -P 10 kali-$1-spring.img
+cgpt add -i 2 -t data -b 40960 -s 32768 -l Kernel kali-$1-spring.img
+cgpt add -i 12 -t data -b 73728 -s 32768 -l Script kali-$1-spring.img
+cgpt add -i 3 -t data -b 106496 -s `expr $(cgpt show kali-$1-spring.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 106496` -l Root kali-$1-spring.img
 
-loopdevice=`losetup -f --show ${basedir}/kali-$1-chromebook.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$1-spring.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p2
@@ -161,7 +161,7 @@ sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .con
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
 make modules_install INSTALL_MOD_PATH=${basedir}/root
-cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
+cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-spring.its
 /dts-v1/;
 
 / {
@@ -179,18 +179,8 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
             entry = <0>;
         };
         fdt@1{
-            description = "exynos5250-snow-rev4.dtb";
-            data = /incbin/("exynos5250-snow-rev4.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@2{
-            description = "exynos5250-snow-rev5.dtb";
-            data = /incbin/("exynos5250-snow-rev5.dtb");
+            description = "exynos5250-spring.dtb";
+            data = /incbin/("exynos5250-spring.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -205,15 +195,11 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
             kernel = "kernel@1";
             fdt = "fdt@1";
         };
-        conf@2{
-            kernel = "kernel@1";
-            fdt = "fdt@2";
-        };
     };
 };
 __EOF__
 cd ${basedir}/kernel/arch/arm/boot
-mkimage -f kernel-snow.its ${basedir}/bootp/vmlinux.uimg
+mkimage -f kernel-spring.its ${basedir}/bootp/vmlinux.uimg
 cd ${basedir}
 
 # Create boot.txt file
@@ -232,7 +218,7 @@ mkimage -A arm -T script -C none -d ${basedir}/script/u-boot/boot.txt ${basedir}
 
 # Touchpad configuration
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d
-cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
+cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/10-synaptics-spring.conf
 Section "InputClass"
 	Identifier		"touchpad"
 	MatchIsTouchpad		"on"
@@ -316,19 +302,19 @@ umount $bootp
 umount $rootp
 umount $scriptp
 
-wget -O - http://commondatastorage.googleapis.com/chromeos-localmirror/distfiles/nv_uboot-snow.kpart.bz2 | bunzip2 > nv_uboot-snow.kpart
-dd if=nv_uboot-snow.kpart of=$ubootp
+wget http://www.steev.net/distfiles/nv_uboot-spring.kpart
+dd if=nv_uboot-spring.kpart of=$ubootp
 
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
 echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/nv_uboot-snow.kpart ${basedir}/script
+rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/nv_uboot-spring.kpart ${basedir}/script
 
-echo "Generating sha1sum for kali-$1-chromebook.img"
-sha1sum kali-$1-chromebook.img > ${basedir}/kali-$1-chromebook.img.sha1sum
-echo "Compressing kali-$1-chromebook.img"
-pixz ${basedir}/kali-$1-chromebook.img ${basedir}/kali-$1-chromebook.img.xz
-rm ${basedir}/kali-$1-chromebook.img
-echo "Generating sha1sum for kali-$1-chromebook.img.xz"
-sha1sum kali-$1-chromebook.img.xz > ${basedir}/kali-$1-chromebook.img.xz.sha1sum
+echo "Generating sha1sum for kali-$1-spring.img"
+sha1sum kali-$1-spring.img > ${basedir}/kali-$1-spring.img.sha1sum
+echo "Compressing kali-$1-spring.img"
+pixz ${basedir}/kali-$1-spring.img ${basedir}/kali-$1-spring.img.xz
+rm ${basedir}/kali-$1-spring.img
+echo "Generating sha1sum for kali-$1-spring.img.xz"
+sha1sum kali-$1-spring.img.xz > ${basedir}/kali-$1-spring.img.xz.sha1sum

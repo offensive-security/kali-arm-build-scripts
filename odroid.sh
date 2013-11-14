@@ -258,10 +258,10 @@ echo "Clean up the build system"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/u-boot
 
 echo "Generating sha1sum for kali-$1-odroid.img"
-sha1sum ${basedir}/kali-$1-odroid.img > ${basedir}/kali-$1-odroid.img.sha1sum
+sha1sum kali-$1-odroid.img > ${basedir}/kali-$1-odroid.img.sha1sum
 echo "Compressing kali-$1-odroid.img"
 pixz ${basedir}/kali-$1-odroid.img ${basedir}/kali-$1-odroid.img.xz
 echo "Deleting kali-$1-odroid.img"
 rm ${basedir}/kali-$1-odroid.img
 echo "Generating sha1sum for kali-$1-odroid.img"
-sha1sum ${basedir}/kali-$1-odroid.img.xz > ${basedir}/kali-$1-odroid.img.xz.sha1sum
+sha1sum kali-$1-odroid.img.xz > ${basedir}/kali-$1-odroid.img.xz.sha1sum

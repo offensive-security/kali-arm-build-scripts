@@ -188,7 +188,7 @@ cd ${basedir}
 
 # Create boot.txt file
 cat << EOF > ${basedir}/bootp/boot.script
-etenv ramdisk uInitrd;
+setenv ramdisk uInitrd;
 setenv kernel uImage;
 setenv bootargs console=tty1 root=/dev/mmcblk0p2 rootwait rootfstype=ext4 rw quiet;
 \${loadcmd} \${ramdiskaddr} \${ramdisk};
@@ -222,9 +222,9 @@ losetup -d $loopdevice
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
 
 echo "Generating sha1sum for kali-$1-efikamx.img"
-sha1sum ${basedir}/kali-$1-efikamx.img > ${basedir}/kali-$1-efikamx.img.sha1sum
+sha1sum kali-$1-efikamx.img > ${basedir}/kali-$1-efikamx.img.sha1sum
 echo "Compressing kali-$1-efikamx.img"
 pixz ${basedir}/kali-$1-efikamx.img ${basedir}/kali-$1-efikamx.img.xz
 rm ${basedir}/kali-$1-efikamx.img
 echo "Generating sha1sum for kali-$1-efikamx.img.xz"
-sha1sum ${basedir}/kali-$1-efikamx.img.xz > ${basedir}/kali-$1-efikamx.img.xz.sha1sum
+sha1sum kali-$1-efikamx.img.xz > ${basedir}/kali-$1-efikamx.img.xz.sha1sum
