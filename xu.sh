@@ -23,7 +23,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs
-debootstrap --foreign --arch $architecture kali kali-$architecture http://archive.kali.org/kali
+debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
