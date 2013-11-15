@@ -11,4 +11,6 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     apt-get install -y ia32-libs
     # Required for kernel cross compiles
     apt-get install -y libncurses5:i386
+else
+    apt-get install -y libncurses5
 fi
