@@ -190,7 +190,7 @@ patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-wget http://www.steev.net/distfiles/kernel-configs/xu.config -O .config
+cp ${basedir}/../kernel-configs/xu.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/zImage ${basedir}/bootp

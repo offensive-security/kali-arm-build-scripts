@@ -162,7 +162,7 @@ git clone --depth 1 git://gitorious.org/utilite/utilite.git ${basedir}/kernel
 cd ${basedir}/kernel
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
-wget http://www.steev.net/distfiles/kernel-configs/utilite.config -O .config
+cp ${basedir}/../kernel-configs/utilite.config .config
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-

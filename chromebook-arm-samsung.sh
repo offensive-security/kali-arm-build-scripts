@@ -151,7 +151,7 @@ rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 git clone --depth 1 http://chromium.googlesource.com/chromiumos/third_party/kernel.git -b chromeos-3.4 ${basedir}/kernel
 cd ${basedir}/kernel
-wget http://www.steev.net/distfiles/kernel-configs/chromebook.config -O .config
+cp ${basedir}/../kernel-configs/chromebook.config .config
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 mkdir -p ../patches
