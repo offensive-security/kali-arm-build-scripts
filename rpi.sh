@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This is the Raspberry Pi Kali ARM build script - http://www.kali.org/downloads
+# A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
+
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 1.0.1"
     exit 0
