@@ -302,7 +302,8 @@ umount $bootp
 umount $rootp
 umount $scriptp
 
-wget http://www.steev.net/distfiles/nv_uboot-spring.kpart
+wget https://github.com/offensive-security/kali-uboot-images/raw/master/nv_uboot-spring.kpart
+
 dd if=nv_uboot-spring.kpart of=$ubootp
 
 kpartx -dv $loopdevice
