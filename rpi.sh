@@ -10,12 +10,18 @@ fi
 
 basedir=`pwd`/rpi-$1
 
+# Package installations for various sections.
+# This will build a minimal XFCE Kali system with the top 10 tools.
+
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-linux kali-menu kali-linux-full kali-defaults initramfs-tools"
+base="kali-menu kali-defaults initramfs-tools"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-pth="passing-the-hash unicornscan winexe enum4linux polenum nfspy wmis nipper-ng jsql ghost-phisher uniscan lbd automater arachni bully inguma sslsplit dumpzilla recon-ng ridenum jd-gui"
-export packages="${arm} ${base} ${desktop} ${pth} armitage iceweasel metasploit wpasupplicant openssh-server"
-export architecture="armel"
+tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
+services="openssh-server apache2"
+extras="iceweasel wpasupplicant"
+
+export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+export architecture="armhf"
 
 #export http_proxy="http://localhost:3142/"
 

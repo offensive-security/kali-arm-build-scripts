@@ -7,6 +7,9 @@ fi
 
 basedir=`pwd`/efikamx-$1
 
+# Package installations for various sections.
+# This will build a minimal XFCE Kali system with the top 10 tools.
+
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-linux kali-menu kali-linux-full kali-defaults initramfs-tools"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
