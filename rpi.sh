@@ -162,13 +162,14 @@ echo "T0:23:/sbin/getty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 # Get, compile and install kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 git clone --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-eabi-linaro-4.6.2 ${basedir}/crosscompiler
 cd ${basedir}/kernel
 mkdir -p ../patches
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-eabi-
+export CROSS_COMPILE=${basedir}/crosscompiler/bin/arm-eabi-
 make bcmrpi_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
