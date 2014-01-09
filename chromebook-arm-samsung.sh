@@ -12,7 +12,7 @@ basedir=`pwd`/chromebook-$1
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
-desktop="gdm3 gnome-core gnome-brave-icon-theme gnome-orca gnome-shell-extensions xserver-xorg-video-fbdev"
+desktop="gdm3 gnome-core gnome-brave-icon-theme gnome-orca gnome-shell-extensions kali-root-login xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
 extras="iceweasel wpasupplicant"
