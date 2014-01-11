@@ -21,7 +21,7 @@ services="openssh-server apache2"
 extras="iceweasel wpasupplicant"
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armhf"
+export architecture="armel"
 
 #export http_proxy="http://localhost:3142/"
 
@@ -162,27 +162,24 @@ echo "T0:23:/sbin/getty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 # Get, compile and install kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 git clone --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
-git clone --depth 1 https://github.com/offensive-security/gcc-arm-eabi-linaro-4.6.2 ${basedir}/crosscompiler
 cd ${basedir}/kernel
 mkdir -p ../patches
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=${basedir}/crosscompiler/bin/arm-eabi-
+export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
 make bcmrpi_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-cd ${basedir}/tools/mkimage/
-python imagetool-uncompressed.py ${basedir}/kernel/arch/arm/boot/Image
-cp kernel.img ${basedir}/bootp
+cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
 cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait
 EOF
 
 rm -rf ${basedir}/root/lib/firmware
