@@ -166,6 +166,7 @@ EOF
 # Get, compile and install kernel
 git clone --depth 1 git://gitorious.org/utilite/utilite.git ${basedir}/kernel
 cd ${basedir}/kernel
+mkdir -p ../patches
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 cp ${basedir}/../kernel-configs/utilite.config .config
