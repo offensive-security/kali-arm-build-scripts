@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This is the Utilite Kali ARM build script - http://utilite-computer.com/web/home
+# This is the Trimslice Kali ARM build script - http://utilite-computer.com/web/home
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
@@ -8,7 +8,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/utilite-$1
+basedir=`pwd`/trimslice-$1
 
 # Package installations for various sections. 
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -126,21 +126,21 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for Utilite"
-dd if=/dev/zero of=${basedir}/kali-$1-utilite.img bs=1M count=7000
-parted kali-$1-utilite.img --script -- mklabel msdos
-parted kali-$1-utilite.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-utilite.img --script -- mkpart primary ext4 264192s 100%
+echo "Creating image file for Trimslice"
+dd if=/dev/zero of=${basedir}/kali-$1-trimslice.img bs=1M count=7000
+parted kali-$1-trimslice.img --script -- mklabel msdos
+parted kali-$1-trimslice.img --script -- mkpart primary ext2 2048s 264191s
+parted kali-$1-trimslice.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-utilite.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$1-trimslice.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
 # Create file systems
-mkfs.vfat $bootp
+mkfs.ext2 $bootp
 mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
@@ -151,31 +151,33 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-echo "T1:23:/sbin/agetty -L ttymxc3 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T1:23:/sbin/agetty -L ttys0 115200 vt100" >> ${basedir}/root/etc/inittab
 
 cat << EOF >> ${basedir}/root/etc/udev/links.conf
-M   ttymxc3 c   5 1
+M   ttyS0 c   5 1
 EOF
 
 cat << EOF >> ${basedir}/root/etc/securetty
-ttymxc3
+ttyS0
 EOF
 
 #unset http_proxy
 
 # Get, compile and install kernel
-git clone --depth 1 git://gitorious.org/utilite/utilite.git ${basedir}/kernel
+git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ${basedir}/kernel
 cd ${basedir}/kernel
 mkdir -p ../patches
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
-cp ${basedir}/../kernel-configs/utilite.config .config
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-make -j $(grep -c processor /proc/cpuinfo) uImage modules
+cp ${basedir}/../kernel-configs/trimslice.config .config
+#make tegra_defconfig
+make -j $(grep -c processor /proc/cpuinfo) zImage modules dtbs
 make modules_install INSTALL_MOD_PATH=${basedir}/root
-cp arch/arm/boot/uImage ${basedir}/bootp/uImage-cm-fx6
+cp arch/arm/boot/zImage ${basedir}/bootp/
+cp arch/arm/boot/dts/tegra20-trimslice.dtb ${basedir}/bootp/
 cd ${basedir}
 
 rm -rf ${basedir}/root/lib/firmware
@@ -184,6 +186,16 @@ git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/lin
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
+echo << EOF > ${basedir}/bootp/boot.txt
+setenv bootargs root=/dev/mmcblk0p2 nohdparm rootwait console=ttyS0,115200n8 earlyprintk
+ext2load usb 0:1 4080000 uImage
+ext2load usb 0:1 4800000 uInitrd
+ext2load usb 0:1 4000000 tegra20-trimslice.dtb
+bootm 4080000 4800000 4000000
+EOF
+
+mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.txt ${basedir}/bootp/boot.scr
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -191,12 +203,12 @@ kpartx -dv $loopdevice
 losetup -d $loopdevice
 
 echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
+rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
 
-echo "Generating sha1sum for kali-$1-utilite.img"
-sha1sum kali-$1-utilite.img > ${basedir}/kali-$1-utilite.img.sha1sum
-echo "Compressing kali-$1-utilite.img"
-pixz ${basedir}/kali-$1-utilite.img ${basedir}/kali-$1-utilite.img.xz
-rm ${basedir}/kali-$1-utilite.img
-echo "Generating sha1sum for kali-$1-utilite.img.xz"
-sha1sum kali-$1-utilite.img.xz > ${basedir}/kali-$1-utilite.img.xz.sha1sum
+echo "Generating sha1sum for kali-$1-trimslice.img"
+sha1sum kali-$1-trimslice.img > ${basedir}/kali-$1-trimslice.img.sha1sum
+echo "Compressing kali-$1-trimslice.img"
+pixz ${basedir}/kali-$1-trimslice.img ${basedir}/kali-$1-trimslice.img.xz
+rm ${basedir}/kali-$1-trimslice.img
+echo "Generating sha1sum for kali-$1-trimslice.img.xz"
+sha1sum kali-$1-trimslice.img.xz > ${basedir}/kali-$1-trimslice.img.xz.sha1sum
