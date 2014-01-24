@@ -16,10 +16,10 @@ basedir=`pwd`/rpi-$1
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
+tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap"
 services="openssh-server apache2"
 extras="iceweasel wpasupplicant"
-size=7000 # Size of image in megabytes
+size=3000 # Size of image in megabytes
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armel"
