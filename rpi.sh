@@ -19,6 +19,7 @@ desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
 extras="iceweasel wpasupplicant"
+size=7000 # Size of image in megabytes
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armel"
@@ -130,7 +131,7 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=7000
+dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=$size
 parted kali-$1-rpi.img --script -- mklabel msdos
 parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
 parted kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
