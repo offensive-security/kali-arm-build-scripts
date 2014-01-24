@@ -69,21 +69,6 @@
  	ieee80211_tx(sdata, skb, false, band);
  }
  
---- a/net/wireless/chan.c
-+++ b/net/wireless/chan.c
-@@ -480,8 +480,10 @@ int cfg80211_set_monitor_channel(struct
- {
- 	if (!rdev->ops->set_monitor_channel)
- 		return -EOPNOTSUPP;
--	if (!cfg80211_has_monitors_only(rdev))
--		return -EBUSY;
-+	// Always allow user to change channel, even if there is another normal
-+	// virtual interface using the device.
-+	//if (!cfg80211_has_monitors_only(rdev))
-+	//	return -EBUSY;
- 
- 	return rdev_set_monitor_channel(rdev, chandef);
- }
 --- a/drivers/net/wireless/zd1211rw/zd_mac.c
 +++ b/drivers/net/wireless/zd1211rw/zd_mac.c
 @@ -243,14 +243,19 @@ void zd_mac_clear(struct zd_mac *mac)
