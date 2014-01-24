@@ -162,9 +162,8 @@ echo "T0:23:/sbin/getty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 
 # Get, compile and install kernel
 # Switch to upstream kernel
-# git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 git clone -b rpi-3.13.y --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
-git clone --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
+git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/kernel
 mkdir -p ../patches
