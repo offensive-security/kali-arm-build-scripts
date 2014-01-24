@@ -14,7 +14,7 @@ basedir=`pwd`/rpi-$1
 # This will build a minimal XFCE Kali system with the top 10 tools.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools"
+base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
