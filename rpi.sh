@@ -190,6 +190,12 @@ rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
+
+# rpi-wiggle
+mkdir -p /scripts
+wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O /scripts/rpi-wiggle.sh
+chmod 755 /scripts/rpi-wiggle.sh
+
 cd ${basedir}
 
 # Unmount partitions
