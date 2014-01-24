@@ -160,11 +160,15 @@ echo "T0:23:/sbin/getty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 #unset http_proxy
 
 # Get, compile and install kernel
-git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
+# Switch to upstream kernel
+# git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
+git clone -b rpi-3.13.y --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
+
 cd ${basedir}/kernel
 mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
+# wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
+wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/kali-wifi-injection-3.12.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
