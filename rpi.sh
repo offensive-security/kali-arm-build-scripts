@@ -192,9 +192,9 @@ git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/lin
 rm -rf ${basedir}/root/lib/firmware/.git
 
 # rpi-wiggle
-mkdir -p ${basedir}/scripts
-wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/scripts/rpi-wiggle.sh
+mkdir -p ${basedir}/root/scripts
+wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
 
 cd ${basedir}
 
