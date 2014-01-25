@@ -16,7 +16,7 @@ basedir=`pwd`/rpi-$1
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap"
+tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
 extras="iceweasel wpasupplicant"
 size=3000 # Size of image in megabytes
@@ -174,6 +174,10 @@ touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
 make bcmrpi_defconfig
+
+wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/rpi-kernel-config.patch
+patch -p0 < rpi-kernel-config.patch
+
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
