@@ -161,9 +161,9 @@ cp ${basedir}/../kernel-configs/chromebook.config .config
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
+wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/kali-wifi-injection-3.12.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
-sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
+# sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
 make modules_install INSTALL_MOD_PATH=${basedir}/root
