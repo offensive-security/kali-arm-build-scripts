@@ -166,6 +166,7 @@ patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 # sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
+cp ./scripts/dtc/dtc /usr/bin/
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
 /dts-v1/;
