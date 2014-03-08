@@ -284,8 +284,12 @@ rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${b
 
 echo "Generating sha1sum for kali-$1-odroidxu.img"
 sha1sum kali-$1-odroidxu.img > ${basedir}/kali-$1-odroidxu.img.sha1sum
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-odroidxu.img"
 pixz ${basedir}/kali-$1-odroidxu.img ${basedir}/kali-$1-odroidxu.img.xz
 rm ${basedir}/kali-$1-odroidxu.img
 echo "Generating sha1sum for kali-$1-odroidxu.img.xz"
 sha1sum kali-$1-odroidxu.img.xz > ${basedir}/kali-$1-odroidxu.img.xz.sha1sum
+fi
