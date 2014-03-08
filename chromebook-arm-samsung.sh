@@ -168,7 +168,6 @@ patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 # sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
-cp ./scripts/dtc/dtc /usr/bin/
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
 /dts-v1/;
@@ -336,8 +335,12 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 
 echo "Generating sha1sum for kali-$1-chromebook.img"
 sha1sum kali-$1-chromebook.img > ${basedir}/kali-$1-chromebook.img.sha1sum
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-chromebook.img"
 pixz ${basedir}/kali-$1-chromebook.img ${basedir}/kali-$1-chromebook.img.xz
 rm ${basedir}/kali-$1-chromebook.img
 echo "Generating sha1sum for kali-$1-chromebook.img.xz"
 sha1sum kali-$1-chromebook.img.xz > ${basedir}/kali-$1-chromebook.img.xz.sha1sum
+fi

@@ -209,8 +209,12 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 
 echo "Generating sha1sum of kali-$1-cubieboard2.img"
 sha1sum kali-$1-cubieboard2.img > ${basedir}/kali-$1-cubieboard2.img.sha1sum
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-cubieboard2.img"
 pixz ${basedir}/kali-$1-cubieboard2.img ${basedir}/kali-$1-cubieboard2.img.xz
 rm ${basedir}/kali-$1-cubieboard2.img
 echo "Generating sha1sum of kali-$1-cubieboard2.img.xz"
 sha1sum kali-$1-cubieboard2.img.xz > ${basedir}/kali-$1-cubieboard2.img.xz.sha1sum
+fi
