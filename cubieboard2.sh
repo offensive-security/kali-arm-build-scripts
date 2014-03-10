@@ -183,6 +183,10 @@ fatload mmc 0 0x48000000 uImage
 bootm 0x48000000
 EOF
 
+cat << EOF >> ${basedir}/root/etc/modules
+sunxi_emac
+EOF
+
 # Create image
 mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.cmd ${basedir}/bootp/boot.scr
 
