@@ -149,6 +149,7 @@ rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 # Now some fixes/changes needed!
 
 echo "T1:12345:/sbin/agetty -L ttyS0 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "sunxi_emac" >> ${basedir}/root/etc/modules
 
 #unset http_proxy
 
