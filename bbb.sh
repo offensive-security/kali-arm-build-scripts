@@ -9,6 +9,12 @@ basedir=`pwd`/beaglebone-black-$1
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/news/kali-linux-metapackages/ for meta packages you
+# can use. You can also install packages, using just the package name, but keep
+# in mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
@@ -20,12 +26,14 @@ extras="iceweasel wpasupplicant"
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -151,8 +159,7 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-# Now some fixes/changes needed!
-
+# Enable serial console on ttyO0
 echo 'T1:12345:respawn:/sbin/agetty 115200 ttyO0 vt100' >> ${basedir}/root/etc/inittab
 
 cat << EOF >> ${basedir}/root/etc/udev/links.conf
@@ -163,10 +170,16 @@ cat << EOF >> ${basedir}/root/etc/securetty
 ttyO0
 EOF
 
+# Uncomment this if you use apt-cacher-ng or else git clones will fail.
 #unset http_proxy
 
 # Get, compile and install kernel
 # NOTE: This downloads it's own cross compiler!
+# We export AUTO_BUILD so that it doesn't prompt us to use the menuconfig option
+# with the kernel.
+# You can load the github URL in a browser, and see what other branches you can
+# try.  Keep in mind if you do so, that you will likely want to comment out
+# AUTO_BUILD so that you can configure the kernel!
 git clone --depth 1 https://github.com/RobertCNelson/linux-dev -b am33x-v3.8 ${basedir}/kernel
 cd ${basedir}/kernel
 git config user.name root
@@ -228,6 +241,8 @@ rm -rf ${basedir}/root/lib/firmware/.git
 tar -xovf ${basedir}/kernel/deploy/3.8.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
 cd ${basedir}
 
+# Unused currently, but this script is a part of using the usb as an ethernet
+# device.
 wget -c https://raw.github.com/RobertCNelson/tools/master/scripts/beaglebone-black-g-ether-load.sh -O ${basedir}/root/root/beaglebone-black-g-ether-load.sh
 chmod +x ${basedir}/root/root/beaglebone-black-g-ether-load.sh
 
@@ -237,8 +252,17 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Removing temporary build files"
 rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/kernel
 
+
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum for kali-$1-bbb.img"
 sha1sum kali-$1-bbb.img > ${basedir}/kali-$1-bbb.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.

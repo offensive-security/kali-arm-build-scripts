@@ -9,20 +9,29 @@ basedir=`pwd`/efikamx-$1
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
+# use. You can also install packages, using just the package name, but keep in
+# mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-linux kali-menu kali-linux-full kali-defaults initramfs-tools"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 pth="passing-the-hash unicornscan winexe enum4linux polenum nfspy wmis nipper-ng jsql ghost-phisher uniscan lbd automater arachni bully inguma sslsplit dumpzilla recon-ng ridenum jd-gui"
+
 export packages="${arm} ${base} ${desktop} ${pth} armitage iceweasel metasploit wpasupplicant openssh-server"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -150,8 +159,7 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-# Now some fixes/changes needed!
-
+# For serial console you can use one of the following two items.
 # (No auto login)
 #T1:12345:respawn:/sbin/agetty 115200 ttymxc0 vt100 >> ${basedir}/root/etc/inittab
 # (Auto login on serial console)
@@ -172,9 +180,11 @@ EOF
 # udev won't start and we have no devices, including keyboard/usb support.
 sed -i -e "s/2.6.3\[0-1\]/2.6.30/g" ${basedir}/root/etc/init.d/udev
 
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Get, compile and install kernel
+# Kernel section. If you want to use a custom kernel, or configuration, replace
+# them in this section.
 git clone --depth 1 https://github.com/genesi/linux-legacy ${basedir}/kernel
 cd ${basedir}/kernel
 touch .scmversion
@@ -205,7 +215,7 @@ bootm \${kerneladdr} \${ramdiskaddr}
 fi;
 EOF
 
-# Create image
+# Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.script ${basedir}/bootp/boot.scr
 
 rm -rf ${basedir}/root/lib/firmware
@@ -221,9 +231,15 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-# Remove all the various bits used to generate the image.
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum for kali-$1-efikamx.img"
 sha1sum kali-$1-efikamx.img > ${basedir}/kali-$1-efikamx.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.

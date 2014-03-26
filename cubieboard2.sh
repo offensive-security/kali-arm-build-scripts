@@ -9,6 +9,12 @@ basedir=`pwd`/cubieboard2-$1
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
+# use. You can also install packages, using just the package name, but keep in
+# mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
@@ -20,12 +26,14 @@ extras="iceweasel wpasupplicant"
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -146,13 +154,17 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs to image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-# Now some fixes/changes needed!
 
+# Enable the serial console
 echo "T1:12345:/sbin/agetty -L ttyS0 115200 vt100" >> ${basedir}/root/etc/inittab
+# Load the ethernet module since it doesn't load automatically at boot.
 echo "sunxi_emac" >> ${basedir}/root/etc/modules
 
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# Kernel section.  If you want to us ea custom kernel, or configuration, replace
+# them in this section.
 # Get, compile and install kernel
 git clone --depth 1 https://github.com/linux-sunxi/u-boot-sunxi
 git clone --depth 1 https://github.com/linux-sunxi/linux-sunxi -b stage/sunxi-3.4 ${basedir}/kernel
@@ -184,11 +196,7 @@ fatload mmc 0 0x48000000 uImage
 bootm 0x48000000
 EOF
 
-cat << EOF >> ${basedir}/root/etc/modules
-sunxi_emac
-EOF
-
-# Create image
+# Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.cmd ${basedir}/bootp/boot.scr
 
 cd ${basedir}/u-boot-sunxi/
@@ -209,9 +217,15 @@ umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
 
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
 echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches ${basedir}/*sunxi*
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum of kali-$1-cubieboard2.img"
 sha1sum kali-$1-cubieboard2.img > ${basedir}/kali-$1-cubieboard2.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.

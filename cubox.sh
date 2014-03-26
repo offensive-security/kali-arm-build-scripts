@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This is for the Original (Marvell based) NOT the Cubox-i (Freescale based)
+
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 1.0.1"
     exit 0
@@ -9,6 +11,12 @@ basedir=`pwd`/cubox-$1
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
+# use. You can also install packages, using just the package name, but keep in
+# mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
@@ -20,12 +28,14 @@ extras="iceweasel wpasupplicant"
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -140,14 +150,15 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-# Now some fixes/changes needed!
-
+# Enable serial console
 echo 'T1:12345:respawn:/sbin/agetty 115200 ttyS0 vt100' >> \
     ${basedir}/root/etc/inittab
 
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Get, compile and install kernel
+# Kernel section. If you want to use a custom kernel, or configuration, replace
+# them in this section.
 git clone --depth 1 https://github.com/rabeeh/linux.git ${basedir}/kernel
 cd ${basedir}/kernel
 mkdir -p ../patches
@@ -195,7 +206,7 @@ fi
 echo "!! Unable to locate root partition on \${device_name} !!"
 EOF
 
-# Create image
+# Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/root/boot/boot.txt ${basedir}/root/boot/boot.scr
 
 rm -rf ${basedir}/root/lib/firmware
@@ -207,10 +218,17 @@ cd ${basedir}
 # Unmount partitions
 umount $rootp
 kpartx -dv $loopdevice
-
 losetup -d $loopdevice
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum for kali-$1-cubox.img"
 sha1sum kali-$1-cubox.img > ${basedir}/kali-$1-cubox.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
