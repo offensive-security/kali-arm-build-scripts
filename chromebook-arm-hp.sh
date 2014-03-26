@@ -9,6 +9,12 @@ basedir=`pwd`/spring-$1
 
 # Package installations for various sections.
 # This will build a minimal Gnome Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you
+# can use. You can also install packages, using just the package name, but keep
+# in mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
@@ -20,12 +26,14 @@ extras="iceweasel wpasupplicant"
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment futher down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -153,8 +161,12 @@ mount $scriptp ${basedir}/script
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# Kernel section.  If you want to use a custom kernel, or configuration, replace
+# them in this section. Currently we're using 3.4, but there will be a switch to
+# 3.8.
 git clone --depth 1 http://chromium.googlesource.com/chromiumos/third_party/kernel.git -b chromeos-3.4 ${basedir}/kernel
 cd ${basedir}/kernel
 cp ${basedir}/../kernel-configs/chromebook.config .config
@@ -175,7 +187,7 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-spring.its
     #address-cells = <1>;
     images {
         kernel@1{
-   description = "kernel";
+            description = "kernel";
             data = /incbin/("zImage");
             type = "kernel_noload";
             arch = "arm";
@@ -219,7 +231,7 @@ setenv extra_bootargs console=tty1
 setenv mmc0_boot echo ERROR: Could not boot from USB or SD
 EOF
 
-# Create image
+# Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/script/u-boot/boot.txt ${basedir}/script/u-boot/boot.scr.uimg
 
 # Touchpad configuration
@@ -237,6 +249,7 @@ Section "InputClass"
 	Option			"FingerPress"	"256"
 EndSection
 EOF
+
 # Turn off DPMS, this is supposed to help with fbdev/armsoc blanking.
 # Doesn't really seem to affect fbdev, but marked improvement with armsoc.
 cat << EOF > ${basedir}/root/etc/X11/xorg.conf
@@ -273,7 +286,9 @@ Section "ServerLayout"
     Screen     "DefaultScreen"
 EndSection
 EOF
-# A few settings for the desktop
+
+# At the moment we use fbdev, but in the future we will switch to the armsoc
+# driver provided by ChromiumOS.
 cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/20-armsoc.conf
 Section "Device"
         Identifier      "Mali FBDEV"
@@ -308,6 +323,10 @@ umount $bootp
 umount $rootp
 umount $scriptp
 
+# This is the u-boot bootloader that gets written to the first partition.  When
+# you hit CTRL+U, this is what gets read first.  If you want to customize your
+# u-boot in some way, you will need to read the ChromiumOS dev wiki.
+# http://www.chromium.org/chromium-os/developer-guide
 wget https://github.com/offensive-security/kali-uboot-images/raw/master/nv_uboot-spring.kpart
 
 dd if=nv_uboot-spring.kpart of=$ubootp
@@ -315,9 +334,15 @@ dd if=nv_uboot-spring.kpart of=$ubootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
 echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/nv_uboot-spring.kpart ${basedir}/script
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum for kali-$1-spring.img"
 sha1sum kali-$1-spring.img > ${basedir}/kali-$1-spring.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.

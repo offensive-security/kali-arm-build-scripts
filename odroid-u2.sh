@@ -12,6 +12,12 @@ basedir=`pwd`/odroid-$1
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
+# use. You can also install packages, using just the package name, but keep in
+# mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
@@ -23,12 +29,14 @@ extras="iceweasel wpasupplicant"
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -150,8 +158,7 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-# Now some fixes/changes needed!
-
+# Serial console settings.
 # (No auto login)
 #T1:12345:respawn:/sbin/agetty 115200 ttySAC1 vt100 >> ${basedir}/root/etc/inittab
 # (Auto login on serial console)
@@ -169,6 +176,8 @@ ttySAC1
 ttySAC2
 EOF
 
+# This file needs to exist in order to save the mac address, otherwise every
+# boot, the ODROID-U2/U3 will generate a random mac address.
 touch ${basedir}/root/etc/smsc95xx_mac_addr
 
 # Start X on the ODROID U2.
@@ -206,9 +215,11 @@ Mode 0666
 EndSection
 EOF
 
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Get, compile and install kernel
+# Kernel section. If you want to use a custom kernel, or configuration, replace
+# them in this section.
 git clone --depth 1 https://github.com/hardkernel/linux.git -b odroid-3.8.y ${basedir}/kernel
 cd ${basedir}/kernel
 touch .scmversion
@@ -233,7 +244,7 @@ setenv bootargs "console=tty1 console=ttySAC1,115200n8 root=/dev/mmcblk0p2 rootw
 boot
 EOF
 
-# Create image
+# Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.txt ${basedir}/bootp/boot.scr
 
 rm -rf ${basedir}/root/lib/firmware
@@ -247,7 +258,9 @@ umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
 
-# Get basic boot structure
+# Build the latest u-boot bootloader, and then use the Hardkernel script to fuse
+# it to the image.  This is required because of a requirement that the
+# bootloader be signed.
 git clone --depth 1 https://github.com/hardkernel/u-boot -b odroid-v2010.12
 cd ${basedir}/u-boot
 # https://code.google.com/p/chromium/issues/detail?id=213120
@@ -263,9 +276,15 @@ cd ${basedir}
 
 losetup -d $loopdevice
 
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
 echo "Clean up the build system"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/u-boot
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum for kali-$1-odroid.img"
 sha1sum kali-$1-odroid.img > ${basedir}/kali-$1-odroid.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.

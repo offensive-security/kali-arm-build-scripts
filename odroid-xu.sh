@@ -11,11 +11,18 @@ fi
 
 basedir=`pwd`/odroidxu-$1
 
-# This is used for cross compiling the exynos5-hwcomposer
+# This is used for cross compiling the exynos5-hwcomposer.
+# If this isn't built/installed, there will be no framebuffer console.
 hosttuple=arm-linux-gnueabihf
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
+# This is the section to edit if you would like to add more packages.
+# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
+# use. You can also install packages, using just the package name, but keep in
+# mind that not all packages work on ARM! If you specify one of those, the
+# script will throw an error, but will still continue on, and create an unusable
+# image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools"
@@ -27,12 +34,14 @@ extras="iceweasel wpasupplicant"
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 
+# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
+# to unset it.
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs
+# create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
@@ -159,6 +168,7 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
+# Serial console settings.
 # (Auto login on serial console)
 #T1:12345:respawn:/sbin/agetty 115200 ttySAC2 vt100 >> ${basedir}/root/etc/inittab
 # (No auto login)
@@ -185,9 +195,11 @@ startx
 fi
 EOF
 
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Get, compile and install kernel
+# Kernel section. If you want to use a custom kernel, or configuration, replace
+# them in this section.
 git clone --depth 1 https://github.com/hardkernel/linux.git -b odroidxu-3.4.y ${basedir}/kernel
 cd ${basedir}/kernel
 mkdir -p ../patches
@@ -201,10 +213,9 @@ make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/zImage ${basedir}/bootp
 
+# This is to build the console framebuffer application.
 echo "Building the hwcomposer"
-
 cd ${basedir}/kernel/tools/hardkernel/exynos5-hwcomposer
-
 # It's quite chatty still, so we if 0 the logging, and also add a missing #define
 sed -i -e 's/if 1/if 0/g' include/log.h
 sed -i -e 's/#define ALOGD/#define ALOGD\r#define ALOGF/g' include/log.h
@@ -256,7 +267,7 @@ umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
 
-# Get basic boot structure
+# Write the signed u-boot binary to the image so that it will boot.
 cd ${basedir}/kernel/tools/hardkernel/u-boot-pre-built
 sh sd_fusing.sh $loopdevice
 cd ${basedir}
@@ -279,9 +290,15 @@ cd ${basedir}
 
 losetup -d $loopdevice
 
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
 echo "Removing temporary build files"
 rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha1sum or to compress the image, since you will be testing it
+# soon.
 echo "Generating sha1sum for kali-$1-odroidxu.img"
 sha1sum kali-$1-odroidxu.img > ${basedir}/kali-$1-odroidxu.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
