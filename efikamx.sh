@@ -17,7 +17,7 @@ basedir=`pwd`/efikamx-$1
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-linux kali-menu kali-linux-full kali-defaults initramfs-tools"
+base="kali-menu kali-defaults initramfs-tools usbutils"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 pth="passing-the-hash unicornscan winexe enum4linux polenum nfspy wmis nipper-ng jsql ghost-phisher uniscan lbd automater arachni bully inguma sslsplit dumpzilla recon-ng ridenum jd-gui"
 

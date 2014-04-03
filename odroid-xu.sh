@@ -25,7 +25,7 @@ hosttuple=arm-linux-gnueabihf
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools"
+base="kali-menu kali-defaults initramfs-tools usbutils"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
