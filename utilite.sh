@@ -10,6 +10,17 @@ fi
 
 basedir=`pwd`/utilite-$1
 
+# Make sure that the cross compiler can be found in the path before we do
+# anything else, that way the builds don't fail half way through.
+export CROSS_COMPILE=arm-linux-gnueabihf-
+if [ $(compgen -c $CROSS_COMPILE | wc -l) -eq 0 ] ; then
+    echo "Missing cross compiler. Set up PATH according to the README"
+    exit 1
+fi
+# Unset CROSS_COMPILE so that if there is any native compiling needed it doesn't
+# get cross compiled.
+unset CROSS_COMPILE
+
 # Package installations for various sections. 
 # This will build a minimal XFCE Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
