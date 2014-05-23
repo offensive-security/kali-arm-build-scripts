@@ -240,7 +240,7 @@ export CROSS_COMPILE=arm-linux-gnueabihf-
 mkdir -p ../patches
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
-make odroidu2_defconfig
+make odroidu_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/zImage ${basedir}/bootp
