@@ -207,7 +207,8 @@ mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.cmd ${basedir}/bootp/b
 cd ${basedir}/u-boot-sunxi/
 # Build u-boot
 make distclean
-make Mini-X -j $(grep -c processor /proc/cpuinfo)
+make Mini-X_config
+make -j $(grep -c processor /proc/cpuinfo)
 
 dd if=u-boot-sunxi-with-spl.bin of=$loopdevice bs=1024 seek=8
 
