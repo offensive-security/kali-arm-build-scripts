@@ -167,7 +167,7 @@ rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 
 # Enable the serial console
-echo "T1:12345:/sbin/agetty -L ttyS0 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T1:12345:respawn:/sbin/agetty -L ttyS0 115200 vt100" >> ${basedir}/root/etc/inittab
 # Load the ethernet module since it doesn't load automatically at boot.
 echo "sunxi_emac" >> ${basedir}/root/etc/modules
 
