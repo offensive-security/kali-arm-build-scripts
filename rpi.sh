@@ -171,7 +171,7 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 # Enable login over serial
-echo "T0:23:/sbin/getty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy

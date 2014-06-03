@@ -171,7 +171,7 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 # Enable serial console access
-echo "T1:23:/sbin/agetty -L ttymxc3 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T1:23:respawn:/sbin/agetty -L ttymxc3 115200 vt100" >> ${basedir}/root/etc/inittab
 
 cat << EOF >> ${basedir}/root/etc/udev/links.conf
 M   ttymxc3 c   5 1
