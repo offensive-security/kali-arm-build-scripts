@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This is the Utilite Kali ARM build script - http://utilite-computer.com/web/home
+# This is the riot Kali ARM build script - http://www.riotboard.org
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
@@ -8,7 +8,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/utilite-$1
+basedir=`pwd`/riot-$1
 
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
@@ -145,14 +145,14 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for Utilite"
-dd if=/dev/zero of=${basedir}/kali-$1-utilite.img bs=1M count=7000
-parted kali-$1-utilite.img --script -- mklabel msdos
-parted kali-$1-utilite.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-utilite.img --script -- mkpart primary ext4 264192s 100%
+echo "Creating image file for riot"
+dd if=/dev/zero of=${basedir}/kali-$1-riot.img bs=1M count=7000
+parted kali-$1-riot.img --script -- mklabel msdos
+parted kali-$1-riot.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-$1-riot.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-utilite.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$1-riot.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -171,14 +171,14 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 # Enable serial console access
-echo "T1:23:respawn:/sbin/agetty -L ttymxc3 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T1:23:respawn:/sbin/agetty -L ttymxc1 115200 vt100" >> ${basedir}/root/etc/inittab
 
 cat << EOF >> ${basedir}/root/etc/udev/links.conf
-M   ttymxc3 c   5 1
+M   ttymxc1 c   5 1
 EOF
 
 cat << EOF >> ${basedir}/root/etc/securetty
-ttymxc3
+ttymxc1
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail
@@ -186,25 +186,55 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 git://gitorious.org/utilite/utilite.git ${basedir}/kernel
+#
+# Mainline-ish - 3.15.0-rc7 base with some i.MX and RIoTboard fixes on top.
+git clone --depth 1 -b riotboard-dts4 git://github.com/selsinork/linux.git ${basedir}/kernel
 cd ${basedir}/kernel
 mkdir -p ../patches
 wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
-cp ${basedir}/../kernel-configs/utilite.config .config
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-make -j $(grep -c processor /proc/cpuinfo) uImage modules
+cp ${basedir}/../kernel-configs/riot.config
+make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
-cp arch/arm/boot/uImage ${basedir}/bootp/uImage-cm-fx6
+cp arch/arm/boot/zImage ${basedir}/bootp/
+cp arch/arm/boot/dts/imx6dl-riotboard.dtb ${basedir}/bootp/
 cd ${basedir}
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
+# Need some firmware from the kernel so..
+cd ${basedir}/kernel
+make modules_install INSTALL_MOD_PATH=${basedir}/root
 cd ${basedir}
+
+# Mainline u-boot with RIoTboard fixes on top
+git clone -b embest-boards-fixes --depth 1 git://github.com/selsinork/u-boot.git
+cd u-boot
+make riotboard_config
+make -j $(grep -c processor /proc/cpuinfo)
+dd if=u-boot.imx of=$loopdevice bs=1024 seek=1
+cd ${basedir}
+
+# Generate the bootscript so that u-boot knows where everything is...
+cat << __EOF__ > ${basedir}/bootp/bootscript
+fdt_high=0xffffffff
+initrd_high=0xffffffff
+
+kaddr=0x12000000
+
+loadkernel=load \${dtype} \${disk}:1 \${loadaddr} zImage
+
+bargs=setenv bootargs console=ttymxc1,115200n8 rootwait root=PARTUUID=\${btpart}
+
+loadfdt=load \${dtype} \${disk}:1 0x11000000 \${fdt_file}
+
+doboot=part uuid \${dtype} \${disk}:2 btpart ; run bargs; if run loadkernel; then echo kernel_loaded ; if run loadfdt; then echo fdt_loaded; bootz \${loadaddr} - 0x11000000 ; else echo fail1 ; fi ; fi ; echo failed to boot
+__EOF__
 
 # Unmount partitions
 umount $bootp
@@ -216,19 +246,19 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches
+rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/u-boot ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-utilite.img"
-sha1sum kali-$1-utilite.img > ${basedir}/kali-$1-utilite.img.sha1sum
+echo "Generating sha1sum for kali-$1-riot.img"
+sha1sum kali-$1-riot.img > ${basedir}/kali-$1-riot.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-utilite.img"
-pixz ${basedir}/kali-$1-utilite.img ${basedir}/kali-$1-utilite.img.xz
-rm ${basedir}/kali-$1-utilite.img
-echo "Generating sha1sum for kali-$1-utilite.img.xz"
-sha1sum kali-$1-utilite.img.xz > ${basedir}/kali-$1-utilite.img.xz.sha1sum
+echo "Compressing kali-$1-riot.img"
+pixz ${basedir}/kali-$1-riot.img ${basedir}/kali-$1-riot.img.xz
+rm ${basedir}/kali-$1-riot.img
+echo "Generating sha1sum for kali-$1-riot.img.xz"
+sha1sum kali-$1-riot.img.xz > ${basedir}/kali-$1-riot.img.xz.sha1sum
 fi
