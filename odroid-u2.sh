@@ -207,7 +207,7 @@ cat << EOF > ${basedir}/root/etc/X11/xorg.conf
 Section "Device"
 Identifier "Mali-Fbdev"
 # Driver "mali"
-Option "fbdev" "/dev/fb1"
+Option "fbdev" "/dev/fb0"
 Option "DRI2" "true"
 Option "DRI2_PAGE_FLIP" "true"
 Option "DRI2_WAIT_VSYNC" "true"
