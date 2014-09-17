@@ -39,6 +39,12 @@ extras="iceweasel wpasupplicant"
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
+# If you have your own preferred mirrors, set them here.
+# You may want to leave security.kali.org alone, but if you trust your local
+# mirror, feel free to change this as well.
+# After generating the rootfs, we set the sources.list to the default settings.
+export mirror=http.kali.org
+export security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -48,14 +54,14 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
+debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://http.kali.org/kali kali main contrib non-free
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali kali main contrib non-free
+deb http://$security/kali-security kali/updates main contrib non-free
 EOF
 
 echo "kali" > kali-$architecture/etc/hostname
@@ -224,6 +230,14 @@ EndSection
 Section "DRI"
 Mode 0666
 EndSection
+EOF
+
+cat << EOF > ${basedir}/root/etc/apt/sources.list
+deb http://http.kali.org/kali kali main non-free contrib
+deb http://security.kali.org/kali-security kali/updates main contrib non-free
+
+deb-src http://http.kali.org/kali kali main non-free contrib
+deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
