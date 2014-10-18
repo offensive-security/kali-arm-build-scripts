@@ -23,8 +23,8 @@ arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mki
 base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
-services="openssh-server apache2"
-extras="iceweasel wpasupplicant"
+services="openssh-server apache2 bluetooth bluez-utils blueman putty fish putty putty-tools ssh ssl"
+extras="iceweasel wpasupplicant tor "
 size=3000 # Size of image in megabytes
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
