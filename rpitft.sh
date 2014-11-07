@@ -232,7 +232,7 @@ options fbtft_device name=adafruitrt28 rotate=90 frequency=3200000
 EOF
 
 cat << EOF > ${basedir}/root/root/.profile
-FRAMEBUFFER=/dev/fb1
+export FRAMEBUFFER=/dev/fb1
 EOF
 
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d/
