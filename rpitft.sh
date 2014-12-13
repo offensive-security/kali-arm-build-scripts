@@ -4,11 +4,20 @@
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 1.0.1 and (if you want) a hostname, e.g. kali"
     exit 0
 fi
 
-basedir=`pwd`/rpitft-$1
+kalvers=0
+kalname=kali
+
+kalvers=$1
+
+if [ $2 ]; then
+  kalname=$2
+fi
+
+basedir=`pwd`/rpi-$kalvers
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -51,7 +60,10 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+#debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+# fetch the right key
+gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/kali-linux.pub --recv-keys ED444FF07D8D0BF6
+debootstrap --foreign --arch $architecture --keyring /etc/apt/trusted.gpg.d/kali-linux.pub wheezy kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -62,11 +74,11 @@ deb http://$security/kali-security kali/updates main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
+echo "${kalname}" > kali-$architecture/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1      ${kalname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -152,13 +164,14 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry PiTFT"
-dd if=/dev/zero of=${basedir}/kali-$1-rpitft.img bs=1M count=$size
-parted kali-$1-rpitft.img --script -- mklabel msdos
-parted kali-$1-rpitft.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpitft.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-${kalvers}-rpitft.img bs=1M count=$size
+parted kali-${kalvers}-rpitft.img --script -- mklabel msdos
+parted kali-${kalvers}-rpitft.img --script -- mkpart primary fat32 0 64
+parted kali-${kalvers}-rpitft.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpitft.img`
+modprobe loop
+loopdevice=`losetup -f --show ${basedir}/kali-${kalvers}-rpitft.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -195,6 +208,10 @@ EOF
 git clone --depth 1 -b rpi-3.15.y https://github.com/adafruit/adafruit-raspberrypi-linux ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
+# Wifi-Module
+mkdir ${basedir}/wifi
+git clone https://github.com/lwfinger/rtl8188eu.git ${basedir}/wifi
+
 cd ${basedir}/kernel
 git submodule init
 git submodule update
@@ -207,6 +224,18 @@ export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf
 cp ${basedir}/../kernel-configs/rpi-ada-3.15.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
+cd ${basedir}/wifi
+export SRCDIR=../kernel
+export STAGING_DIR=../../../gcc-arm-linux-gnueabihf-4.7/bin
+export TOOLCHAIN_DIR=$STAGING_DIR
+export LD_LIBRARY_PATH=$TOOLCHAIN_DIR/lib/
+export LDCFLAGS=$TOOLCHAIN_DIR/usr/lib/
+export PATH=$STAGING_DIR/bin:$PATH
+make -j $(grep -c processor /proc/cpuinfo) KSRC=${basedir}/kernel
+cp ${basedir}/wifi/8188eu.ko ${basedir}/root/lib/modules/3.15.8/kernel/net/wireless/
+mkdir -p ${basedir}/root/lib/firmware/rtlwifi/
+cp ${basedir}/wifi/rtl8188eufw.bin ${basedir}/root/lib/firmware/rtlwifi/
+cd ${basedir}/kernel
 git clone --depth 1 https://github.com/adafruit/rpi-firmware.git rpi-firmware
 rm -rf rpi-firmware/extra rpi-firmware/modules rpi-firmware/firmware rpi-firmware/vc
 cp -rf rpi-firmware/* ${basedir}/bootp/
@@ -235,6 +264,10 @@ cat << EOF > ${basedir}/root/root/.profile
 export FRAMEBUFFER=/dev/fb1
 EOF
 
+cat << EOF >> ${basedir}/root/etc/skel/.profile
+export FRAMEBUFFER=/dev/fb1
+EOF
+
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d/
 cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/99-calibration.conf
 Section "InputClass"
@@ -249,6 +282,8 @@ rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
+mkdir ${basedir}/root/lib/firmware/rtlwifi/
+cp ${basedir}/wifi/rtl8188eufw.bin ${basedir}/root/lib/firmware/rtlwifi/
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts
@@ -266,20 +301,20 @@ losetup -d $loopdevice
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
-echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
+#echo "Cleaning up the temporary build files..."
+#rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches ${basedir}/wifi
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpitft.img"
-sha1sum kali-$1-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha1sum
+echo "Generating sha1sum for kali-${kalvers}-rpitft.img"
+sha1sum kali-${kalvers}-rpitft.img > ${basedir}/kali-${kalvers}-rpitft.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpitft.img"
-pixz ${basedir}/kali-$1-rpitft.img ${basedir}/kali-$1-rpitft.img.xz
-rm ${basedir}/kali-$1-rpitft.img
-echo "Generating sha1sum for kali-$1-rpitft.img.xz"
-sha1sum kali-$1-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha1sum
+echo "Compressing kali-${kalvers}-rpitft.img"
+pixz ${basedir}/kali-${kalvers}-rpitft.img ${basedir}/kali-${kalvers}-rpitft.img.xz
+rm ${basedir}/kali-${kalvers}-rpitft.img
+echo "Generating sha1sum for kali-${kalvers}-rpitft.img.xz"
+sha1sum kali-${kalvers}-rpitft.img.xz > ${basedir}/kali-${kalvers}-rpitft.img.xz.sha1sum
 fi
