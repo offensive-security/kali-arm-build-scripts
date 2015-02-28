@@ -8,7 +8,28 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpitft-$1
+NAME_SHORT=rpitft
+DESCRIPTION="Raspberry Pi with PiTFT"
+
+VERSION=$1
+
+basedir=$(pwd)/${NAME_SHORT}-${VERSION}
+
+MACHINE=armel
+ISCROSS=1
+HW=$(uname -m)
+case ${HW} in
+armv5el)
+    # Pi 1
+    ISCROSS=0
+    MACHINE=armel
+    ;;
+armv7l)
+    # Pi 2
+    ISCROSS=0
+    MACHINE=armhf
+    ;;
+esac
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -28,7 +49,7 @@ extras="iceweasel wpasupplicant"
 size=3000 # Size of image in megabytes
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armel"
+export architecture="${MACHINE}"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
@@ -38,8 +59,8 @@ export security=security.kali.org
 
 # Check to ensure that the architecture is set to ARMEL since the RPi is the
 # only board that is armel.
-if [[ $architecture != "armel" ]] ; then
-    echo "The Raspberry Pi cannot run the Debian armhf binaries"
+if [[ ( ! $architecture = "armel" ) && ( ! $architecture = "armhf" ) ]] ; then
+    echo "The Raspberry Pi cannot run the Debian binaries"
     exit 0
 fi
 
@@ -53,9 +74,13 @@ cd ${basedir}
 # create the rootfs - not much to modify here, except maybe the hostname.
 debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
 
+if [ "${ISCROSS}" = "1" ]; then
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+fi
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+
+# Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali main contrib non-free
 deb http://$security/kali-security kali/updates main contrib non-free
@@ -151,14 +176,14 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for Raspberry PiTFT"
-dd if=/dev/zero of=${basedir}/kali-$1-rpitft.img bs=1M count=$size
-parted kali-$1-rpitft.img --script -- mklabel msdos
-parted kali-$1-rpitft.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpitft.img --script -- mkpart primary ext4 64 -1
+echo "Creating image file for ${DESCRIPTION}"
+dd if=/dev/zero of=${basedir}/kali-${VERSION}-${NAME_SHORT}.img bs=1M count=$size
+parted kali-${VERSION}-${NAME_SHORT}.img --script -- mklabel msdos
+parted kali-${VERSION}-${NAME_SHORT}.img --script -- mkpart primary fat32 0 64
+parted kali-${VERSION}-${NAME_SHORT}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpitft.img`
+loopdevice=`losetup -f --show ${basedir}/kali-${VERSION}-${NAME_SHORT}.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -203,7 +228,11 @@ wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/pat
 patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
+if [ "${ISCROSS}" = "1" ]; then
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
+else
+export CROSS_COMPILE=
+fi
 cp ${basedir}/../kernel-configs/rpi-ada-3.15.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
@@ -272,14 +301,14 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpitft.img"
-sha1sum kali-$1-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha1sum
+echo "Generating sha1sum for kali-${VERSION}-${NAME_SHORT}.img"
+sha1sum kali-${VERSION}-${NAME_SHORT}.img > ${basedir}/kali-${VERSION}-${NAME_SHORT}.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpitft.img"
-pixz ${basedir}/kali-$1-rpitft.img ${basedir}/kali-$1-rpitft.img.xz
-rm ${basedir}/kali-$1-rpitft.img
-echo "Generating sha1sum for kali-$1-rpitft.img.xz"
-sha1sum kali-$1-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha1sum
+echo "Compressing kali-${VERSION}-${NAME_SHORT}.img"
+pixz ${basedir}/kali-${VERSION}-${NAME_SHORT}.img ${basedir}/kali-${VERSION}-${NAME_SHORT}.img.xz
+rm ${basedir}/kali-${VERSION}-${NAME_SHORT}.img
+echo "Generating sha1sum for kali-${VERSION}-${NAME_SHORT}.img.xz"
+sha1sum kali-${VERSION}-${NAME_SHORT}.img.xz > ${basedir}/kali-${VERSION}-${NAME_SHORT}.img.xz.sha1sum
 fi
