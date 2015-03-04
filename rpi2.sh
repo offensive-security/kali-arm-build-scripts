@@ -33,8 +33,8 @@ export architecture="armhf"
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=192.168.11.44
-export security=192.168.11.44
+export mirror=http.kali.org
+export security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
