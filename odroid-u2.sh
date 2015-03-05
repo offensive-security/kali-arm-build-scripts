@@ -8,7 +8,12 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/odroid-$1
+NAME_SHORT=odroidu2
+DESCRIPTION="ODROID-U2"
+
+VERSION=$1
+
+basedir=$(pwd)/${NAME_SHORT}-${VERSION}
 
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
@@ -150,14 +155,14 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for ODROID-U2"
-dd if=/dev/zero of=${basedir}/kali-$1-odroid.img bs=1M count=7000
-parted kali-$1-odroid.img --script -- mklabel msdos
-parted kali-$1-odroid.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-odroid.img --script -- mkpart primary ext4 264192s 100%
+echo "Creating image file for ${DESCRIPTION}"
+dd if=/dev/zero of=${basedir}/kali-${VERSION}-${NAME_SHORT}.img bs=1M count=7000
+parted kali-${VERSION}-${NAME_SHORT}.img --script -- mklabel msdos
+parted kali-${VERSION}-${NAME_SHORT}.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-${VERSION}-${NAME_SHORT}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-odroid.img`
+loopdevice=`losetup -f --show ${basedir}/kali-${VERSION}-${NAME_SHORT}.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -310,15 +315,15 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-odroid.img"
-sha1sum kali-$1-odroid.img > ${basedir}/kali-$1-odroid.img.sha1sum
+echo "Generating sha1sum for kali-${VERSION}-${NAME_SHORT}.img"
+sha1sum kali-${VERSION}-${NAME_SHORT}.img > ${basedir}/kali-${VERSION}-${NAME_SHORT}.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-odroid.img"
-pixz ${basedir}/kali-$1-odroid.img ${basedir}/kali-$1-odroid.img.xz
-echo "Deleting kali-$1-odroid.img"
-rm ${basedir}/kali-$1-odroid.img
-echo "Generating sha1sum for kali-$1-odroid.img"
-sha1sum kali-$1-odroid.img.xz > ${basedir}/kali-$1-odroid.img.xz.sha1sum
+echo "Compressing kali-${VERSION}-${NAME_SHORT}.img"
+pixz ${basedir}/kali-${VERSION}-${NAME_SHORT}.img ${basedir}/kali-${VERSION}-${NAME_SHORT}.img.xz
+echo "Deleting kali-${VERSION}-${NAME_SHORT}.img"
+rm ${basedir}/kali-${VERSION}-${NAME_SHORT}.img
+echo "Generating sha1sum for kali-${VERSION}-${NAME_SHORT}.img"
+sha1sum kali-${VERSION}-${NAME_SHORT}.img.xz > ${basedir}/kali-${VERSION}-${NAME_SHORT}.img.xz.sha1sum
 fi
