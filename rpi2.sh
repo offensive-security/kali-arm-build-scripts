@@ -188,7 +188,6 @@ EOF
 git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.18.y ${basedir}/kernel
 
 cd ${basedir}/kernel
-mkdir -p ../patches
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.18.patch
 touch .scmversion
 export ARCH=arm
@@ -199,8 +198,7 @@ make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-cp arch/arm/boot/zImage ${basedir}/bootp/zImage
-cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+cp arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
 cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
 cd ${basedir}
 
