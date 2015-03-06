@@ -192,7 +192,7 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux ${basedir}/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.12.y ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/kernel
