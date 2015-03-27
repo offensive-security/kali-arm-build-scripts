@@ -207,6 +207,10 @@ EOF
 git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.12.y ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
+# Wifi-Module
+mkdir ${basedir}/wifi
+git clone https://github.com/lwfinger/rtl8188eu.git ${basedir}/wifi
+
 cd ${basedir}/kernel
 mkdir -p ../patches
 wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/kali-wifi-injection-3.12.patch -O ../patches/mac80211.patch
@@ -217,6 +221,18 @@ export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf
 cp ${basedir}/../kernel-configs/rpi-3.12.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
+cd ${basedir}/wifi
+export SRCDIR=../kernel
+export STAGING_DIR=../../../gcc-arm-linux-gnueabihf-4.7/bin
+export TOOLCHAIN_DIR=$STAGING_DIR
+export LD_LIBRARY_PATH=$TOOLCHAIN_DIR/lib/
+export LDCFLAGS=$TOOLCHAIN_DIR/usr/lib/
+export PATH=$STAGING_DIR/bin:$PATH
+make -j $(grep -c processor /proc/cpuinfo) KSRC=${basedir}/kernel
+cp ${basedir}/wifi/8188eu.ko ${basedir}/root/lib/modules/3.12.33/kernel/net/wireless/
+mkdir -p ${basedir}/root/lib/firmware/rtlwifi/
+cp ${basedir}/wifi/rtl8188eufw.bin ${basedir}/root/lib/firmware/rtlwifi/
+cd ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
 cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
@@ -231,6 +247,9 @@ rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
+mkdir ${basedir}/root/lib/firmware/rtlwifi/
+cp ${basedir}/wifi/rtl8188eufw.bin ${basedir}/root/lib/firmware/rtlwifi/
+
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts
@@ -249,7 +268,7 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
+rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches ${basedir}/wifi
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it

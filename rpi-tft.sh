@@ -208,6 +208,10 @@ EOF
 git clone --depth 1 -b rpi-3.15.y https://github.com/adafruit/adafruit-raspberrypi-linux ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
+# Wifi-Module
+mkdir ${basedir}/wifi
+git clone https://github.com/lwfinger/rtl8188eu.git ${basedir}/wifi
+
 cd ${basedir}/kernel
 git submodule init
 git submodule update
@@ -220,6 +224,18 @@ export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf
 cp ${basedir}/../kernel-configs/rpi-ada-3.15.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
+cd ${basedir}/wifi
+export SRCDIR=../kernel
+export STAGING_DIR=../../../gcc-arm-linux-gnueabihf-4.7/bin
+export TOOLCHAIN_DIR=$STAGING_DIR
+export LD_LIBRARY_PATH=$TOOLCHAIN_DIR/lib/
+export LDCFLAGS=$TOOLCHAIN_DIR/usr/lib/
+export PATH=$STAGING_DIR/bin:$PATH
+make -j $(grep -c processor /proc/cpuinfo) KSRC=${basedir}/kernel
+cp ${basedir}/wifi/8188eu.ko ${basedir}/root/lib/modules/3.15.8/kernel/net/wireless/
+mkdir -p ${basedir}/root/lib/firmware/rtlwifi/
+cp ${basedir}/wifi/rtl8188eufw.bin ${basedir}/root/lib/firmware/rtlwifi/
+cd ${basedir}/kernel
 git clone --depth 1 https://github.com/adafruit/rpi-firmware.git rpi-firmware
 rm -rf rpi-firmware/extra rpi-firmware/modules rpi-firmware/firmware rpi-firmware/vc
 cp -rf rpi-firmware/* ${basedir}/bootp/
@@ -248,6 +264,10 @@ cat << EOF > ${basedir}/root/root/.profile
 export FRAMEBUFFER=/dev/fb1
 EOF
 
+cat << EOF >> ${basedir}/root/etc/skel/.profile
+export FRAMEBUFFER=/dev/fb1
+EOF
+
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d/
 cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/99-calibration.conf
 Section "InputClass"
@@ -262,6 +282,9 @@ rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
+
+mkdir ${basedir}/root/lib/firmware/rtlwifi/
+cp ${basedir}/wifi/rtl8188eufw.bin ${basedir}/root/lib/firmware/rtlwifi/
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts
@@ -280,18 +303,19 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
+rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches  ${basedir}/wifi
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
 echo "Generating sha1sum for kali-${kalvers}-rpitft.img"
-sha1sum kali-${kalvers}-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha1sum
+sha1sum kali-${kalvers}-rpitft.img > ${basedir}/kali-${kalvers}-rpitft.img.sha1sum
+
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-${kalvers}-rpitft.img"
-pixz ${basedir}/kali-${kalvers}-rpitft.img ${basedir}/kali-$1-rpitft.img.xz && rm ${basedir}/kali-${kalvers}-rpitft.img
+pixz ${basedir}/kali-${kalvers}-rpitft.img ${basedir}/kali-${kalvers}-rpitft.img.xz && rm ${basedir}/kali-${kalvers}-rpitft.img
 echo "Generating sha1sum for kali-${kalvers}-rpitft.img.xz"
-sha1sum kali-${kalvers}-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha1sum
+sha1sum kali-${kalvers}-rpitft.img.xz > ${basedir}/kali-${kalvers}-rpitft.img.xz.sha1sum
 fi
