@@ -4,11 +4,20 @@
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 1.0.1 and (if you want) a hostname, e.g. kali"
     exit 0
 fi
 
-basedir=`pwd`/rpitft-$1
+kalvers=0
+kalname=kali
+
+kalvers=$1
+
+if [ $2 ]; then
+  kalname=$2
+fi
+
+basedir=`pwd`/rpitft-${kalvers}
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -51,7 +60,10 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+#debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+# fetch the right key
+gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/kali-linux.pub --recv-keys ED444FF07D8D0BF6
+debootstrap --foreign --arch $architecture --keyring /etc/apt/trusted.gpg.d/kali-linux.pub wheezy kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -62,11 +74,11 @@ deb http://$security/kali-security kali/updates main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
+echo "${kalname}" > kali-$architecture/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1       ${kalname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -152,13 +164,14 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry PiTFT"
-dd if=/dev/zero of=${basedir}/kali-$1-rpitft.img bs=1M count=$size
-parted kali-$1-rpitft.img --script -- mklabel msdos
-parted kali-$1-rpitft.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpitft.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-${kalvers}-rpitft.img bs=1M count=$size
+parted kali-${kalvers}-rpitft.img --script -- mklabel msdos
+parted kali-${kalvers}-rpitft.img --script -- mkpart primary fat32 0 64
+parted kali-${kalvers}-rpitft.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpitft.img`
+modprobe loop
+loopdevice=`losetup -f --show ${basedir}/kali-${kalvers}-rpitft.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -272,14 +285,13 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpitft.img"
-sha1sum kali-$1-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha1sum
+echo "Generating sha1sum for kali-${kalvers}-rpitft.img"
+sha1sum kali-${kalvers}-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpitft.img"
-pixz ${basedir}/kali-$1-rpitft.img ${basedir}/kali-$1-rpitft.img.xz
-rm ${basedir}/kali-$1-rpitft.img
-echo "Generating sha1sum for kali-$1-rpitft.img.xz"
-sha1sum kali-$1-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha1sum
+echo "Compressing kali-${kalvers}-rpitft.img"
+pixz ${basedir}/kali-${kalvers}-rpitft.img ${basedir}/kali-$1-rpitft.img.xz && rm ${basedir}/kali-${kalvers}-rpitft.img
+echo "Generating sha1sum for kali-${kalvers}-rpitft.img.xz"
+sha1sum kali-${kalvers}-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha1sum
 fi
