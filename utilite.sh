@@ -200,11 +200,10 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 git://gitorious.org/utilite/utilite.git ${basedir}/kernel
+# For now, use the 3.0 kernel.  Latest kernel is 3.10, but needs a new u-boot.
+git clone --branch utilite/devel --depth 1 https://github.com/utilite-computer/linux-kernel-3.0 ${basedir}/kernel
 cd ${basedir}/kernel
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 cp ${basedir}/../kernel-configs/utilite.config .config
 touch .scmversion
 export ARCH=arm

@@ -184,11 +184,9 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/SolidRun/linux-linaro-stable-mx6.git ${basedir}/kernel
+git clone --depth 1 -b linux-linaro-lsk-3.10.42-mx6 https://github.com/SolidRun/linux-linaro-stable-mx6.git ${basedir}/kernel
 cd ${basedir}/kernel
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -237,6 +235,7 @@ dd if=u-boot.img of=$loopdevice bs=1K seek=42
 cd ${basedir}
 
 # Unmount partitions
+umount $rootp
 umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice

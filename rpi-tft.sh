@@ -8,7 +8,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpitft-$1
+basedir=`pwd`/rpi-tft-$1
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -198,9 +198,7 @@ git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 cd ${basedir}/kernel
 git submodule init
 git submodule update
-mkdir -p ../patches
-wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/kali-wifi-injection-3.12.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.12.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-

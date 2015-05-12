@@ -192,8 +192,7 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-#cp ${basedir}/../kernel-configs/rpi-3.18.config .config
-make bcm2709_defconfig
+cp ${basedir}/../kernel-configs/rpi2-3.18.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware

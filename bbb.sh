@@ -29,8 +29,8 @@ export architecture="armhf"
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=http.kali.org
-export security=security.kali.org
+mirror=http.kali.org
+security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -194,22 +194,24 @@ EOF
 # You can load the github URL in a browser, and see what other branches you can
 # try.  Keep in mind if you do so, that you will likely want to comment out
 # AUTO_BUILD so that you can configure the kernel!
-git clone --depth 1 https://github.com/RobertCNelson/linux-dev -b am33x-v3.8 ${basedir}/kernel
+git clone --depth 1 --branch am33x-v3.8 file:///root/sandbox/mirror/bbb.git ${basedir}/kernel
 cd ${basedir}/kernel
 git config user.name root
 git config user.email none@none.no
 export AUTO_BUILD=1
+export LINUX_GIT=/root/sandbox/mirror/mainline.git
+export CC=/root/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+rm tools/host_det.sh
+wget https://raw.githubusercontent.com/RobertCNelson/stable-kernel/master/tools/host_det.sh -O tools/host_det.sh
 ./build_kernel.sh
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
 cd ${basedir}/kernel/KERNEL
-patch -p1 --no-backup-if-mismatch < ../../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 cd ${basedir}/kernel
 ./tools/rebuild.sh
-cp -v ${basedir}/kernel/deploy/3.8.*.zImage ${basedir}/bootp/zImage
+cp -v ${basedir}/kernel/deploy/3.*.zImage ${basedir}/bootp/zImage
 mkdir -p ${basedir}/bootp/dtbs
-tar -xovf ${basedir}/kernel/deploy/3.8.*-dtbs.tar.gz -C ${basedir}/bootp/dtbs/
-tar -xovf ${basedir}/kernel/deploy/3.8.*-modules.tar.gz -C ${basedir}/root/
+tar -xovf ${basedir}/kernel/deploy/3.*-dtbs.tar.gz -C ${basedir}/bootp/dtbs/
+tar -xovf ${basedir}/kernel/deploy/3.*-modules.tar.gz -C ${basedir}/root/
 cd ${basedir}
 
 # Create uEnv.txt file
@@ -250,9 +252,9 @@ EOF
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+git clone file:///root/sandbox/mirror/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
-tar -xovf ${basedir}/kernel/deploy/3.8.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
+tar -xovf ${basedir}/kernel/deploy/3.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
 cd ${basedir}
 
 # Unused currently, but this script is a part of using the usb as an ethernet

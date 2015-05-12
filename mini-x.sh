@@ -195,13 +195,11 @@ make fex2bin
 ./fex2bin ${basedir}/sunxi-boards/sys_config/a10/mini-x.fex ${basedir}/bootp/script.bin
 
 cd ${basedir}/kernel
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-make sun4i_defconfig
+cp ${basedir}/../kernel-configs/sun4i.config .config
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/uImage ${basedir}/bootp

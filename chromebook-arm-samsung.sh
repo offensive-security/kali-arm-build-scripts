@@ -192,20 +192,18 @@ EOF
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section. Currently we're using 3.4, but there will be a switch to
 # 3.8.
-git clone --depth 1 http://chromium.googlesource.com/chromiumos/third_party/kernel.git -b chromeos-3.4 ${basedir}/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.8 ${basedir}/kernel
 cd ${basedir}/kernel
-cp ${basedir}/../kernel-configs/chromebook.config .config
+cp ${basedir}/../kernel-configs/chromebook-3.8_wireless-3.4.config .config
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
-mkdir -p ../patches
-#wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/kali-wifi-injection-3.12.patch -O ../patches/mac80211.patch
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.4.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-exynos-drm-smem-start-len.patch
 # sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
-make -j $(grep -c processor /proc/cpuinfo)
-make dtbs
-make modules_install INSTALL_MOD_PATH=${basedir}/root
+make WIFIVERSION="-3.4" -j $(grep -c processor /proc/cpuinfo)
+make WIFIVERSION="-3.4" dtbs
+make WIFIVERSION="-3.4" modules_install INSTALL_MOD_PATH=${basedir}/root
 cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
 /dts-v1/;
 
@@ -225,7 +223,7 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
         };
         fdt@1{
             description = "exynos5250-snow-rev4.dtb";
-            data = /incbin/("exynos5250-snow-rev4.dtb");
+            data = /incbin/("dts/exynos5250-snow-rev4.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -235,7 +233,7 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-snow.its
         };
         fdt@2{
             description = "exynos5250-snow-rev5.dtb";
-            data = /incbin/("exynos5250-snow-rev5.dtb");
+            data = /incbin/("dts/exynos5250-snow-rev5.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -266,7 +264,7 @@ mkdir ${basedir}/script/u-boot/
 cat << EOF > ${basedir}/script/u-boot/boot.txt
 setenv bootpart 3
 setenv rootpart 2
-setenv regen_ext2_bootargs 'setenv bootdev_bootargs root=/dev/\${devname}\${bootpart} quiet rootfstype=ext4 rootwait rw lsm.module_locking=0; run regen_all'
+setenv regen_ext2_bootargs 'setenv bootdev_bootargs root=/dev/\${devname}\${bootpart} quiet rootfstype=ext4 rootwait rw lsm.module_locking=0'
 setenv cros_bootfile /vmlinux.uimg
 setenv extra_bootargs console=tty1
 setenv mmc0_boot echo ERROR: Could not boot from USB or SD

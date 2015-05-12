@@ -179,7 +179,7 @@ mount $scriptp ${basedir}/script
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-cat << EOF > ${basedir}/etc/apt/sources.list
+cat << EOF > ${basedir}/root/etc/apt/sources.list
 deb http://http.kali.org/kali kali main non-free contrib
 deb http://security.kali.org/kali-security kali/updates main contrib non-free
 
@@ -193,18 +193,17 @@ EOF
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section. Currently we're using 3.4, but there will be a switch to
 # 3.8.
-git clone --depth 1 http://chromium.googlesource.com/chromiumos/third_party/kernel.git -b chromeos-3.4 ${basedir}/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel.git -b chromeos-3.8 ${basedir}/kernel
 cd ${basedir}/kernel
-cp ${basedir}/../kernel-configs/chromebook.config .config
+cp ${basedir}/../kernel-configs/chromebook-3.8_wireless-3.4.config .config
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.4.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-exynos-drm-smem-start-len.patch
 sed -i 's/CONFIG_ERROR_ON_WARNING=y/# CONFIG_ERROR_ON_WARNING is not set/g' .config
-make -j $(grep -c processor /proc/cpuinfo)
-make dtbs
-make modules_install INSTALL_MOD_PATH=${basedir}/root
+make WIFIVERSION="-3.4" -j $(grep -c processor /proc/cpuinfo)
+make WIFIVERSION="-3.4" dtbs
+make WIFIVERSION="-3.4" modules_install INSTALL_MOD_PATH=${basedir}/root
 cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-spring.its
 /dts-v1/;
 
@@ -224,7 +223,7 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-spring.its
         };
         fdt@1{
             description = "exynos5250-spring.dtb";
-            data = /incbin/("exynos5250-spring.dtb");
+            data = /incbin/("dts/exynos5250-spring.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";

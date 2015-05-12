@@ -39,6 +39,12 @@ extras="iceweasel wpasupplicant"
 
 export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
+# If you have your own preferred mirrors, set them here.
+# You may want to leave security.kali.org alone, but if you trust your local
+# mirror, feel free to change this as well.
+# After generating the rootfs, we set the sources.list to the default settings.
+export mirror=http.kali.org
+export security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -48,14 +54,14 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://http.kali.org/kali
+debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://http.kali.org/kali kali main contrib non-free
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali kali main contrib non-free
+deb http://$security/kali-security kali/updates main contrib non-free
 EOF
 
 # Set hostname
@@ -181,22 +187,27 @@ cat << EOF >> ${basedir}/root/etc/securetty
 ttymxc1
 EOF
 
+cat << EOF > ${basedir}/root/etc/apt/sources.list
+deb http://http.kali.org/kali kali main non-free contrib
+deb http://security.kali.org/kali-security kali/updates main contrib non-free
+
+deb-src http://http.kali.org/kali kali main non-free contrib
+deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+EOF
+
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail
 #unset http_proxy
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 #
-# Mainline-ish - 3.15.0-rc7 base with some i.MX and RIoTboard fixes on top.
-git clone --depth 1 -b riotboard-dts4 git://github.com/selsinork/linux.git ${basedir}/kernel
+git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ${basedir}/kernel
 cd ${basedir}/kernel
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/riot.config
+cp ${basedir}/../kernel-configs/riot.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/zImage ${basedir}/bootp/
@@ -205,7 +216,8 @@ cd ${basedir}
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+#git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+git clone --depth 1 file:///root/sandbox/mirror/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 # Need some firmware from the kernel so..
 cd ${basedir}/kernel
@@ -213,9 +225,9 @@ make modules_install INSTALL_MOD_PATH=${basedir}/root
 cd ${basedir}
 
 # Mainline u-boot with RIoTboard fixes on top
-git clone -b embest-boards-fixes --depth 1 git://github.com/selsinork/u-boot.git
+git clone --depth 1 git://git.denx.de/u-boot.git
 cd u-boot
-make riotboard_config
+make riotboard_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 dd if=u-boot.imx of=$loopdevice bs=1024 seek=1
 cd ${basedir}

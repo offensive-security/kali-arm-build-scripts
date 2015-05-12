@@ -30,9 +30,11 @@ unset CROSS_COMPILE
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
 base="kali-menu kali-defaults initramfs-tools usbutils"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-pth="passing-the-hash unicornscan winexe enum4linux polenum nfspy wmis nipper-ng jsql ghost-phisher uniscan lbd automater arachni bully inguma sslsplit dumpzilla recon-ng ridenum jd-gui"
+tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
+services="openssh-server apache2"
+extras="iceweasel wpasupplicant"
 
-export packages="${arm} ${base} ${desktop} ${pth} armitage iceweasel metasploit wpasupplicant openssh-server"
+export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 export architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
@@ -215,9 +217,7 @@ cd ${basedir}/kernel
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 make mx51_efikamx_defconfig
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
 make modules_install INSTALL_MOD_PATH=${basedir}/root

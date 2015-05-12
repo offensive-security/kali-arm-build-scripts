@@ -192,22 +192,23 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.12.y ${basedir}/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.18.y ${basedir}/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/kernel
-mkdir -p ../patches
-wget https://raw.github.com/offensive-security/kali-arm-build-scripts/master/patches/kali-wifi-injection-3.12.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.18.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-3.12.config .config
+cp ${basedir}/../kernel-configs/rpi-3.18.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
 cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+mkdir ${basedir}/bootp/overlays/
+cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
+cp arch/arm/boot/dts/*overlay*.dtb ${basedir}/bootp/overlays/
 cd ${basedir}
 
 # Create cmdline.txt file

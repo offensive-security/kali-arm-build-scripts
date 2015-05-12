@@ -245,15 +245,14 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux.git -b odroid-3.8.y ${basedir}/kernel
+#git clone --depth 1 https://github.com/hardkernel/linux.git -b odroid-3.8.y ${basedir}/kernel
+git clone --depth 1 file:///root/sandbox/mirror/odroid.git -b odroid-3.8.y ${basedir}/kernel
 cd ${basedir}/kernel
 touch .scmversion
 export ARCH=arm
 # NOTE: 3.8 now works with a 4.8 compiler, 3.4 does not!
 export CROSS_COMPILE=arm-linux-gnueabihf-
-mkdir -p ../patches
-wget http://patches.aircrack-ng.org/mac80211.compat08082009.wl_frag+ack_v1.patch -O ../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 make odroidu_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
@@ -274,7 +273,8 @@ mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.txt ${basedir}/bootp/b
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+#git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+git clone file:///root/sandbox/mirror/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 

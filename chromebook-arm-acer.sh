@@ -40,10 +40,8 @@ export architecture="armhf"
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-#mirror=http.kali.org
-#security=security.kali.org
-mirror=192.168.11.44
-security=192.168.11.44
+mirror=http.kali.org
+security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -185,7 +183,7 @@ EOF
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 file:///root/sandbox/mirror/chromebook.git -b chromeos-3.10 ${basedir}/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.10 ${basedir}/kernel
 cd ${basedir}/kernel
 # Download the xhci firmware and build it in to the kernel so that USB booting
 # will work in case someone generates their own USB booting image.
