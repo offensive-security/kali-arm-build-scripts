@@ -322,8 +322,7 @@ cd ${basedir}
 cat << EOF > ${basedir}/root/etc/udev/rules.d/99-tegra-lid-switch.rules
 ACTION=="remove", GOTO="tegra_lid_switch_end"
 
-SUBSYSTEM=="input", KERNEL=="event*", SUBSYSTEMS=="platform",
-KERNELS=="gpio-keys.4", TAG+="power-switch"
+SUBSYSTEM=="input", KERNEL=="event*", SUBSYSTEMS=="platform", KERNELS=="gpio-keys.4", TAG+="power-switch"
 
 LABEL="tegra_lid_switch_end"
 EOF
