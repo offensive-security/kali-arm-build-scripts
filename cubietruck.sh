@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 2.0"
     exit 0
 fi
 
@@ -27,21 +27,21 @@ unset CROSS_COMPILE
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
-arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools usbutils"
-desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
-services="openssh-server apache2"
-extras="iceweasel wpasupplicant"
+arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+services="apache2 openssh-server"
+extras="iceweasel xfce4-terminal wpasupplicant"
 
-export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armhf"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=http.kali.org
-export security=security.kali.org
+mirror=repo.kali.org
+security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -51,14 +51,14 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali main contrib non-free
-deb http://$security/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali sana main contrib non-free
+deb http://$security/kali-security sana/updates main contrib non-free
 EOF
 
 echo "kali" > kali-$architecture/etc/hostname
@@ -110,12 +110,15 @@ apt-get install locales-all
 debconf-set-selections /debconf.set
 rm -f /debconf.set
 apt-get update
-apt-get -y install git-core binutils ca-certificates initramfs-tools uboot-mkimage
+apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
+export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+apt-get --yes --force-yes dist-upgrade
+apt-get --yes --force-yes autoremove
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -178,11 +181,11 @@ echo "T1:12345:respawn:/sbin/agetty -L ttyS0 115200 vt100" >> ${basedir}/root/et
 echo "sunxi_gmac" >> ${basedir}/root/etc/modules
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali main non-free contrib
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://http.kali.org/kali sana main non-free contrib
+deb http://security.kali.org/kali-security sana/updates main contrib non-free
 
-deb-src http://http.kali.org/kali kali main non-free contrib
-deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+deb-src http://http.kali.org/kali sana main non-free contrib
+deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
@@ -192,7 +195,7 @@ EOF
 # them in this section.
 # Get, compile and install kernel
 git clone --depth 1 https://github.com/linux-sunxi/u-boot-sunxi
-git clone --depth 1 https://github.com/linux-sunxi/linux-sunxi -b stage/sunxi-3.4 ${basedir}/kernel
+git clone --depth 1 https://github.com/linux-sunxi/linux-sunxi -b stage/sunxi-3.4 ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/linux-sunxi/sunxi-tools
 git clone --depth 1 https://github.com/linux-sunxi/sunxi-boards
 
@@ -200,15 +203,20 @@ cd ${basedir}/sunxi-tools
 make fex2bin
 ./fex2bin ${basedir}/sunxi-boards/sys_config/a20/cubietruck.fex ${basedir}/bootp/script.bin
 
-cd ${basedir}/kernel
+cd ${basedir}/root/usr/src/kernel
+git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/sun7i.config .config
+cp ${basedir}/../kernel-configs/sun7i.config ../sun7i.config
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/uImage ${basedir}/bootp
+make mrproper
+cp ../sun7i.config .config
+make modules_prepare
 cd ${basedir}
 
 # Create boot.txt file
@@ -235,6 +243,9 @@ cd ${basedir}/root/lib
 git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
+
+cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
+chmod +x ${basedir}/root/etc/init.d/zram
 
 # Unmount partitions
 umount $bootp
