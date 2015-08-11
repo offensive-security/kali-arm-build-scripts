@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 2.0"
     exit 0
 fi
 
@@ -27,21 +27,22 @@ unset CROSS_COMPILE
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
-arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
-desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
-services="openssh-server apache2 shellinabox vim-nox cryptsetup lvm2"
-extras="iceweasel wpasupplicant"
+arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+#desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+services="apache2 openssh-server shellinabox"
+#extras="cryptsetup iceweasel lvm2 xfce4-terminal wpasupplicant"
+extras="cryptsetup lvm2 wpasupplicant"
 
-export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armhf"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=http.kali.org
-export security=security.kali.org
+mirror=repo.kali.org
+security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -51,7 +52,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -59,8 +60,8 @@ LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali main contrib non-free
-deb http://$security/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali sana main contrib non-free
+deb http://$security/kali-security sana/updates main contrib non-free
 EOF
 
 # Set hostname
@@ -114,15 +115,20 @@ apt-get install locales-all
 debconf-set-selections /debconf.set
 rm -f /debconf.set
 apt-get update
-apt-get -y install git-core binutils ca-certificates initramfs-tools uboot-mkimage
+apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
+export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+apt-get --yes --force-yes dist-upgrade
+apt-get --yes --force-yes autoremove
 
+echo "Enabling sshd"
 update-rc.d ssh enable
-update-rc.d shellinabox enable
+echo "Enabling shellinabox"
+ln -sf '/var/run/systemd/generator.late/shellinabox.service' '/etc/systemd/system/multi-user.target.wants/shellinabox.service'
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -177,10 +183,27 @@ mount $rootp ${basedir}/root
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-cat << EOF > ${basedir}/root/etc/modules
+echo "Setting up modules.conf"
+# rm the symlink if it exists, and the original files if they exist
+rm ${basedir}/root/etc/modules
+rm ${basedir}/root/etc/modules-load.d/modules.conf
+cat << EOF > ${basedir}/root/etc/modules-load.d/modules.conf
 ledtrig_heartbeat
 ci_hdrc_imx
-g_ether use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42
+#g_mass_storage
+g_ether
+EOF
+
+echo "Setting up modprobe.d"
+cat << EOF > ${basedir}/root/etc/modprobe.d/g_ether.conf
+options g_ether use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42
+EOF
+
+cat << EOF > ${basedir}/root/etc/modprobe.d/g_mass.conf
+# Create this file if you want to use usb mass storage!
+# For example, this will create a 2GB img file for mass storage use.
+# dd if=/dev/zero of=/massstorage.img bs=1M count=2000
+#options g_mass_storage file=/massstorage.img
 EOF
 
 cat << EOF > ${basedir}/root/etc/network/interfaces
@@ -195,11 +218,11 @@ gateway 10.42.0.1
 EOF
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali main non-free contrib
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://http.kali.org/kali sana main non-free contrib
+deb http://security.kali.org/kali-security sana/updates main contrib non-free
 
-deb-src http://http.kali.org/kali kali main non-free contrib
-deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+deb-src http://http.kali.org/kali sana main non-free contrib
+deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
@@ -207,9 +230,9 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone -b v3.19 --depth 1 https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux ${basedir}/kernel
-git clone -b linux-3.19.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/kernel
-cd ${basedir}/kernel
+git clone -b linux-4.1.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
+cd ${basedir}/root/usr/src/kernel
+git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -218,13 +241,22 @@ wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/ker
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory.dts -O arch/arm/boot/dts/imx53-usbarmory.dts
-cp ${basedir}/../kernel-configs/usbarmory.config .config
+cp ${basedir}/../kernel-configs/usbarmory-4.1.config .config
+cp ${basedir}/../kernel-configs/usbarmory-4.1.config ../usbarmory-4.1.config
 make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/uImage ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory-gpio.dtb ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory.dtb ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory-host.dtb ${basedir}/root/boot/
+make mrproper
+# Since these aren't integrated into the kernel yet, mrproper removes them.
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-common.dtsi -O arch/arm/boot/dts/imx53-usbarmory-common.dtsi
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory.dts -O arch/arm/boot/dts/imx53-usbarmory.dts
+cp ../usbarmory-4.1.config .config
+make modules_prepare
 cd ${basedir}
 
 
@@ -235,6 +267,8 @@ cd firmware
 rm -rf .git
 cd ${basedir}
 
+cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
+chmod +x ${basedir}/root/etc/init.d/zram
 
 wget ftp://ftp.denx.de/pub/u-boot/u-boot-2015.04.tar.bz2
 tar -xf u-boot-2015.04.tar.bz2
@@ -254,7 +288,7 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/u-boot-usbarmory ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
+rm -rf ${basedir}/kernel ${basedir}/u-boot* ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it

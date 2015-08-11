@@ -4,7 +4,7 @@
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 2.0"
     exit 0
 fi
 
@@ -19,22 +19,23 @@ basedir=`pwd`/rpi-tft-$1
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
-arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
-desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
-services="openssh-server apache2"
-extras="iceweasel wpasupplicant"
-size=3000 # Size of image in megabytes
+arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+services="apache2 openssh-server"
+extras="iceweasel xfce4-terminal wpasupplicant"
+# kernel sauces take up space yo.
+size=7000 # Size of image in megabytes
 
-export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armel"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=http.kali.org
-export security=security.kali.org
+mirror=repo.kali.org
+security=security.kali.org
 
 # Check to ensure that the architecture is set to ARMEL since the RPi is the
 # only board that is armel.
@@ -51,14 +52,14 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali main contrib non-free
-deb http://$security/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali sana main contrib non-free
+deb http://$security/kali-security sana/updates main contrib non-free
 EOF
 
 # Set hostname
@@ -112,12 +113,15 @@ apt-get install locales-all
 debconf-set-selections /debconf.set
 rm -f /debconf.set
 apt-get update
-apt-get -y install git-core binutils ca-certificates initramfs-tools uboot-mkimage
+apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
+export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+apt-get --yes --force-yes dist-upgrade
+apt-get --yes --force-yes autoremove
 
 update-rc.d ssh enable
 
@@ -180,11 +184,11 @@ rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali main non-free contrib
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://http.kali.org/kali sana main non-free contrib
+deb http://security.kali.org/kali-security sana/updates main contrib non-free
 
-deb-src http://http.kali.org/kali kali main non-free contrib
-deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+deb-src http://http.kali.org/kali sana main non-free contrib
+deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
@@ -192,10 +196,11 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 -b rpi-3.15.y https://github.com/adafruit/adafruit-raspberrypi-linux ${basedir}/kernel
+git clone --depth 1 -b rpi-3.15.y https://github.com/adafruit/adafruit-raspberrypi-linux ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
-cd ${basedir}/kernel
+cd ${basedir}/root/usr/src/kernel
+git rev-parse HEAD > ../kernel-at-commit
 git submodule init
 git submodule update
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.12.patch
@@ -203,12 +208,16 @@ touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/rpi-ada-3.15.config .config
+cp ${basedir}/../kernel-configs/rpi-ada-3.15.config ../rpi-ada-3.15.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/adafruit/rpi-firmware.git rpi-firmware
 rm -rf rpi-firmware/extra rpi-firmware/modules rpi-firmware/firmware rpi-firmware/vc
 cp -rf rpi-firmware/* ${basedir}/bootp/
 cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+make mrproper
+cp ../rpi-ada-3.15.config .config
+make modules_prepare
 cd ${basedir}
 
 # Create cmdline.txt file
@@ -254,6 +263,9 @@ wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/ro
 chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
 
 cd ${basedir}
+
+cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
+chmod +x ${basedir}/root/etc/init.d/zram
 
 # Unmount partitions
 umount $bootp
