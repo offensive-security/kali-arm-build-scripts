@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 2.0"
     exit 0
 fi
 
@@ -27,20 +27,20 @@ unset CROSS_COMPILE
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
-arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools usbutils"
-desktop="gdm3 gnome-brave-icon-theme kali-desktop-gnome kali-root-login xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
-services="openssh-server apache2"
-extras="wpasupplicant"
+arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
+base="alsa-utils btrfs-tools e2fsprogs initramfs-tools kali-defaults kali-menu laptop-mode-tools parted sudo usbutils"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+services="apache2 openssh-server"
+extras="iceweasel xfce4-goodies xfce4-terminal wpasupplicant"
 
-export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armhf"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-mirror=http.kali.org
+mirror=repo.kali.org
 security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
@@ -51,7 +51,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -59,8 +59,8 @@ LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali main contrib non-free
-deb http://$security/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali sana main contrib non-free
+deb http://$security/kali-security sana/updates main contrib non-free
 EOF
 
 # Set hostname
@@ -116,7 +116,10 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
+export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+apt-get --yes --force-yes dist-upgrade
+apt-get --yes --force-yes autoremove
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -148,7 +151,7 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 echo "Creating image file for Acer Chromebook"
-dd if=/dev/zero of=${basedir}/kali-$1-acer.img bs=1M count=14000
+dd if=/dev/zero of=${basedir}/kali-$1-acer.img bs=1M count=7000
 parted kali-$1-acer.img --script -- mklabel gpt
 cgpt create -z kali-$1-acer.img
 cgpt create kali-$1-acer.img
@@ -162,7 +165,7 @@ device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
-mkfs.ext4 $rootp
+mkfs.btrfs -L rootfs $rootp
 
 mkdir -p ${basedir}/root
 mount $rootp ${basedir}/root
@@ -171,11 +174,11 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali main non-free contrib
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://http.kali.org/kali sana main contrib non-free
+deb http://security.kali.org/kali-security sana/updates main contrib non-free
 
-deb-src http://http.kali.org/kali kali main non-free contrib
-deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+deb-src http://http.kali.org/kali sana main contrib non-free
+deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
@@ -183,14 +186,15 @@ EOF
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.10 ${basedir}/kernel
-cd ${basedir}/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.10 ${basedir}/root/usr/src/kernel
+cd ${basedir}/root/usr/src/kernel
 # Download the xhci firmware and build it in to the kernel so that USB booting
 # will work in case someone generates their own USB booting image.
-#wget http://gsdview.appspot.com/chromeos-localmirror/distfiles/xhci-firmware-2015.02.03.00.00.tbz2
-wget http://gsdview.appspot.com/chromeos-localmirror/distfiles/xhci-firmware-2015.04.16.00.00.tbz2
-tar --strip-components=5 -xf xhci-firmware-2015.04.16.00.00.tbz2 -C firmware
+wget http://gsdview.appspot.com/chromeos-localmirror/distfiles/xhci-firmware-2015.05.06.00.00.tbz2
+tar --strip-components=5 -xf xhci-firmware-2015.05.06.00.00.tbz2 -C firmware
 cp ${basedir}/../kernel-configs/chromebook-3.10.config .config
+cp ${basedir}/../kernel-configs/chromebook-3.10.config ../nyan.config
+git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -199,7 +203,7 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mwifiex-do-not-create-
 make WIFIVERSION="-3.8" -j $(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
 make WIFIVERSION="-3.8" modules_install INSTALL_MOD_PATH=${basedir}/root
-cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-nyan.its
+cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-nyan.its
 /dts-v1/;
 
 / {
@@ -217,16 +221,6 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-nyan.its
             entry = <0>;
         };
         fdt@1{
-            description = "tegra124-nyan-big.dtb";
-            data = /incbin/("dts/tegra124-nyan-big.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@2{
             description = "tegra124-nyan-big-rev0_2.dtb";
             data = /incbin/("dts/tegra124-nyan-big-rev0_2.dtb");
             type = "flat_dt";
@@ -236,9 +230,19 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-nyan.its
                 algo = "sha1";
             };
         };
+        fdt@2{
+            description = "tegra124-nyan-big-rev3_7.dtb";
+            data = /incbin/("dts/tegra124-nyan-big-rev3_7.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
         fdt@3{
-            description = "tegra124-nyan-blaze.dtb";
-            data = /incbin/("dts/tegra124-nyan-blaze.dtb");
+            description = "tegra124-nyan-big-rev8_9.dtb";
+            data = /incbin/("dts/tegra124-nyan-big-rev8_9.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -247,8 +251,8 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-nyan.its
             };
         };
         fdt@4{
-            description = "tegra124-nyan-kitty.dtb";
-            data = /incbin/("dts/tegra124-nyan-kitty.dtb");
+            description = "tegra124-nyan-blaze.dtb";
+            data = /incbin/("dts/tegra124-nyan-blaze.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -269,6 +273,26 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-nyan.its
         fdt@6{
             description = "tegra124-nyan-rev1.dtb";
             data = /incbin/("dts/tegra124-nyan-rev1.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@7{
+            description = "tegra124-nyan-kitty-rev0_3.dtb";
+            data = /incbin/("dts/tegra124-nyan-kitty-rev0_3.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@8{
+            description = "tegra124-nyan-kitty-rev8.dtb";
+            data = /incbin/("dts/tegra124-nyan-kitty-rev8.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -303,18 +327,35 @@ cat << __EOF__ > ${basedir}/kernel/arch/arm/boot/kernel-nyan.its
             kernel = "kernel@1";
             fdt = "fdt@6";
         };
+        conf@7{
+            kernel = "kernel@1";
+            fdt = "fdt@7";
+        };
+        conf@8{
+            kernel = "kernel@1";
+            fdt = "fdt@8";
+        };
     };
 };
 __EOF__
-cd ${basedir}/kernel/arch/arm/boot
+cd ${basedir}/root/usr/src/kernel/arch/arm/boot
 mkimage -f kernel-nyan.its nyan-big-kernel
 
-# SD Card
-echo "noinitrd console=tty1 quiet root=/dev/mmcblk1p2 rootwait rw lsm.module_locking=0 net.ifnames=0 rootfstype=ext4" > cmdline
-# USB
-#echo "noinitrd console=tty1 quiet root=/dev/sda2 rootwait rw lsm.module_locking=0 net.ifnames=0 rootfstype=ext4" > cmdline
+# BEHOLD THE POWER OF PARTUUID/PARTNROFF
+echo "noinitrd console=tty1 quiet root=PARTUUID=%U/PARTNROFF=1 rootwait rw lsm.module_locking=0 net.ifnames=0 rootfstype=btrfs" > cmdline
 
-vbutil_kernel --arch arm --pack ${basedir}/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --vmlinuz nyan-big-kernel
+# Pulled from ChromeOS, this is exactly what they do because there's no
+# # bootloader in the kernel partition on ARM.
+dd if=/dev/zero of=bootloader.bin bs=512 count=1
+
+vbutil_kernel --arch arm --pack ${basedir}/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --bootloader bootloader.bin --vmlinuz nyan-big-kernel
+
+cd ${basedir}/root/usr/src/kernel
+# Clean up our build of the kernel, then copy the config and run make
+# modules_prepare so that users can more easily build kernel modules...
+make WIFIVERSION="-3.8"  mrproper
+cp ../nyan.config .config
+make WIFIVERSION="-3.8" modules_prepare
 
 cd ${basedir}
 
@@ -322,10 +363,14 @@ cd ${basedir}
 cat << EOF > ${basedir}/root/etc/udev/rules.d/99-tegra-lid-switch.rules
 ACTION=="remove", GOTO="tegra_lid_switch_end"
 
-SUBSYSTEM=="input", KERNEL=="event*", SUBSYSTEMS=="platform",
-KERNELS=="gpio-keys.4", TAG+="power-switch"
+SUBSYSTEM=="input", KERNEL=="event*", SUBSYSTEMS=="platform", KERNELS=="gpio-keys.4", TAG+="power-switch"
 
 LABEL="tegra_lid_switch_end"
+EOF
+
+# Bit of a hack, this is so the eMMC doesn't show up on the desktop
+cat << EOF > ${basedir}/root/etc/udev/rules.d/99-hide-emmc-partitions.rules
+KERNEL=="mmcblk0*", ENV{UDISKS_IGNORE}="1"
 EOF
 
 #nvidia device nodes
@@ -347,74 +392,6 @@ KERNEL=="tegra_dc_1", GROUP="video", MODE="0660"
 KERNEL=="tegra_dc_ctrl", GROUP="video", MODE="0660"
 EOF
 
-cat << EOF > ${basedir}/root/root/nvidia-l4t.sh
-#!/bin/sh
-
-L4TURL=http://developer.download.nvidia.com/embedded/L4T/r21_Release_v3.0/Tegra124_Linux_R21.3.0_armhf.tbz2
-L4TFILE=Tegra124_Linux_R21.3.0_armhf.tbz2
-
-# Remove it if it pre-exists...
-rm -rf /tmp/l4t
-mkdir -p /tmp/l4t
-cd /tmp/l4t
-wget \${L4TURL}
-tar -xf \${L4TFILE}
-cd Linux_for_Tegra/rootfs
-tar -xf ../nv_tegra/nvidia_drivers.tbz2
-tar -xf ../nv_tegra/config.tbz2
-tar -xf ../nv_tegra/nv_sample_apps/nvgstapps.tbz2
-
-cd usr
-rm -rf sbin
-cd bin
-rm nvgst*-1.0
-rm nvidia-bug-report-tegra.sh
-cd ..
-cd lib/arm-linux-gnueabihf
-rm -rf gstreamer-1.0
-rm libgstnvegl-1.0.so.0
-cd ../../..
-
-cd lib/firmware
-cp -a * /lib/firmware
-
-cd ../..
-cd usr
-cp -a * /usr/
-
-cd /usr/lib/arm-linux-gnueabihf/tegra
-ln -sf "libcuda.so.1.1" "libcuda.so"
-cd ..
-ln -sf "tegra/libcuda.so" "libcuda.so"
-ln -sf "tegra/libGL.so.1" "libGL.so"
-
-cd /tmp/l4t/Linux_for_Tegra/rootfs/etc/udev/rules.d
-rm 99-nv-wifibt.rules
-rm 91-xorg-conf-tegra.rules
-cp * /etc/udev/rules.d/
-cd ../..
-cp enctune.conf /etc/
-cd pulse
-cp -a * /etc/pulse/
-cd ..
-cd X11
-cp xorg.conf /etc/X11/xorg.conf.d/20-nvidia.conf
-mv /etc/X11/xorg.conf.d/20-armsoc.conf /root/
-mv /etc/X11/xorg.conf /root/
-cd ..
-echo "/usr/lib/arm-linux-gnueabihf/tegra" >> ld.so.conf.d/nvidia-tegra.conf
-echo "/usr/lib/arm-linux-gnueabihf/tegra-egl" >> ld.so.conf.d/nvidia-tegra.conf
-cp ld.so.conf.d/nvidia-tegra.conf /etc/ld.so.conf.d/
-ldconfig
-
-cd /etc/pulse
-mv default.pa default.pa.dist
-ln -sf default.pa.orig default.pa
-
-echo "Done with everything! Please reboot!"
-EOF
-chmod +x ${basedir}/root/root/nvidia-l4t.sh
-
 # Touchpad configuration
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d
 cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
@@ -430,67 +407,6 @@ Section "InputClass"
 	Option			"FingerPress"	"256"
 EndSection
 EOF
-# Turn off DPMS, this is supposed to help with fbdev/armsoc blanking.
-# Doesn't really seem to affect fbdev, but marked improvement with armsoc.
-cat << EOF > ${basedir}/root/etc/X11/xorg.conf
-Section "ServerFlags"
-    Option     "NoTrapSignals" "true"
-    Option     "DontZap" "false"
-
-    # Disable DPMS timeouts.
-    Option     "StandbyTime" "0"
-    Option     "SuspendTime" "0"
-    Option     "OffTime" "0"
-
-    # Disable screen saver timeout.
-    Option     "BlankTime" "0"
-EndSection
-
-Section "Monitor"
-    Identifier "DefaultMonitor"
-EndSection
-
-Section "Device"
-    Identifier "DefaultDevice"
-    Option     "monitor-LVDS1" "DefaultMonitor"
-EndSection
-
-Section "Screen"
-    Identifier "DefaultScreen"
-    Monitor    "DefaultMonitor"
-    Device     "DefaultDevice"
-EndSection
-
-Section "ServerLayout"
-    Identifier "DefaultLayout"
-    Screen     "DefaultScreen"
-EndSection
-EOF
-
-# At the moment we use fbdev, but in the future, we will switch to the armsoc
-# driver provided by ChromiumOS.
-cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/20-armsoc.conf
-Section "Device"
-        Identifier      "Mali FBDEV"
-#       Driver          "armsoc"
-	Driver		"fbdev"
-        Option          "fbdev"                 "/dev/fb0"
-        Option          "Fimg2DExa"             "false"
-        Option          "DRI2"                  "true"
-        Option          "DRI2_PAGE_FLIP"        "false"
-        Option          "DRI2_WAIT_VSYNC"       "true"
-#       Option          "Fimg2DExaSolid"        "false"
-#       Option          "Fimg2DExaCopy"         "false"
-#       Option          "Fimg2DExaComposite"    "false"
-        Option          "SWcursorLCD"           "false"
-EndSection
-
-Section "Screen"
-        Identifier      "DefaultScreen"
-        Device          "Mali FBDEV"
-        DefaultDepth    24
-EndSection
-EOF
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
@@ -501,72 +417,14 @@ cd ${basedir}
 # lp0 resume firmware...
 git clone https://chromium.googlesource.com/chromiumos/third_party/coreboot
 cd ${basedir}/coreboot
-git checkout bf6110a05506d888b3e4452896e19e1f71f49afe
+git checkout 611465f6248cba0ddce0083b431cb7ee17bc4b4c
 make -C src/soc/nvidia/tegra124/lp0 GCC_PREFIX=arm-linux-gnueabihf-
 mkdir -p ${basedir}/root/lib/firmware/tegra12x/
 cp src/soc/nvidia/tegra124/lp0/tegra_lp0_resume.fw ${basedir}/root/lib/firmware/tegra12x/
 cd ${basedir}
 
-# Touchpad config/firmware from ChromeOS.
-cat << EOF > ${basedir}/root/lib/firmware/maxtouch-ts.cfg
-OBP_RAW V1
-a2 00 20 ab 20 34 21
-969531
-c652a4
-0044 0000 0049 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0026 0000 0040 02 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0047 0000 00A8 00 3C 1E B0 00 00 00 00 00 00 03 01 00 C8 AF 00 00 00 00 00 FF 01 1E B0 00 00 00 00 00 00 03 01 00 FF FF 00 00 00 00 00 FF 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0007 0000 0004 1E FF DC 40
-0008 0000 000A 74 00 14 14 00 00 FF 01 1E 00
-0009 0000 002F 8F 00 00 20 34 00 5F 28 02 03 19 01 01 40 0A 14 14 05 FF 02 55 05 08 09 07 05 8E 1D 88 11 19 0F 31 32 00 00 45 E6 28 00 00 00 00 00 00 00 00
-0009 0001 002F 00 00 00 00 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-000F 0000 000B 00 00 00 00 00 00 00 00 00 00 00
-0012 0000 0002 40 00
-0013 0000 0006 00 00 00 00 00 00
-0018 0000 0013 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0018 0001 0013 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0019 0000 0015 03 00 D0 67 30 58 00 00 00 00 00 00 00 00 C8 A0 0F 00 00 00 00
-001B 0000 0007 00 00 00 00 00 00 00
-001B 0001 0007 00 00 00 00 00 00 00
-0028 0000 0005 00 00 00 00 00
-0028 0001 0005 00 00 00 00 00
-002A 0000 000D 01 28 32 2C 50 00 00 00 00 00 46 03 28
-002A 0001 000D 00 00 00 00 00 00 00 00 00 00 00 00 00
-002B 0000 000C 8C 00 90 00 00 01 14 00 00 00 00 6C
-002E 0000 000B 29 00 10 10 00 00 01 00 00 00 10
-002F 0000 001C 00 00 08 10 00 00 00 00 00 0F 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-002F 0001 001C 00 00 00 00 00 00 00 00 00 00 00 00 50 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0037 0000 0007 00 00 00 00 00 00 00
-0037 0001 0007 00 00 00 00 00 00 00
-0038 0000 0033 01 00 00 46 13 13 13 13 12 12 12 12 12 12 12 11 11 11 11 11 11 11 10 11 10 10 10 10 10 10 0F 0F 0F 0F 0F 0F 00 00 01 02 14 04 00 00 00 00 00 00 00 00 00
-0039 0000 0003 E2 00 00
-0039 0001 0003 00 00 00
-003D 0000 0005 03 00 00 C8 AF
-003D 0001 0005 03 00 00 FF FF
-003D 0002 0005 00 00 00 00 00
-003D 0003 0005 00 00 00 00 00
-003E 0000 004A 7D 0A 00 12 08 00 20 00 2D 00 05 2D 1E 0F 05 00 0A 05 05 5A 1E 1E 14 0F 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-003F 0000 0019 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-003F 0001 0019 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0041 0000 0011 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-0042 0000 0003 00 00 00
-0046 0000 000A 00 00 00 00 00 00 00 00 00 00
-0046 0001 000A 00 00 00 00 00 00 00 00 00 00
-0046 0002 000A 00 00 00 00 00 00 00 00 00 00
-0046 0003 000A 00 00 00 00 00 00 00 00 00 00
-0046 0004 000A 00 00 00 00 00 00 00 00 00 00
-0046 0005 000A 00 00 00 00 00 00 00 00 00 00
-0046 0006 000A 00 00 00 00 00 00 00 00 00 00
-0046 0007 000A 00 00 00 00 00 00 00 00 00 00
-0046 0008 000A 00 00 00 00 00 00 00 00 00 00
-0046 0009 000A 00 00 00 00 00 00 00 00 00 00
-0046 000A 000A 00 00 00 00 00 00 00 00 00 00
-0046 000B 000A 00 00 00 00 00 00 00 00 00 00
-0049 0000 0006 00 00 00 00 00 00
-0049 0001 0006 00 00 00 00 00 00
-004D 0000 0004 00 00 00 00
-004F 0000 0003 00 00 00
-EOF
+cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
+chmod +x ${basedir}/root/etc/init.d/zram
 
 # Unmount partitions
 umount $rootp
@@ -580,7 +438,7 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/coreboot ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
+rm -rf ${basedir}/coreboot ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader.bin
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
