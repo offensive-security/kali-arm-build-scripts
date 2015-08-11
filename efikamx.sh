@@ -5,6 +5,8 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
+echo "This script is now deprecated.  The kernel is too old to run systemd"
+
 basedir=`pwd`/efikamx-$1
 
 # Make sure that the cross compiler can be found in the path before we do
@@ -40,7 +42,7 @@ export architecture="armhf"
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=http.kali.org
+export mirror=repo.kali.org
 export security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
