@@ -4,7 +4,7 @@
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 1.0.1"
+    echo "Please pass version number, e.g. $0 2.0"
     exit 0
 fi
 
@@ -30,21 +30,21 @@ unset CROSS_COMPILE
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
-arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools usbutils"
-desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
-services="openssh-server apache2"
-extras="iceweasel wpasupplicant"
+arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+services="apache2 openssh-server"
+extras="iceweasel xfce4-terminal wpasupplicant"
 
-export packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-export architecture="armhf"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=http.kali.org
-export security=security.kali.org
+mirror=repo.kali.org
+security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -54,14 +54,14 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali main contrib non-free
-deb http://$security/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali sana main contrib non-free
+deb http://$security/kali-security sana/updates main contrib non-free
 EOF
 
 # Set hostname
@@ -114,12 +114,15 @@ apt-get install locales-all
 debconf-set-selections /debconf.set
 rm -f /debconf.set
 apt-get update
-apt-get -y install git-core binutils ca-certificates initramfs-tools uboot-mkimage
+apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
+export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+apt-get --yes --force-yes dist-upgrade
+apt-get --yes --force-yes autoremove
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -188,11 +191,11 @@ ttyS0
 EOF
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali main non-free contrib
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://http.kali.org/kali sana main non-free contrib
+deb http://security.kali.org/kali-security sana/updates main contrib non-free
 
-deb-src http://http.kali.org/kali kali main non-free contrib
-deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+deb-src http://http.kali.org/kali sana main non-free contrib
+deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
@@ -200,18 +203,22 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ${basedir}/kernel
-cd ${basedir}/kernel
+git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git -b linux-4.1.y ${basedir}/root/usr/src/kernel
+cd ${basedir}/root/usr/src/kernel
+git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/trimslice.config .config
-#make tegra_defconfig
+cp ${basedir}/../kernel-configs/trimslice.config ../trimslice.config
 make -j $(grep -c processor /proc/cpuinfo) zImage modules dtbs
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/zImage ${basedir}/bootp/
 cp arch/arm/boot/dts/tegra20-trimslice.dtb ${basedir}/bootp/
+make mrproper
+cp ../trimslice.config .config
+make modules_prepare
 cd ${basedir}
 
 rm -rf ${basedir}/root/lib/firmware
@@ -222,14 +229,16 @@ cd ${basedir}
 
 echo << EOF > ${basedir}/bootp/boot.txt
 setenv bootargs root=/dev/mmcblk0p2 nohdparm rootwait console=ttyS0,115200n8 earlyprintk
-ext2load usb 0:1 4080000 uImage
-ext2load usb 0:1 4800000 uInitrd
+ext2load usb 0:1 4080000 zImage
 ext2load usb 0:1 4000000 tegra20-trimslice.dtb
-bootm 4080000 4800000 4000000
+bootz 4080000 - 4000000
 EOF
 
 # Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.txt ${basedir}/bootp/boot.scr
+
+cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
+chmod +x ${basedir}/root/etc/init.d/zram
 
 # Unmount partitions
 umount $bootp
@@ -241,7 +250,7 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
+rm -rf ${basedir}/patches ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
