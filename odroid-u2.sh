@@ -272,7 +272,7 @@ cat << EOF > ${basedir}/bootp/boot.txt
 setenv initrd_high "0xffffffff"
 setenv fdt_high "0xffffffff"
 setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; bootm 0x40008000 0x42000000"
-setenv bootargs "console=tty1 console=ttySAC1,115200n8 root=/dev/mmcblk0p2 rootwait ro mem=2047M"
+setenv bootargs "console=tty1 console=ttySAC1,115200n8 root=/dev/mmcblk0p2 rootwait mem=2047M"
 boot
 EOF
 
@@ -330,6 +330,6 @@ echo "Compressing kali-$1-odroid.img"
 pixz ${basedir}/kali-$1-odroid.img ${basedir}/kali-$1-odroid.img.xz
 echo "Deleting kali-$1-odroid.img"
 rm ${basedir}/kali-$1-odroid.img
-echo "Generating sha1sum for kali-$1-odroid.img"
+echo "Generating sha1sum for kali-$1-odroid.img.xz"
 sha1sum kali-$1-odroid.img.xz > ${basedir}/kali-$1-odroid.img.xz.sha1sum
 fi
