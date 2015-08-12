@@ -116,6 +116,11 @@ apt-get --yes --force-yes install $packages
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
+# Because copying in authorized_keys is hard for people to do, let's make the
+# image insecure and enable root login with a password.
+
+echo "Making the image insecure"
+sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d
