@@ -231,6 +231,17 @@ cat << EOF > ${basedir}/bootp/cmdline.txt
 dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait
 EOF
 
+# systemd doesn't seem to be generating the fstab properly for some people, so
+# let's create one.
+cat << EOF > ${basedir}/root/etc/fstab
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+proc /proc proc nodev,noexec,nosuid 0  0
+/dev/mmcblk0p2  / ext4 errors=remount-ro 0 1
+# Change this if you add a swap partition or file
+#/dev/SWAP none swap sw 0 0
+/dev/mmcblk0p1 /boot vfat noauto 0 0
+EOF
+
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware

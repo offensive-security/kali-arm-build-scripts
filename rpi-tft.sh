@@ -248,6 +248,17 @@ cat << EOF > ${basedir}/root/root/.profile
 export FRAMEBUFFER=/dev/fb1
 EOF
 
+# systemd doesn't seem to be generating the fstab properly for some people, so
+# let's create one.
+cat << EOF > ${basedir}/root/etc/fstab
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+proc /proc proc nodev,noexec,nosuid 0  0
+/dev/mmcblk0p2  / ext4 errors=remount-ro 0 1
+# Change this if you add a swap partition or file
+#/dev/SWAP none swap sw 0 0
+/dev/mmcblk0p1 /boot vfat noauto 0 0
+EOF
+
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d/
 cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/99-calibration.conf
 Section "InputClass"
