@@ -245,7 +245,7 @@ setenv macaddr "00:1e:06:61:7a:39"
 #------------------------------------------------------------------------------------------------------
 # Basic Ubuntu Setup. Don't touch unless you know what you are doing.
 # --------------------------------
-setenv bootrootfs "console=tty1 console=ttySAC2,115200n8 root=/dev/mmcblk0p2 rootwait ro"
+setenv bootrootfs "console=tty1 console=ttySAC2,115200n8 root=/dev/mmcblk0p2 rootwait"
 
 # boot commands
 setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; fatload mmc 0:1 0x44000000 exynos5422-odroidxu3.dtb; bootz 0x40008000 0x42000000 0x44000000"
