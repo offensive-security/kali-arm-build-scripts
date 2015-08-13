@@ -8,9 +8,7 @@ MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     dpkg --add-architecture i386
     apt-get update
-    apt-get install -y ia32-libs
-    # Required for kernel cross compiles
-    apt-get install -y libncurses5:i386
+    apt-get install -y libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
 else
     apt-get install -y libncurses5
 fi

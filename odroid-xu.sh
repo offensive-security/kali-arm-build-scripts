@@ -267,7 +267,7 @@ setenv fb_x_res "1280"
 setenv fb_y_res "720"
 setenv hdmi_phy_res "720"
 setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; bootz 0x40008000 0x42000000"
-setenv bootargs "console=tty1 console=ttySAC2,115200n8 vmalloc=512M fb_x_res=${fb_x_res} fb_y_res=${fb_y_res} hdmi_phy_res=${hdmi_phy_res} vout=hdmi led_blink=1 fake_fb=true root=/dev/mmcblk0p2 rootwait ro"
+setenv bootargs "console=tty1 console=ttySAC2,115200n8 vmalloc=512M fb_x_res=${fb_x_res} fb_y_res=${fb_y_res} hdmi_phy_res=${hdmi_phy_res} vout=hdmi led_blink=1 fake_fb=true root=/dev/mmcblk0p2 rootwait"
 boot
 EOF
 
