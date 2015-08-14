@@ -230,7 +230,7 @@ loadfdt=load mmc \${mmcdev}:\${mmcpart} \${fdtaddr} /dtbs/\${fdtfile}
 #
  
 console=ttyO0,115200n8
-mmcroot=/dev/mmcblk0p2 ro
+mmcroot=/dev/mmcblk0p2 rw
 mmcrootfstype=ext4 rootwait fixrtc
  
 ##To disable HDMI/eMMC...
