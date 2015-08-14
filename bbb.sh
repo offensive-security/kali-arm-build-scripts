@@ -198,7 +198,7 @@ EOF
 # You can load the github URL in a browser, and see what other branches you can
 # try.  Keep in mind if you do so, that you will likely want to comment out
 # AUTO_BUILD so that you can configure the kernel!
-git clone --depth 1 --branch am33x-v3.8 file:///root/sandbox/mirror/bbb.git ${basedir}/kernel
+git clone --depth 1 --branch am33x-v3.8 https://github.com/RobertCNelson/linux-dev ${basedir}/kernel
 cd ${basedir}/kernel
 git config user.name root
 git config user.email none@none.no
