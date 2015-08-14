@@ -24,7 +24,7 @@ base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="netsurf xfce4-terminal wpasupplicant"
 # kernel sauces take up space
 size=7000 # Size of image in megabytes
 
@@ -52,11 +52,8 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
+debootstrap sana kali-$architecture http://$mirror/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
-
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali sana main contrib non-free
 deb http://$security/kali-security sana/updates main contrib non-free
@@ -197,17 +194,14 @@ EOF
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.0.y ${basedir}/root/usr/src/kernel
-git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
 touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/rpi-4.0.config .config
 cp ${basedir}/../kernel-configs/rpi-4.0.config ../rpi-4.0.config
-make -j $(grep -c processor /proc/cpuinfo)
+make
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
