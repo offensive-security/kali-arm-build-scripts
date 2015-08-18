@@ -254,7 +254,7 @@ setenv m_bpp "32"
 # This might break boot for some brand/models of cards.
 setenv disableuhs "disableuhs"
  
-setenv bootargs "console=ttyS0,115200n8 root=/dev/mmcblk0p2 rootwait ro no_console_suspend vdaccfg=0xa000 logo=osd1,loaded,0x7900000,720p,full dmfc=3 cvbsmode=576cvbs hdmimode=${m} m_bpp=${m_bpp} vout=${vout_mode} ${disableuhs}"
+setenv bootargs "console=ttyS0,115200n8 root=/dev/mmcblk0p2 rootwait rw no_console_suspend vdaccfg=0xa000 logo=osd1,loaded,0x7900000,720p,full dmfc=3 cvbsmode=576cvbs hdmimode=${m} m_bpp=${m_bpp} vout=${vout_mode} ${disableuhs}"
 setenv bootcmd "fatload mmc 0:1 0x21000000 uImage; fatload mmc 0:1 0x22000000 uInitrd; fatload mmc 0:1 0x21800000 meson8b_odroidc.dtb; bootm 0x21000000 - 0x21800000"
 run bootcmd
 EOF
