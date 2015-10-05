@@ -161,6 +161,7 @@ cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show kali-$1-acer.img | grep 'Sec
 
 loopdevice=`losetup -f --show ${basedir}/kali-$1-acer.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
