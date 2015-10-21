@@ -171,6 +171,7 @@ parted kali-$1-odroidxu.img --script -- mkpart primary ext4 264192s 100%
 # Set the partition variables
 loopdevice=`losetup -f --show ${basedir}/kali-$1-odroidxu.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
