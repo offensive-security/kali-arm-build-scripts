@@ -42,7 +42,7 @@ export architecture="armhf"
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-export mirror=repo.kali.org
+export mirror=old.kali.org
 export security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
@@ -53,7 +53,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture moto kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -61,8 +61,7 @@ LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali main contrib non-free
-deb http://$security/kali-security kali/updates main contrib non-free
+deb http://$mirror/kali moto main contrib non-free
 EOF
 
 # Set hostname
@@ -202,11 +201,8 @@ EOF
 sed -i -e "s/2.6.3\[0-1\]/2.6.30/g" ${basedir}/root/etc/init.d/udev
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali main non-free contrib
-deb http://security.kali.org/kali-security kali/updates main contrib non-free
-
-deb-src http://http.kali.org/kali kali main non-free contrib
-deb-src http://security.kali.org/kali-security kali/updates main contrib non-free
+deb http://old.kali.org/kali moto main non-free contrib
+deb-src http://old.kali.org/kali moto main non-free contrib
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
