@@ -34,7 +34,7 @@ architecture="armel"
 # You may want to leave security.kali.org alone, but if you trust your local
 # mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
-mirror=repo.kali.org
+mirror=http.kali.org
 security=security.kali.org
 
 # Check to ensure that the architecture is set to ARMEL since the RPi is the
