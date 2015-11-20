@@ -171,7 +171,7 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat $bootp
-mkfs.btrfs $rootp
+mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -232,7 +232,7 @@ cd ${basedir}
 # Create a file to set up our u-boot environment
 cat << EOF > ${basedir}/bootp/boot.txt
 setenv mmcdev 2
-setenv bootargs 'quiet earlyprintk console=ttymxc3,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=btrfs rw rootwait'
+setenv bootargs 'quiet earlyprintk console=ttymxc3,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rw rootwait'
 setenv loadaddr  0x10800000
 setenv fdtaddr   0x15000000
 setenv bootm_low 0x15000000
