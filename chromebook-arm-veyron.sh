@@ -166,7 +166,7 @@ device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
-mkfs.btrfs -L rootfs $rootp
+mkfs.ext4 -L rootfs $rootp
 
 mkdir -p ${basedir}/root
 mount $rootp ${basedir}/root
@@ -468,7 +468,7 @@ cd ${basedir}/root/usr/src/kernel/arch/arm/boot
 mkimage -D "-I dts -O dtb -p 2048" -f kernel-veyron.its veyron-kernel
 
 # BEHOLD THE MAGIC OF PARTUUID/PARTNROFF
-echo 'noinitrd console=tty1 quiet root=PARTUUID=%U/PARTNROFF=1 rootwait rw lsm.module_locking=0 net.ifnames=0 rootfstype=btrfs' > cmdline
+echo 'noinitrd console=tty1 quiet root=PARTUUID=%U/PARTNROFF=1 rootwait rw lsm.module_locking=0 net.ifnames=0 rootfstype=ext4' > cmdline
 
 # Pulled from ChromeOS, this is exactly what they do because there's no
 # bootloader in the kernel partition on ARM.
