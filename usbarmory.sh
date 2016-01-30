@@ -28,21 +28,17 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="dosfstools e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
-services="apache2 openssh-server shellinabox"
-#extras="cryptsetup iceweasel lvm2 xfce4-terminal wpasupplicant"
+services="apache2 openssh-server"
 extras="cryptsetup lvm2 wpasupplicant"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
-# You may want to leave security.kali.org alone, but if you trust your local
-# mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
-security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -52,7 +48,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -60,8 +56,7 @@ LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali sana main contrib non-free
-deb http://$security/kali-security sana/updates main contrib non-free
+deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
@@ -110,7 +105,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get install locales-all
+apt-get --yes --force-yes install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -133,8 +128,6 @@ sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/ssh
 
 echo "Enabling sshd"
 update-rc.d ssh enable
-echo "Enabling shellinabox"
-ln -sf '/var/run/systemd/generator.late/shellinabox.service' '/etc/systemd/system/multi-user.target.wants/shellinabox.service'
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -219,17 +212,14 @@ iface lo inet loopback
 
 allow-hotplug usb0
 iface usb0 inet static
-address 10.42.0.3
+address 10.0.0.1
 netmask 255.255.255.0
-gateway 10.42.0.1
+gateway 10.0.0.2
 EOF
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali sana main non-free contrib
-deb http://security.kali.org/kali-security sana/updates main contrib non-free
-
-deb-src http://http.kali.org/kali sana main non-free contrib
-deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
+deb http://http.kali.org/kali kali-rolling main non-free contrib
+deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
@@ -237,7 +227,7 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone -b linux-4.1.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
+git clone -b linux-4.2.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
@@ -247,22 +237,28 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-common.dtsi -O arch/arm/boot/dts/imx53-usbarmory-common.dtsi
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory.dts -O arch/arm/boot/dts/imx53-usbarmory.dts
-cp ${basedir}/../kernel-configs/usbarmory-4.1.config .config
-cp ${basedir}/../kernel-configs/usbarmory-4.1.config ../usbarmory-4.1.config
-make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb
+cp ${basedir}/../kernel-configs/usbarmory-4.2.config .config
+cp ${basedir}/../kernel-configs/usbarmory-4.2.config ../usbarmory-4.2.config
+make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory-i2c.dtb imx53-usbarmory-spi.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/uImage ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory-gpio.dtb ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory.dtb ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory-host.dtb ${basedir}/root/boot/
+cp arch/arm/boot/dts/imx53-usbarmory-i2c.dtb ${basedir}/root/boot/
+cp arch/arm/boot/dts/imx53-usbarmory-spi.dtb ${basedir}/root/boot/
 make mrproper
 # Since these aren't integrated into the kernel yet, mrproper removes them.
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-common.dtsi -O arch/arm/boot/dts/imx53-usbarmory-common.dtsi
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory.dts -O arch/arm/boot/dts/imx53-usbarmory.dts
-cp ../usbarmory-4.1.config .config
+cp ../usbarmory-4.2.config .config
 make modules_prepare
 cd ${basedir}
 

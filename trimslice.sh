@@ -40,11 +40,8 @@ extras="iceweasel xfce4-terminal wpasupplicant"
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
-# You may want to leave security.kali.org alone, but if you trust your local
-# mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
-security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -54,14 +51,13 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali sana main contrib non-free
-deb http://$security/kali-security sana/updates main contrib non-free
+deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
@@ -109,7 +105,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get install locales-all
+apt-get --yes --force-yes install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -192,11 +188,8 @@ ttyS0
 EOF
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali sana main non-free contrib
-deb http://security.kali.org/kali-security sana/updates main contrib non-free
-
-deb-src http://http.kali.org/kali sana main non-free contrib
-deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
+deb http://http.kali.org/kali kali-rolling main non-free contrib
+deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
