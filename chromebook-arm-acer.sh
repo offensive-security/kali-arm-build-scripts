@@ -37,11 +37,8 @@ extras="iceweasel xfce4-goodies xfce4-terminal wpasupplicant"
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
-# You may want to leave security.kali.org alone, but if you trust your local
-# mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
-security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -51,7 +48,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -59,8 +56,7 @@ LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali sana main contrib non-free
-deb http://$security/kali-security sana/updates main contrib non-free
+deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
@@ -106,7 +102,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get install locales-all
+apt-get --yes --force-yes install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -175,32 +171,37 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali sana main contrib non-free
-deb http://security.kali.org/kali-security sana/updates main contrib non-free
-
-deb-src http://http.kali.org/kali sana main contrib non-free
-deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
+deb http://http.kali.org/kali kali-rolling main contrib non-free
+deb-src http://http.kali.org/kali kali-rolling main contrib non-free
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# Install the firmware so we can add the xusb.bin from firmware directory
+# instead of downloading the tarball from CrOS.
+cd ${basedir}/root/lib
+rm -rf ${basedir}/root/lib/firmware
+git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+rm -rf ${basedir}/root/lib/firmware/.git
+
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
+cd ${basedir}
 git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.10 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-# Download the xhci firmware and build it in to the kernel so that USB booting
-# will work in case someone generates their own USB booting image.
-wget http://gsdview.appspot.com/chromeos-localmirror/distfiles/xhci-firmware-2015.05.06.00.00.tbz2
-tar --strip-components=5 -xf xhci-firmware-2015.05.06.00.00.tbz2 -C firmware
+mkdir -p ${basedir}/root/usr/src/kernel/firmware/nvidia/tegra124/
+cp ${basedir}/root/lib/firmware/nvidia/tegra124/xusb.bin firmware/nvidia/tegra124/
 cp ${basedir}/../kernel-configs/chromebook-3.10.config .config
 cp ${basedir}/../kernel-configs/chromebook-3.10.config ../nyan.config
 git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
+#export CROSS_COMPILE=arm-cortexa9-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.8.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mwifiex-do-not-create-AP-and-P2P-interfaces-upon-driver-loading-3.8.patch
+#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mwifiex-do-not-create-AP-and-P2P-interfaces-upon-driver-loading-3.8.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri-3.8.patch
 make WIFIVERSION="-3.8" -j $(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
 make WIFIVERSION="-3.8" modules_install INSTALL_MOD_PATH=${basedir}/root
@@ -409,16 +410,13 @@ Section "InputClass"
 EndSection
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone file:///root/sandbox/mirror/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 # lp0 resume firmware...
 git clone https://chromium.googlesource.com/chromiumos/third_party/coreboot
 cd ${basedir}/coreboot
-git checkout 611465f6248cba0ddce0083b431cb7ee17bc4b4c
+#git checkout 611465f6248cba0ddce0083b431cb7ee17bc4b4c
+git checkout 071167b667685c26106641e6899984c7bd91e84b
 make -C src/soc/nvidia/tegra124/lp0 GCC_PREFIX=arm-linux-gnueabihf-
 mkdir -p ${basedir}/root/lib/firmware/tegra12x/
 cp src/soc/nvidia/tegra124/lp0/tegra_lp0_resume.fw ${basedir}/root/lib/firmware/tegra12x/
