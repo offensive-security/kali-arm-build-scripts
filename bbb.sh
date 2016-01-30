@@ -26,11 +26,8 @@ extras="iceweasel xfce4-terminal wpasupplicant"
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
-# You may want to leave security.kali.org alone, but if you trust your local
-# mirror, feel free to change this as well.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
-security=security.kali.org
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -40,14 +37,13 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture sana kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali sana main contrib non-free
-deb http://$security/kali-security sana/updates main contrib non-free
+deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 echo "kali" > kali-$architecture/etc/hostname
@@ -99,7 +95,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get install locales-all
+apt-get --yes --force-yes install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -113,6 +109,11 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
+
+echo "Making the image insecure"
+sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -182,11 +183,8 @@ ttyO0
 EOF
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali sana main non-free contrib
-deb-src http://http.kali.org/kali sana main non-free contrib
-
-deb http://security.kali.org/kali-security sana/updates main contrib non-free
-deb-src http://security.kali.org/kali-security sana/updates main contrib non-free
+deb http://http.kali.org/kali kali-rolling main non-free contrib
+deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
 # Uncomment this if you use apt-cacher-ng or else git clones will fail.
@@ -199,24 +197,24 @@ EOF
 # You can load the github URL in a browser, and see what other branches you can
 # try.  Keep in mind if you do so, that you will likely want to comment out
 # AUTO_BUILD so that you can configure the kernel!
-git clone --depth 1 --branch am33x-v3.8 https://github.com/RobertCNelson/linux-dev ${basedir}/kernel
+git clone --depth 1 https://github.com/RobertCNelson/linux-dev ${basedir}/kernel
 cd ${basedir}/kernel
 git config user.name root
 git config user.email none@none.no
 export AUTO_BUILD=1
 export LINUX_GIT=/root/sandbox/mirror/mainline.git
-export CC=/root/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-rm tools/host_det.sh
-wget https://raw.githubusercontent.com/RobertCNelson/stable-kernel/master/tools/host_det.sh -O tools/host_det.sh
+#export CC=/root/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+#rm tools/host_det.sh
+#wget https://raw.githubusercontent.com/RobertCNelson/stable-kernel/master/tools/host_det.sh -O tools/host_det.sh
 ./build_kernel.sh
 cd ${basedir}/kernel/KERNEL
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 cd ${basedir}/kernel
 ./tools/rebuild.sh
-cp -v ${basedir}/kernel/deploy/3.*.zImage ${basedir}/bootp/zImage
+cp -v ${basedir}/kernel/deploy/4.*.zImage ${basedir}/bootp/zImage
 mkdir -p ${basedir}/bootp/dtbs
-tar -xovf ${basedir}/kernel/deploy/3.*-dtbs.tar.gz -C ${basedir}/bootp/dtbs/
-tar -xovf ${basedir}/kernel/deploy/3.*-modules.tar.gz -C ${basedir}/root/
+tar -xovf ${basedir}/kernel/deploy/4.*-dtbs.tar.gz -C ${basedir}/bootp/dtbs/
+tar -xovf ${basedir}/kernel/deploy/4.*-modules.tar.gz -C ${basedir}/root/
 cd ${basedir}
 
 # Create uEnv.txt file
@@ -259,7 +257,7 @@ rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone file:///root/sandbox/mirror/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
-tar -xovf ${basedir}/kernel/deploy/3.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
+tar -xovf ${basedir}/kernel/deploy/4.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
 cd ${basedir}
 
 # Unused currently, but this script is a part of using the usb as an ethernet
