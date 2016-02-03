@@ -3,12 +3,7 @@
 # This is the Raspberry Pi Kali ARM build script - http://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
-if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 2.0"
-    exit 0
-fi
-
-basedir=`pwd`/rpi-$1
+basedir=`pwd`/rpi-rolling
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -20,30 +15,19 @@ basedir=`pwd`/rpi-$1
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
+base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils kali-linux-full"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
 extras="iceweasel xfce4-terminal wpasupplicant"
 # kernel sauces take up space
-size=7000 # Size of image in megabytes
+size=14500 # Size of image in megabytes
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
-
-# Check to ensure that the architecture is set to ARMEL since the RPi is the
-# only board that is armel.
-if [[ $architecture != "armel" ]] ; then
-    echo "The Raspberry Pi cannot run the Debian armhf binaries"
-    exit 0
-fi
-
-# Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
-# to unset it.
-#export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
 cd ${basedir}
@@ -59,11 +43,11 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
+echo "rns-rpi" > kali-$architecture/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1       rns-rpi    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -79,9 +63,7 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
-nameserver 8.8.8.8
-EOF
+ln -sf /run/resolvconf/resolv.conf kali-$architecture/etc/resolv.conf
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
@@ -184,7 +166,7 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt220" >> ${basedir}/root/etc/inittab
 
 cat << EOF > ${basedir}/root/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
@@ -196,28 +178,36 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.0.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.5.y ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
+#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-4.0.config .config
-cp ${basedir}/../kernel-configs/rpi-4.0.config ../rpi-4.0.config
-make -j $(grep -c processor /proc/cpuinfo)
+#cp ${basedir}/../kernel-configs/rpi-4.0.config .config
+#cp ${basedir}/../kernel-configs/rpi-4.0.config ../rpi-4.0.config
+
+make bcmrpi_defconfig
+make -j 3 zImage modules dtbs
 make modules_install INSTALL_MOD_PATH=${basedir}/root
+
+cp .config ../rpi-4.0.config
+
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+scripts/mkknlimg arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+
 mkdir -p ${basedir}/bootp/overlays/
-cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
-cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/bootp/overlays/
+
+cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/bootp/overlays/
+
 make mrproper
 cp ../rpi-4.0.config .config
-make modules_prepare
+make oldconfig modules_prepare
 cd ${basedir}
 
 # Create cmdline.txt file
@@ -230,7 +220,7 @@ EOF
 cat << EOF > ${basedir}/root/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc /proc proc nodev,noexec,nosuid 0  0
-/dev/mmcblk0p2  / ext4 errors=remount-ro 0 1
+/dev/mmcblk0p2  / ext4 errors=remount-ro,noatime 0 1
 # Change this if you add a swap partition or file
 #/dev/SWAP none swap sw 0 0
 /dev/mmcblk0p1 /boot vfat noauto 0 0
@@ -273,7 +263,6 @@ MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpi.img"
 pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
-rm ${basedir}/kali-$1-rpi.img
 echo "Generating sha1sum for kali-$1-rpi.img.xz"
 sha1sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha1sum
 fi
