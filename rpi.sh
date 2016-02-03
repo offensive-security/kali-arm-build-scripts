@@ -63,7 +63,8 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-ln -sf /run/resolvconf/resolv.conf kali-$architecture/etc/resolv.conf
+cp /etc/resolv.conf kali-$architectur/etc/resolv.conf
+
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
@@ -128,6 +129,7 @@ rm -f /0
 rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
+ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
 EOF
 
 chmod +x kali-$architecture/cleanup
