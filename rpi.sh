@@ -146,7 +146,7 @@ umount kali-$architecture/proc
 # Create a local key, and then get a remote encryption key.
 mkdir -p kali-$architecture/etc/initramfs-tools/root
 
-openssl rand -base64 128 | perl -pi -e 's/\n//g' > kali-$architecture/etc/initramfs-tools/root/.mylocalkey
+openssl rand -base64 128 | sed ':a;N;$!ba;s/\n//g' > kali-$architecture/etc/initramfs-tools/root/.mylocalkey
 cheatid=`date "+%y%m%d%H%M%S"`;
 authorizeKey=`cat kali-$architecture/etc/initramfs-tools/root/.mylocalkey`
 
