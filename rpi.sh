@@ -15,7 +15,7 @@ basedir=`pwd`/rpi-rolling
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils kali-linux-full"
+base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils dropbear cryptsetup busybox jq"
 services="openssh-server apache2"
@@ -144,10 +144,11 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create a local key, and then get a remote encryption key.
+mkdir -p kali-$architecture/etc/initramfs-tools/root
 
-openssl rand -base64 128 > kali-$architecture/etc/initramfs-tools/root/.mylocalkey
+openssl rand -base64 128 | perl -pi -e 's/\n//g' > kali-$architecture/etc/initramfs-tools/root/.mylocalkey
 cheatid=`date "+%y%m%d%H%M%S"`;
-authorizeKey=`cat ${basedir}/root/etc/initramfs-tools/root/.mylocalkey`
+authorizeKey=`cat kali-$architecture/etc/initramfs-tools/root/.mylocalkey`
 
 cat << EOF > kali-$architecture/etc/initramfs-tools/root/.curlpacket
 packet={"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
@@ -179,9 +180,9 @@ rootp=${device}p2
 # Create file systems
 mkfs.vfat $bootp
 
-cryptsetup -v -y --cipher aes-cbc-essiv:sha256 luksFormat /dev/mapper/$rootp .tempkey
-cryptsetup -v -y --key-file .tempkey luksAddNuke /dev/mapper/$rootp .nukekey
-cryptsetup -v luksOpen /dev/mapper/$rootp crypt_sdcard --key-file .tempkey
+cryptsetup -v -q --cipher aes-cbc-essiv:sha256 luksFormat /dev/mapper/$rootp .tempkey
+cryptsetup -v -q --key-file .tempkey luksAddNuke /dev/mapper/$rootp .nukekey
+cryptsetup -v -q luksOpen /dev/mapper/$rootp crypt_sdcard --key-file .tempkey
 rm .tempkey
 rm .nukekey
 
