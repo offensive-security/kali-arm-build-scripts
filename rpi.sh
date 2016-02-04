@@ -17,7 +17,7 @@ basedir=`pwd`/rpi-rolling
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
 base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils kali-linux-full"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
-tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
+tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils dropbear cryptsetup busybox jq"
 services="openssh-server apache2"
 extras="iceweasel xfce4-terminal wpasupplicant"
 # kernel sauces take up space
@@ -130,6 +130,9 @@ rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
 ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
+# Let's make this encrypted.. Shall we?
+mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
+update-rc.d ssh enable
 EOF
 
 chmod +x kali-$architecture/cleanup
@@ -140,15 +143,33 @@ umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
+# Create a local key, and then get a remote encryption key.
+
+openssl rand -base64 128 > ${basedir}/root/etc/initramfs-tools/root/.mylocalkey
+cheatid=`date "+%y%m%d%H%M%S"`;
+authorizeKey=`cat ${basedir}/root/etc/initramfs-tools/root/.mylocalkey`
+
+cat << EOF > ${basedir}/root/etc/initramfs-tools/root/.curlpacket
+packet={"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
+EOF
+
+curl -k -d `cat ${basedir}/root/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
+
+encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
+nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
+
+echo -n ${encryptKey} > .tempkey
+echo -n ${nukeKey} > .nukekey
+
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=$size
-parted kali-$1-rpi.img --script -- mklabel msdos
-parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-rolling-rpi.img bs=1M count=$size
+parted kali-rolling-rpi.img --script -- mklabel msdos
+parted kali-rolling-rpi.img --script -- mkpart primary fat32 0 64
+parted kali-rolling-rpi.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi.img`
+loopdevice=`losetup -f --show ${basedir}/kali-rolling-rpi.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -157,15 +178,22 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat $bootp
-mkfs.ext4 $rootp
+
+cryptsetup -v -y --cipher aes-cbc-essiv:sha256 luksFormat /dev/mapper/$rootp .tempkey
+cryptsetup -v -y --key-file .tempkey luksAddNuke /dev/mapper/$rootp .nukekey
+cryptsetup -v luksOpen /dev/mapper/$rootp crypt_sdcard --key-file .tempkey
+rm .tempkey
+rm .nukekey
+
+mkfs.ext4 /dev/mapper/crypt_sdcard
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
 mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
+mount /dev/mapper/crypt_sdcard ${basedir}/root
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+rsync -HPav -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt220" >> ${basedir}/root/etc/inittab
@@ -214,18 +242,63 @@ cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mapper/crypt_sdcard cryptdevice=/dev/mmcblk0p2:crypt_sdcard rootfstype=ext4 rootwait
 EOF
+
+cat << EOF > ${basedir}/bootp/config.txt
+initramfs initramfs.gz 0x00f00000
+EOF
+
+cp ${basedir}/root/etc/initramfs-tools/root/.ssh/id_rsa ~/rpi.id_rsa
+cp ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys ~/rpi.authorized_keys
+cat << EOF > ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys
+command="/scripts/local-top/cryptroot && kill -9 \`ps | grep-m 1 'cryptroot' | cut -d ' ' -f 3\`"
+EOF
+cat ~/rpi.authorized_keys >> ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys
+
+# Let's add a link for curl.
+
+cat << EOF > ${basedir}/root/usr/share/initramfs-tools/hooks/curl
+#!/bin/sh -e
+PREREQS=""
+case rolling in 
+   prereqs) echo "${PREREQS}"; exit 0;;
+esac
+
+./usr/share/initramfs-tools/hook-functions
+copy_exec /usr/bin/curl /bin
+EOF
+
+# Let's add a link for jq.
+
+cat << EOF > ${basedir}/root/usr/share/initramfs-tools/hooks/jq
+#!/bin/sh -e
+PREREQS=""
+case rolling in
+   prereqs) echo "${PREREQS}"; exit 0;;
+esac
+
+./use/share/initramfs-tools/hook-functions
+copy_exec /usr/bin/jq /bin
+EOF
+
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
+# TH 2016/2/3 - Make this for the encrypted method.
+
 cat << EOF > ${basedir}/root/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc /proc proc nodev,noexec,nosuid 0  0
-/dev/mmcblk0p2  / ext4 errors=remount-ro,noatime 0 1
+#/dev/mmcblk0p2  / ext4 errors=remount-ro,noatime 0 1
 # Change this if you add a swap partition or file
 #/dev/SWAP none swap sw 0 0
-/dev/mmcblk0p1 /boot vfat noauto 0 0
+/dev/mmcblk0p1 /boot vfat defaults 0 2
+/dev/mapper/crypt_sdcard / ext4 defaults,noatime 0 1
+EOF
+
+cat << EOF > ${basedir}/root/etc/crypttab
+crypt_sdcard /dev/mmcblk0p2 none luks
 EOF
 
 rm -rf ${basedir}/root/lib/firmware
@@ -243,9 +316,12 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+
 # Unmount partitions
 umount $bootp
-umount $rootp
+umount /dev/mapper/crypt_sdcard
+cryptsetup luksClose /dev/mapper/crypt_sdcard
+
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
@@ -258,13 +334,13 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpi.img"
-sha1sum kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha1sum
+echo "Generating sha1sum for kali-rolling-rpi.img"
+sha1sum kali-rolling-rpi.img > ${basedir}/kali-rolling-rpi.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpi.img"
-pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
-echo "Generating sha1sum for kali-$1-rpi.img.xz"
-sha1sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha1sum
+echo "Compressing kali-rolling-rpi.img"
+pixz ${basedir}/kali-rolling-rpi.img ${basedir}/kali-rolling-rpi.img.xz
+echo "Generating sha1sum for kali-rolling-rpi.img.xz"
+sha1sum kali-rolling-rpi.img.xz > ${basedir}/kali-rolling-rpi.img.xz.sha1sum
 fi
