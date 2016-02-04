@@ -80,7 +80,7 @@ console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
 cat << EOF > kali-$architecture/third-stage
-#!/bin/bash
+#!/bin/bash -x
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
@@ -126,12 +126,12 @@ rm -rf /root/.bash_history
 apt-get update
 apt-get clean
 ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
-mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
-update-rc.d ssh enable
-rm -f /0
-rm -f /hs_err*
-rm -f cleanup
-rm -f /usr/bin/qemu*
+#mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
+#update-rc.d ssh enable
+#rm -f /0
+#rm -f /hs_err*
+#rm -f cleanup
+#rm -f /usr/bin/qemu*
 # Let's make this encrypted.. Shall we?
 EOF
 
@@ -255,7 +255,7 @@ cp ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys ~/rpi.authorize
 cat << EOF > ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys
 command="/scripts/local-top/cryptroot && kill -9 \`ps | grep-m 1 'cryptroot' | cut -d ' ' -f 3\`"
 EOF
-cat ~/rpi.authorized_keys >> ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys
+cat ~.ssh/authorized_keys >> ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys
 
 # Let's add a link for curl.
 
@@ -317,6 +317,14 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+# Create the initramfs
+
+cat << EOF > ${basedir}/root/mkinitram
+#!/bin/bash -x
+mkinitramfs -o /boot/initramfs.gz \`ls /lib/modules/ | grep 4.1 | head -n 1\`
+EOF
+
+mv ${basedir}/root/boot/initramfs.gz $basedir/bootp/
 
 # Unmount partitions
 umount $bootp
