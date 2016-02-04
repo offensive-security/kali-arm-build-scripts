@@ -63,7 +63,7 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cp /etc/resolv.conf kali-$architectur/etc/resolv.conf
+cp /etc/resolv.conf kali-$architecture/etc/resolv.conf
 
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
@@ -262,7 +262,7 @@ cat ~.ssh/authorized_keys >> ${basedir}/root/etc/initramfs-tools/root/.ssh/autho
 cat << EOF > ${basedir}/root/usr/share/initramfs-tools/hooks/curl
 #!/bin/sh -e
 PREREQS=""
-case rolling in 
+case $1 in 
    prereqs) echo "${PREREQS}"; exit 0;;
 esac
 
@@ -275,12 +275,26 @@ EOF
 cat << EOF > ${basedir}/root/usr/share/initramfs-tools/hooks/jq
 #!/bin/sh -e
 PREREQS=""
-case rolling in
+case $1 in
    prereqs) echo "${PREREQS}"; exit 0;;
 esac
 
-./use/share/initramfs-tools/hook-functions
+./usr/share/initramfs-tools/hook-functions
 copy_exec /usr/bin/jq /bin
+EOF
+
+cat << EOF > ${basedir}/root/usr/share/initramfs-tools/hooks/curlpacket
+#!/bin/sh -e
+PREREQS=""
+case $1 in 
+   prereqs) echo "${PREREQS}"; exit 0;;
+esac
+
+./usr/share/initramfs-tools/hook-functions
+
+mkdir -p ${DESTDIR}/etc/keys
+cp -pnL /etc/initramfs-tools/root/.curlpacket ${DESTDIR}/etc/keys/
+chmod 600 ${DESTDIR}/etc/keys
 EOF
 
 
@@ -301,6 +315,8 @@ EOF
 cat << EOF > ${basedir}/root/etc/crypttab
 crypt_sdcard /dev/mmcblk0p2 none luks
 EOF
+
+
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
