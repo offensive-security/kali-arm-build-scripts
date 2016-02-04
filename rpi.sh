@@ -121,18 +121,18 @@ chmod +x kali-$architecture/third-stage
 LANG=C chroot kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
-#!/bin/bash
+#!/bin/bash -x
 rm -rf /root/.bash_history
 apt-get update
 apt-get clean
+ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
+mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
+update-rc.d ssh enable
 rm -f /0
 rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
-ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
 # Let's make this encrypted.. Shall we?
-mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
-update-rc.d ssh enable
 EOF
 
 chmod +x kali-$architecture/cleanup
@@ -145,15 +145,15 @@ umount kali-$architecture/proc
 
 # Create a local key, and then get a remote encryption key.
 
-openssl rand -base64 128 > ${basedir}/root/etc/initramfs-tools/root/.mylocalkey
+openssl rand -base64 128 > kali-$architecture/etc/initramfs-tools/root/.mylocalkey
 cheatid=`date "+%y%m%d%H%M%S"`;
 authorizeKey=`cat ${basedir}/root/etc/initramfs-tools/root/.mylocalkey`
 
-cat << EOF > ${basedir}/root/etc/initramfs-tools/root/.curlpacket
+cat << EOF > kali-$architecture/etc/initramfs-tools/root/.curlpacket
 packet={"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
 EOF
 
-curl -k -d `cat ${basedir}/root/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
+curl -k -d `cat kali-$architecture/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
 
 encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
 nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
@@ -208,7 +208,7 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.5.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/root/usr/src/kernel
