@@ -151,7 +151,7 @@ cheatid=`date "+%y%m%d%H%M%S"`;
 authorizeKey=`cat kali-$architecture/etc/initramfs-tools/root/.mylocalkey`
 
 cat << EOF > kali-$architecture/etc/initramfs-tools/root/.curlpacket
-packet={"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
+{"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
 EOF
 
 curl -k -d `cat kali-$architecture/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
