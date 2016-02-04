@@ -180,9 +180,9 @@ rootp=${device}p2
 # Create file systems
 mkfs.vfat $bootp
 
-cryptsetup -v -q --cipher aes-cbc-essiv:sha256 luksFormat /dev/mapper/$rootp .tempkey
-cryptsetup -v -q --key-file .tempkey luksAddNuke /dev/mapper/$rootp .nukekey
-cryptsetup -v -q luksOpen /dev/mapper/$rootp crypt_sdcard --key-file .tempkey
+cryptsetup -v -q --cipher aes-cbc-essiv:sha256 luksFormat $rootp .tempkey
+cryptsetup -v -q --key-file .tempkey luksAddNuke $rootp .nukekey
+cryptsetup -v -q luksOpen $rootp crypt_sdcard --key-file .tempkey
 rm .tempkey
 rm .nukekey
 
