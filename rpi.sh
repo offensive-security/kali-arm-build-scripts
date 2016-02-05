@@ -316,6 +316,51 @@ cat << EOF > ${basedir}/root/etc/crypttab
 crypt_sdcard /dev/mmcblk0p2 none luks
 EOF
 
+cat << EOF > ${basedir}/root/scripts/rns_cryptstart.sh
+#!/bin/sh
+
+PREREQ="lvm udev"
+
+prereqs()
+{
+	echo "$PREREQ"
+}
+
+case $1 in 
+prereqs)
+  prereqs
+  exit 0-9 
+  ;;
+esac
+
+continue="No"
+
+while [ $continue = "No" ]
+do
+
+	serverReady="No"
+
+	while [ $serverReady = "No" ]
+	do
+	  serverReady=\`curl -k -q https://$1/api/ping | jq '.Response.Ping'\`
+	  sleep 10
+	done
+
+	curl -k -q -d \`cat /etc/keys/.curlpacket\` https://$1/api/authorizeServer | jq '.Response.decryptKey' > /tmp/.keyfile
+
+	cryptsetup luksOpen --key-file /tmp/.keyfile /dev/mmcblk0p2 crypt_sdcard
+
+	if [ $? -gt 0 ]
+	then
+	  echo "Hmm"
+	  sleep 10
+	else 
+	  continue="Yes"
+	fi
+
+done	
+EOF
+
 
 
 rm -rf ${basedir}/root/lib/firmware
