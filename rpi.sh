@@ -385,6 +385,9 @@ cat << EOF > ${basedir}/root/mkinitram
 mkinitramfs -o /boot/initramfs.gz \`ls /lib/modules/ | grep 4.1 | head -n 1\`
 EOF
 
+chmod +x root/mkinitram
+LANG=C chroot root /mkinitram
+
 mv ${basedir}/root/boot/initramfs.gz $basedir/bootp/
 
 # Unmount partitions
