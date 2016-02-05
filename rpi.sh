@@ -29,14 +29,14 @@ architecture="armel"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-if [ ! -d ${basedir}]
+if [ ! -d "${basedir}" ]
 then
   mkdir -p ${basedir}
 fi
 
 cd ${basedir}
 
-if [ ! -f kali-$architecture/usr/bin/qemu-arm-static ]
+if [ ! -f "kali-$architecture/usr/bin/qemu-arm-static" ]
 then
   # create the rootfs - not much to modify here, except maybe the hostname.
   debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
