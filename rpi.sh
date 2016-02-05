@@ -29,21 +29,34 @@ architecture="armel"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-mkdir -p ${basedir}
+if [ !-d ${basedir}]
+then
+  mkdir -p ${basedir}
+fi
+
 cd ${basedir}
 
-# create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+if [ !-f kali-$architecture/usr/bin/qemu-arm-static ]
+then
+  # create the rootfs - not much to modify here, except maybe the hostname.
+  debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+  cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+fi
 
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
+grep -q rns-rpi kali-$architecture/etc/hostname
+
+if [ $? -gt 0 ]
+then
+  LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+  cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
-# Set hostname
-echo "rns-rpi" > kali-$architecture/etc/hostname
+  # Set hostname
+  echo "rns-rpi" > kali-$architecture/etc/hostname
+
+fi
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
@@ -73,6 +86,8 @@ export DEBIAN_FRONTEND=noninteractive
 mount -t proc proc kali-$architecture/proc
 mount -o bind /dev/ kali-$architecture/dev/
 mount -o bind /dev/pts kali-$architecture/dev/pts
+mount -o bind /sys kali-$architecture/sys
+mount -o bind /run kali-$architecture/run
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -87,7 +102,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get --yes --force-yes install locales-all
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -98,9 +113,9 @@ echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --force-yes install $packages
-apt-get --yes --force-yes dist-upgrade
-apt-get --yes --force-yes autoremove
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages install $packages
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages dist-upgrade
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages autoremove
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -126,8 +141,7 @@ rm -rf /root/.bash_history
 apt-get update
 apt-get clean
 ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
-#mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
-#update-rc.d ssh enable
+update-rc.d ssh enable
 #rm -f /0
 #rm -f /hs_err*
 #rm -f cleanup
@@ -142,6 +156,8 @@ umount kali-$architecture/proc/sys/fs/binfmt_misc
 umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
+umount kali-$architecture/run
+umount kali-$architecture/sys
 
 # Create a local key, and then get a remote encryption key.
 mkdir -p kali-$architecture/etc/initramfs-tools/root
@@ -154,10 +170,25 @@ cat << EOF > kali-$architecture/etc/initramfs-tools/root/.curlpacket
 {"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
 EOF
 
-curl -k -d `cat kali-$architecture/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
+encryptKey=""
+nukeKey=""
+abort=0
 
-encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
-nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
+while [ "X$encryptKey" = "X" ]
+do
+   curl -k -d `cat kali-$architecture/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
+
+   encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
+   nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
+
+   if [ abort -gt 30 ]
+   then
+     echo "Bailing.. Can't get proper encryption key"
+     exit 255;
+   fi
+   sleep 10;
+   abort=$(abort+1);
+done
 
 echo -n ${encryptKey} > .tempkey
 echo -n ${nukeKey} > .nukekey
@@ -316,7 +347,7 @@ cat << EOF > ${basedir}/root/etc/crypttab
 crypt_sdcard /dev/mmcblk0p2 none luks
 EOF
 
-cat << EOF > ${basedir}/root/scripts/rns_cryptstart.sh
+cat << EOF > ${basedir}/root/usr/share/initramfs-tools/scripts/init-premount/rns_crypt
 #!/bin/sh
 
 PREREQ="lvm udev"
@@ -382,8 +413,11 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 cat << EOF > ${basedir}/root/mkinitram
 #!/bin/bash -x
-mkinitramfs -o /boot/initramfs.gz \`ls /lib/modules/ | grep 4.1 | head -n 1\`
+mkinitramfs -o /boot/initramfs.gz \`ls /lib/modules/ | grep 4 | head -n 1\`
 EOF
+
+chmod +x root/mkinitram
+LANG=C chroot root /mkinitram
 
 mv ${basedir}/root/boot/initramfs.gz $basedir/bootp/
 
