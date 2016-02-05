@@ -29,14 +29,14 @@ architecture="armel"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-if [ !-d ${basedir}]
+if [ ! -d ${basedir}]
 then
   mkdir -p ${basedir}
 fi
 
 cd ${basedir}
 
-if [ !-f kali-$architecture/usr/bin/qemu-arm-static ]
+if [ ! -f kali-$architecture/usr/bin/qemu-arm-static ]
 then
   # create the rootfs - not much to modify here, except maybe the hostname.
   debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
@@ -181,13 +181,13 @@ do
    encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
    nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
 
-   if [ abort -gt 30 ]
+   if [ ${abort} -gt 30 ]
    then
      echo "Bailing.. Can't get proper encryption key"
      exit 255;
    fi
    sleep 10;
-   abort=$(abort+1);
+   abort=$(eval $abort+1);
 done
 
 echo -n ${encryptKey} > .tempkey
