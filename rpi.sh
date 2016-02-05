@@ -29,21 +29,34 @@ architecture="armel"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-mkdir -p ${basedir}
+if [ !-d ${basedir}]
+then
+  mkdir -p ${basedir}
+fi
+
 cd ${basedir}
 
-# create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+if [ !-f kali-$architecture/usr/bin/qemu-arm-static ]
+then
+  # create the rootfs - not much to modify here, except maybe the hostname.
+  debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+  cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+fi
 
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
+grep -q rns-rpi kali-$architecture/etc/hostname
+
+if [ $? -gt 0 ]
+then
+  LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+  cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
-# Set hostname
-echo "rns-rpi" > kali-$architecture/etc/hostname
+  # Set hostname
+  echo "rns-rpi" > kali-$architecture/etc/hostname
+
+fi
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
@@ -73,6 +86,8 @@ export DEBIAN_FRONTEND=noninteractive
 mount -t proc proc kali-$architecture/proc
 mount -o bind /dev/ kali-$architecture/dev/
 mount -o bind /dev/pts kali-$architecture/dev/pts
+mount -o bind /sys kali-$architecture/sys
+mount -o bind /run kali-$architecture/run
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -141,6 +156,8 @@ umount kali-$architecture/proc/sys/fs/binfmt_misc
 umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
+umount kali-$architecture/run
+umount kali-$architecture/sys
 
 # Create a local key, and then get a remote encryption key.
 mkdir -p kali-$architecture/etc/initramfs-tools/root
@@ -153,10 +170,25 @@ cat << EOF > kali-$architecture/etc/initramfs-tools/root/.curlpacket
 {"cheatid":"${cheatid}","authorizeKey":"${authorizeKey}"}
 EOF
 
-curl -k -d `cat kali-$architecture/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
+encryptKey=""
+nukeKey=""
+abort=0
 
-encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
-nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
+while [ "X$encryptKey" = "X" ]
+do
+   curl -k -d `cat kali-$architecture/etc/initramfs-tools/root/.curlpacket` https://$1/api/registerDevice > ../.keydata${cheatid}
+
+   encryptKey=`jq ".Response.YourKey" ../.keydata${cheatid}`
+   nukeKey=`jq ".Response.NukeKey" ../.keydata${cheatid}`
+
+   if [ abort -gt 30 ]
+   then
+     echo "Bailing.. Can't get proper encryption key"
+     exit 255;
+   fi
+   sleep 10;
+   abort=$(abort+1);
+done
 
 echo -n ${encryptKey} > .tempkey
 echo -n ${nukeKey} > .nukekey
