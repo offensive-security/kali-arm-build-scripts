@@ -126,8 +126,7 @@ rm -rf /root/.bash_history
 apt-get update
 apt-get clean
 ln -sf /run/resolvconf/resolv.conf /etc/resolv.conf
-#mkinitramfs -o /bootp/initramfs.gz `ls -l /lib/modules | awk -F" " '{ print $9 }'`
-#update-rc.d ssh enable
+update-rc.d ssh enable
 #rm -f /0
 #rm -f /hs_err*
 #rm -f cleanup
@@ -382,7 +381,7 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 cat << EOF > ${basedir}/root/mkinitram
 #!/bin/bash -x
-mkinitramfs -o /boot/initramfs.gz \`ls /lib/modules/ | grep 4.1 | head -n 1\`
+mkinitramfs -o /boot/initramfs.gz \`ls /lib/modules/ | grep 4 | head -n 1\`
 EOF
 
 chmod +x root/mkinitram
