@@ -410,6 +410,11 @@ cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
 # Create the initramfs
+mount -t proc proc root/proc
+mount -o bind /dev/ root/dev/
+mount -o bind /dev/pts root/dev/pts
+mount -o bind /sys root/sys
+mount -o bind /run root/run
 
 cat << EOF > ${basedir}/root/mkinitram
 #!/bin/bash -x
@@ -422,8 +427,8 @@ LANG=C chroot root /mkinitram
 mv ${basedir}/root/boot/initramfs.gz $basedir/bootp/
 
 # Unmount partitions
-umount $bootp
-umount /dev/mapper/crypt_sdcard
+umount -R $bootp
+umount -R /dev/mapper/crypt_sdcard
 cryptsetup luksClose /dev/mapper/crypt_sdcard
 
 kpartx -dv $loopdevice
