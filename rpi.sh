@@ -87,7 +87,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get --yes --force-yes install locales-all
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -98,9 +98,9 @@ echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --force-yes install $packages
-apt-get --yes --force-yes dist-upgrade
-apt-get --yes --force-yes autoremove
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages install $packages
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages dist-upgrade
+apt-get --yes --allow-downgrades --allow-remove-essential --allow-change-held-packages autoremove
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -316,7 +316,7 @@ cat << EOF > ${basedir}/root/etc/crypttab
 crypt_sdcard /dev/mmcblk0p2 none luks
 EOF
 
-cat << EOF > ${basedir}/root/scripts/rns_cryptstart.sh
+cat << EOF > ${basedir}/root/usr/share/initramfs-tools/scripts/init-premount/rns_crypt
 #!/bin/sh
 
 PREREQ="lvm udev"
