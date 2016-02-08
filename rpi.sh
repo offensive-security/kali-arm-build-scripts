@@ -15,7 +15,7 @@ basedir=`pwd`/rpi-rolling
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
+base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils kali-linux-full"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils dropbear cryptsetup busybox jq"
 services="openssh-server apache2"
@@ -430,8 +430,9 @@ LANG=C chroot root /mkinitram
 mv ${basedir}/root/boot/initramfs.gz $basedir/bootp/
 
 # Unmount partitions
-umount -R $bootp
-umount -R /dev/mapper/crypt_sdcard
+umount -R ${basedir}/bootp
+umount -R ${basedir}/root
+
 cryptsetup luksClose /dev/mapper/crypt_sdcard
 
 kpartx -dv $loopdevice
