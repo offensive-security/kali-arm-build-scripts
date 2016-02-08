@@ -20,13 +20,13 @@ basedir=`pwd`/rpi2-$1
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils kali-linux-full"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant"
 # kernel sauces take up space yo.
-size=7000 # Size of image in megabytes
+size=14500 # Size of image in megabytes
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -188,7 +188,7 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.18.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.5.y ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
