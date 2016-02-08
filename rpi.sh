@@ -281,8 +281,11 @@ cat << EOF > ${basedir}/bootp/config.txt
 initramfs initramfs.gz 0x00f00000
 EOF
 
-cp ${basedir}/root/etc/initramfs-tools/root/.ssh/id_rsa ~/rpi.id_rsa
-cp ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys ~/rpi.authorized_keys
+ssh-keygen -t rsa -N "" -f ${basedir}/root/root/.ssh/id_rsa 
+mv ${basedir}/root/root/.ssh/id_rsa ~/rpi${cheatid}.id_rsa
+cp ${basedir}/root/root/.ssh/id_rsa.pub ~/rpi${cheatid}.authorized_keys
+mv ${basedir}/root/root/.ssh/id_rsa.pub ${basedir}/root/root/.ssh/authorized_keys
+
 cat << EOF > ${basedir}/root/etc/initramfs-tools/root/.ssh/authorized_keys
 command="/scripts/local-top/cryptroot && kill -9 \`ps | grep-m 1 'cryptroot' | cut -d ' ' -f 3\`"
 EOF
