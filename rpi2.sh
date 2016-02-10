@@ -212,7 +212,7 @@ cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.fiq_fix_enable=2 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload
+dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so

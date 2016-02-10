@@ -2285,7 +2285,7 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone file:///root/sandbox/mirror/linux-firmware.git firmware
+git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 # Copy the broadcom firmware files in (for now) - once sources are released,
 # will be able to do this without having a local copy.
