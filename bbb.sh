@@ -202,10 +202,6 @@ cd ${basedir}/kernel
 git config user.name root
 git config user.email none@none.no
 export AUTO_BUILD=1
-export LINUX_GIT=/root/sandbox/mirror/mainline.git
-#export CC=/root/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-#rm tools/host_det.sh
-#wget https://raw.githubusercontent.com/RobertCNelson/stable-kernel/master/tools/host_det.sh -O tools/host_det.sh
 ./build_kernel.sh
 cd ${basedir}/kernel/KERNEL
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
@@ -255,7 +251,7 @@ EOF
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone file:///root/sandbox/mirror/linux-firmware.git firmware
+git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 tar -xovf ${basedir}/kernel/deploy/4.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
 cd ${basedir}

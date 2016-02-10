@@ -502,7 +502,7 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone file:///root/sandbox/mirror/linux-firmware.git firmware
+git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
