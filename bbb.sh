@@ -249,6 +249,34 @@ cat << EOF > ${basedir}/root/etc/fstab
 /dev/mmcblk0p1 /boot auto defaults 0 0
 EOF
 
+mkdir -p ${basedir}/root/etc/X11/
+cat << EOF > ${basedir}/root/etc/X11/xorg.conf
+Section "Monitor"
+  Identifier    "Builtin Default Monitor"
+EndSection
+
+Section "Device"
+  Identifier    "Builtin Default fbdev Device 0"
+  Driver        "fbdev"
+  Option        "SWCursor"  "true"
+EndSection
+
+Section "Screen"
+  Identifier    "Builtin Default fbdev Screen 0"
+  Device        "Builtin Default fbdev Device 0"
+  Monitor       "Builtin Default Monitor"
+  DefaultDepth  16
+  # Comment out the above and uncomment the below if using a
+  # bbb-view or bbb-exp
+  #DefaultDepth 24
+EndSection
+
+Section "ServerLayout"
+  Identifier    "Builtin Default Layout"
+  Screen        "Builtin Default fbdev Screen 0"
+EndSection
+EOF
+
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
