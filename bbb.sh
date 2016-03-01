@@ -111,7 +111,7 @@ apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
 echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
 
@@ -190,27 +190,20 @@ EOF
 # Uncomment this if you use apt-cacher-ng or else git clones will fail.
 #unset http_proxy
 
-# Get, compile and install kernel
-# NOTE: This downloads it's own cross compiler!
-# We export AUTO_BUILD so that it doesn't prompt us to use the menuconfig option
-# with the kernel.
-# You can load the github URL in a browser, and see what other branches you can
-# try.  Keep in mind if you do so, that you will likely want to comment out
-# AUTO_BUILD so that you can configure the kernel!
-git clone --depth 1 https://github.com/RobertCNelson/linux-dev ${basedir}/kernel
-cd ${basedir}/kernel
-git config user.name root
-git config user.email none@none.no
-export AUTO_BUILD=1
-./build_kernel.sh
-cd ${basedir}/kernel/KERNEL
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
-cd ${basedir}/kernel
-./tools/rebuild.sh
-cp -v ${basedir}/kernel/deploy/4.*.zImage ${basedir}/bootp/zImage
+git clone https://github.com/beagleboard/linux -b 4.1 --depth 1 ${basedir}/root/usr/src/kernel
+cd ${basedir}/root/usr/src/kernel
+git rev-parse HEAD > ../kernel-at-commit
+export ARCH=arm
+# Edit the CROSS_COMPILE variable as needed.
+export CROSS_COMPILE=arm-linux-gnueabihf-
+touch .scmversion
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
+make bb.org_defconfig
+make -j $(grep -c processor /proc/cpuinfo)
+cp arch/arm/boot/zImage ${basedir}/bootp/zImage
 mkdir -p ${basedir}/bootp/dtbs
-tar -xovf ${basedir}/kernel/deploy/4.*-dtbs.tar.gz -C ${basedir}/bootp/dtbs/
-tar -xovf ${basedir}/kernel/deploy/4.*-modules.tar.gz -C ${basedir}/root/
+cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/dtbs/
+make INSTALL_MOD_PATH=${basedir}/root modules_install
 cd ${basedir}
 
 # Create uEnv.txt file
@@ -281,7 +274,11 @@ rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
-tar -xovf ${basedir}/kernel/deploy/4.*-firmware.tar.gz -C ${basedir}/root/lib/firmware/
+cd ${basedir}/root/usr/src/kernel
+make INSTALL_MOD_PATH=${basedir}/root firmware_install
+make mrproper
+make bb.org_defconfig
+make modules_prepare
 cd ${basedir}
 
 # Unused currently, but this script is a part of using the usb as an ethernet
