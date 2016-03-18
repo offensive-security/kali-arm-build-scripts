@@ -1,21 +1,22 @@
 Kali-ARM-Build-Scripts
 ======================
 
-Offensive Security Kali Linux ARM build scripts. We use these to build our official Kali Linux ARM images, 
+Offensive Security Kali Linux ARM build scripts. We use these to build our official Kali Linux ARM images,
 as can be found at http://www.kali.org/downloads/
 
 - These scripts have been tested on a Kali Linux 32 and 64 bit installations only, after making sure
 that all the dependencies have been installed.
 - Make sure you run the build-deps.sh script first, which installs all required dependencies.
 
-- You will need to use the cross compilers from our github account.  
+- You will need to use the cross compilers from our github account.
 
 armel images (RPi) will use https://github.com/offensive-security/gcc-arm-eabi-linaro-4.6.2
 
 armhf images will use https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
-A sample workflow would look similar to (armhf):
+arm64 images (ODROID-C2) will use https://releases.linaro.org/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
 
+A sample workflow would look similar to (armhf):
 
     mkdir ~/arm-stuff
     cd ~/arm-stuff
@@ -25,7 +26,6 @@ A sample workflow would look similar to (armhf):
     cd ~/arm-stuff/kali-arm-build-scripts
     ./build-deps.sh
     ./chromebook-arm-samsung.sh 1.0
-
 
 If you are on 32bit, after the script finishes running, you will have an image
 file located in ~/arm-stuff/kali-arm-build-scripts/chromebook-1.0/ called
