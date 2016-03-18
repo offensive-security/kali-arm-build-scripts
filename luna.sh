@@ -94,7 +94,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get install locales-all
+apt-get install --yes --force-yes locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
