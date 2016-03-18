@@ -216,7 +216,7 @@ loadfdt=load mmc \${mmcdev}:\${mmcpart} \${fdtaddr} /dtbs/\${fdtfile}
  
 console=ttyO0,115200n8
 mmcroot=/dev/mmcblk0p2 ro
-mmcrootfstype=ext4 rootwait fixrtc
+mmcrootfstype=ext4 rootwait fixrtc net.ifnames=0
 mmcargs=setenv bootargs console=\${console} root=\${mmcroot} rootfstype=\${mmcrootfstype} \${optargs}
  
 #zImage:
@@ -229,13 +229,11 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
 rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/kernel
-
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
