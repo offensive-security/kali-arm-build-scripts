@@ -74,6 +74,16 @@ EOF
 cat << EOF > kali-$architecture/etc/network/interfaces
 auto lo
 iface lo inet loopback
+
+auto eth0
+allow-hotplug eth0
+iface eth0 inet dhcp
+hwaddress 76:92:d4:85:f3:0f
+
+# This prevents NetworkManager from attempting to use this
+# device to connect to wifi, since NM doesn't show which device is which.
+# Unfortunately, it still SHOWS the device, just that it's not managed.
+iface p2p0 inet manual
 EOF
 
 cat << EOF > kali-$architecture/etc/resolv.conf
@@ -119,9 +129,7 @@ apt-get --yes --force-yes autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
-echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d
@@ -195,13 +203,16 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b s5p4418-nanopi2 ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+# Ugh, this patch is needed because the ethernet driver uses parts of netdev
+# from a newer kernel?
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Remove-define.patch
 cp ${basedir}/../kernel-configs/nanopi2* ..
 cp ../nanopi2-720p.config .config
 make -j $(grep -c processor /proc/cpuinfo)

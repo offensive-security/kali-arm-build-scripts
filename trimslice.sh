@@ -222,7 +222,7 @@ rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 echo << EOF > ${basedir}/bootp/boot.txt
-setenv bootargs root=/dev/mmcblk0p2 nohdparm rootwait console=ttyS0,115200n8 earlyprintk
+setenv bootargs root=/dev/mmcblk0p2 nohdparm rootwait console=ttyS0,115200n8 earlyprintk net.ifnames=0
 ext2load usb 0:1 4080000 zImage
 ext2load usb 0:1 4000000 tegra20-trimslice.dtb
 bootz 4080000 - 4000000

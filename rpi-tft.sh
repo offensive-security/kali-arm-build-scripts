@@ -123,7 +123,7 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
 
@@ -214,6 +214,7 @@ make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/adafruit/rpi-firmware.git rpi-firmware
 rm -rf rpi-firmware/extra rpi-firmware/modules rpi-firmware/firmware rpi-firmware/vc
 cp -rf rpi-firmware/* ${basedir}/bootp/
+rm -rf rpi-firmware/
 cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
 make mrproper
 cp ../rpi-ada-3.15.config .config
@@ -222,7 +223,7 @@ cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 fbcon=font:VGA8x8
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 fbcon=font:VGA8x8 net.ifnames=0
 EOF
 
 cat << EOF >> ${basedir}/root/etc/modules

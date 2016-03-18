@@ -216,7 +216,7 @@ cd ${basedir}
 # Create boot.txt file
 cat << EOF > ${basedir}/bootp/boot.cmd
 setenv bootm_boot_mode sec
-setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait panic=10 ${extra}
+setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait panic=10 ${extra} rw rootfstype=ext4 net.ifnames=0
 fatload mmc 0 0x43000000 script.bin
 fatload mmc 0 0x48000000 uImage
 bootm 0x48000000

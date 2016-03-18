@@ -5,7 +5,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/bananapi-$1
+basedir=`pwd`/bananapro-$1
 
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
@@ -151,13 +151,13 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
-dd if=/dev/zero of=${basedir}/kali-$1-bananapi.img bs=1M count=7000
-parted kali-$1-bananapi.img --script -- mklabel msdos
-parted kali-$1-bananapi.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-bananapi.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/kali-$1-bananapro.img bs=1M count=7000
+parted kali-$1-bananapro.img --script -- mklabel msdos
+parted kali-$1-bananapro.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-$1-bananapro.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-bananapi.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$1-bananapro.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -200,7 +200,7 @@ git clone --depth 1 https://github.com/LeMaker/sunxi-boards
 
 cd ${basedir}/sunxi-tools
 make fex2bin
-./fex2bin ${basedir}/sunxi-boards/sys_config/a20/BananaPi.fex ${basedir}/bootp/script.bin
+./fex2bin ${basedir}/sunxi-boards/sys_config/a20/BananaPro.fex ${basedir}/bootp/script.bin
 
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
@@ -211,7 +211,6 @@ export CROSS_COMPILE=arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/lemaker.config .config
 cp ${basedir}/../kernel-configs/lemaker.config ../lemaker.config
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
-make modules_install INSTALL_MOD_PATH=${basedir}/root
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib/
@@ -239,15 +238,11 @@ mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.cmd ${basedir}/bootp/b
 cd ${basedir}/u-boot-bananapi/
 # Build u-boot
 make distclean
-make BananaPi_config
+make BananaPro_config
 make -j $(grep -c processor /proc/cpuinfo)
 
 dd if=u-boot-sunxi-with-spl.bin of=$loopdevice bs=1024 seek=8
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
@@ -267,14 +262,14 @@ rm -rf ${basedir}/u-boot-bananapi ${basedir}/kernel ${basedir}/bootp ${basedir}/
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum of kali-$1-bananapi.img"
-sha1sum kali-$1-bananapi.img > ${basedir}/kali-$1-bananapi.img.sha1sum
+echo "Generating sha1sum of kali-$1-bananapro.img"
+sha1sum kali-$1-bananapro.img > ${basedir}/kali-$1-bananapro.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-bananapi.img"
-pixz ${basedir}/kali-$1-bananapi.img ${basedir}/kali-$1-bananapi.img.xz
-rm ${basedir}/kali-$1-bananapi.img
-echo "Generating sha1sum of kali-$1-bananapi.img.xz"
-sha1sum kali-$1-bananapi.img.xz > ${basedir}/kali-$1-bananapi.img.xz.sha1sum
+echo "Compressing kali-$1-bananapro.img"
+pixz ${basedir}/kali-$1-bananapro.img ${basedir}/kali-$1-bananapro.img.xz
+rm ${basedir}/kali-$1-bananapro.img
+echo "Generating sha1sum of kali-$1-bananapro.img.xz"
+sha1sum kali-$1-bananapro.img.xz > ${basedir}/kali-$1-bananapro.img.xz.sha1sum
 fi

@@ -208,7 +208,7 @@ cd ${basedir}
 cat << EOF > ${basedir}/root/uEnv.txt
 bootfile=zImage
 mmcargs=setenv bootargs root=/dev/mmcblk0p1 rootwait video=mxcfb0:dev=hdmi \
-consoleblank=0 console=ttymxc0,115200
+consoleblank=0 console=ttymxc0,115200 net.ifnames=0 rw rootfstype=ext4
 EOF
 
 rm -rf ${basedir}/root/lib/firmware

@@ -1,0 +1,28 @@
+From 6d9ba50e3d79a26f80a3bc828c7997398be00e84 Mon Sep 17 00:00:00 2001
+From: Steev Klimaszewski <threeway@gmail.com>
+Date: Wed, 16 Mar 2016 15:19:36 -0500
+Subject: [PATCH] Remove define
+
+This define is used for vlan bits, however, nexell seems to be using a driver
+from a newer version of the kernel and the rest of the netdev bits aren't added
+so just remove this for now.
+---
+ drivers/net/ethernet/nexell/nxpmac/common.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/nexell/nxpmac/common.h b/drivers/net/ethernet/nexell/nxpmac/common.h
+index 21cb071..170e041 100644
+--- a/drivers/net/ethernet/nexell/nxpmac/common.h
++++ b/drivers/net/ethernet/nexell/nxpmac/common.h
+@@ -31,7 +31,7 @@
+ #include <linux/module.h>
+ #include <linux/init.h>
+ #if defined(CONFIG_VLAN_8021Q) || defined(CONFIG_VLAN_8021Q_MODULE)
+-#define NXPMAC_VLAN_TAG_USED
++//#define NXPMAC_VLAN_TAG_USED
+ #include <linux/if_vlan.h>
+ #endif
+ 
+-- 
+2.1.4
+

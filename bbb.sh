@@ -63,6 +63,7 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
 
+auto usb0
 iface usb0 inet static
     address 192.168.7.2
     netmask 255.255.255.0
@@ -218,7 +219,7 @@ loadfdt=load mmc \${mmcdev}:\${mmcpart} \${fdtaddr} /dtbs/\${fdtfile}
 #
  
 console=ttyO0,115200n8
-mmcroot=/dev/mmcblk0p2 rw
+mmcroot=/dev/mmcblk0p2 rw net.ifnames=0
 mmcrootfstype=ext4 rootwait fixrtc
  
 ##To disable HDMI/eMMC...
