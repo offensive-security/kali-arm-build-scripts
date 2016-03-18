@@ -25,7 +25,7 @@ desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-th
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant"
-size=3000 # Size of image in megabytes
+size=7000 # Size of image in megabytes
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
@@ -204,6 +204,7 @@ make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
+rm -rf rpi-firmware
 cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
 make mrproper
 cp ../odroid-w.config .config
@@ -212,7 +213,7 @@ cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait net.ifnames=0 rw
 EOF
 
 rm -rf ${basedir}/root/lib/firmware

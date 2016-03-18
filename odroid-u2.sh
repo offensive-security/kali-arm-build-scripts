@@ -242,7 +242,7 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux.git -b odroid-3.8.y ${basedir}/kernel
+git clone --depth 1 https://github.com/hardkernel/linux.git -b odroid-3.8.y ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
@@ -265,7 +265,7 @@ cat << EOF > ${basedir}/bootp/boot.txt
 setenv initrd_high "0xffffffff"
 setenv fdt_high "0xffffffff"
 setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; bootm 0x40008000 0x42000000"
-setenv bootargs "console=tty1 console=ttySAC1,115200n8 root=/dev/mmcblk0p2 rootwait mem=2047M"
+setenv bootargs "console=tty1 console=ttySAC1,115200n8 root=/dev/mmcblk0p2 rootwait mem=2047M rw rootfstype=ext4 net.ifnames=0"
 boot
 EOF
 

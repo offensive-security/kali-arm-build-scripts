@@ -31,9 +31,9 @@ packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
-mirror=http.kali.org
+mirror=repo.kali.org
 
-# Check to ensure that the architecture is set to ARMEL since the RPi is the
+# Check to ensure that the architecture is set to ARMEL since the ODWK is the
 # only board that is armel.
 if [[ $architecture != "armel" ]] ; then
     echo "The ODROID-W cannot run the Debian armhf binaries"
@@ -118,6 +118,7 @@ apt-get --yes --force-yes install $packages
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d
@@ -189,33 +190,39 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.0.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-4.0.config .config
-cp ${basedir}/../kernel-configs/rpi-4.0.config ../rpi-4.0.config
+cp ${basedir}/../kernel-configs/rpi-4.1.config .config
+cp ${basedir}/../kernel-configs/rpi-4.1.config ../rpi-4.1.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
+rm -rf rpi-firmware
+rm -rf ${basedir}/root/lib/firmware
+cd ${basedir}/root/lib
+git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+rm -rf ${basedir}/root/lib/firmware/.git
+cd ${basedir}/root/usr/src/kernel
 cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
-mkdir ${basedir}/bootp/overlays/
+mkdir -p ${basedir}/bootp/overlays/
 cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
 cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/bootp/overlays/
 make mrproper
-cp ../rpi-4.0.config .config
+cp ../rpi-4.1.config .config
 make modules_prepare
 cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 net.ifnames=0 rw
 EOF
 
 # Create config.txt file
@@ -284,16 +291,6 @@ cat << EOF > ${basedir}/root/etc/modprobe.d/fbtft_device.conf
 options fbtft_device name=adafruit22a rotate=90
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
-
-# rpi-wiggle
-mkdir -p ${basedir}/root/scripts
-wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
-
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
@@ -315,7 +312,7 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
 echo "Generating sha1sum for kali-$1-owdk.img"
-sha1sum kali-$1-rpi.img > ${basedir}/kali-$1-owdk.img.sha1sum
+sha1sum kali-$1-owdk.img > ${basedir}/kali-$1-owdk.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then

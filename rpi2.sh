@@ -116,7 +116,7 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d
@@ -188,31 +188,39 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-3.18.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi2-3.18.config .config
-cp ${basedir}/../kernel-configs/rpi2-3.18.config ../rpi2-3.18.config
+cp ${basedir}/../kernel-configs/rpi2-4.1.config .config
+cp ${basedir}/../kernel-configs/rpi2-4.1.config ../rpi2-4.1.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-cp arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
+# ARGH.  Device tree support requires we run this *sigh*
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
+#cp arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
 cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
 cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/bootp/overlays/
+rm -rf ${basedir}/root/lib/firmware
+cd ${basedir}/root/lib
+git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+rm -rf ${basedir}/root/lib/firmware/.git
+cd ${basedir}/root/usr/src/kernel
+make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
-cp ../rpi2-3.18.config .config
+cp ../rpi2-4.1.config .config
 make modules_prepare
 rm -rf rpi-firmware
 cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload
+dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
@@ -226,10 +234,10 @@ proc /proc proc nodev,noexec,nosuid 0  0
 /dev/mmcblk0p1 /boot vfat noauto 0 0
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
+# Firmware needed for rpi3 wifi/bt
+mkdir -p ${basedir}/root/lib/firmware/brcm/
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/brcm/
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.bin ${basedir}/root/lib/firmware/brcm/
 
 cd ${basedir}
 

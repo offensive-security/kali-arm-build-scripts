@@ -180,7 +180,7 @@ EOF
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 2 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.8 ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.8 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 cp ${basedir}/../kernel-configs/chromebook-3.8.config .config
 cp ${basedir}/../kernel-configs/chromebook-3.8.config ../exynos.config

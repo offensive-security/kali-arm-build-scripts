@@ -120,6 +120,12 @@ apt-get --yes --force-yes install $packages
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
+# Because copying in authorized_keys is hard for people to do, let's make the
+# image insecure and enable root login with a password.
+
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+update-rc.d ssh enable
+
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
@@ -242,7 +248,7 @@ kaddr=0x12000000
 
 loadkernel=load \${dtype} \${disk}:1 \${loadaddr} zImage
 
-bargs=setenv bootargs console=ttymxc1,115200n8 rootwait root=PARTUUID=\${btpart}
+bargs=setenv bootargs console=ttymxc1,115200n8 rootwait root=PARTUUID=\${btpart} net.ifnames=0 rootfstype=ext4
 
 loadfdt=load \${dtype} \${disk}:1 0x11000000 \${fdt_file}
 

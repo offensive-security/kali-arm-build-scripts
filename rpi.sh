@@ -28,6 +28,9 @@ extras="iceweasel xfce4-terminal wpasupplicant"
 # kernel sauces take up space
 size=7000 # Size of image in megabytes
 
+# Git commit hash to check out for the kernel
+kernel_commit=20fe468
+
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
@@ -123,7 +126,7 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
 
@@ -196,33 +199,43 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.0.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.0.patch
+git checkout $kernel_commit
+echo $kernel_commit > ../kernel-at-commit
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-4.0.config .config
-cp ${basedir}/../kernel-configs/rpi-4.0.config ../rpi-4.0.config
+cp ${basedir}/../kernel-configs/rpi-4.1.config .config
+cp ${basedir}/../kernel-configs/rpi-4.1.config ../rpi-4.1.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+rm -rf rpi-firmware
+# Because of device trees being used we need to go back to using mkknlimg :(
+#cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+${basedir}/tools/mkimage/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel.img
 mkdir -p ${basedir}/bootp/overlays/
 cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
 cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/bootp/overlays/
+rm -rf ${basedir}/root/lib/firmware
+cd ${basedir}/root/lib
+git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
+rm -rf ${basedir}/root/lib/firmware/.git
+cd ${basedir}/root/usr/src/kernel
+make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
-cp ../rpi-4.0.config .config
+cp ../rpi-4.1.config .config
 make modules_prepare
 cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait net.ifnames=0
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
@@ -235,11 +248,6 @@ proc /proc proc nodev,noexec,nosuid 0  0
 #/dev/SWAP none swap sw 0 0
 /dev/mmcblk0p1 /boot vfat noauto 0 0
 EOF
-
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts

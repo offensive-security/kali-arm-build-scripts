@@ -36,6 +36,7 @@ extras="florence iceweasel xfce4-goodies xfce4-terminal xinput wpasupplicant"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
+kernel_commit="7247c395ff6b325d2dbffc5a9c9f1c30417ce133"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
@@ -182,9 +183,10 @@ EOF
 # them in this section.
 git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.14 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
+git checkout $kernel_commit
 cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config .config
 cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config ../veyron.config
-git rev-parse HEAD > ../kernel-at-commit
+echo $kernel_commit > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -2308,6 +2310,8 @@ EOF
 umount $rootp
 
 dd if=${basedir}/kernel.bin of=$bootp
+
+cgpt repair $loopdevice
 
 kpartx -dv $loopdevice
 losetup -d $loopdevice
