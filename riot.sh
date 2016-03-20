@@ -41,7 +41,7 @@ packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
-mirror=http.kali.org
+mirror=192.168.11.43
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -203,11 +203,10 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-#
-git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git ${basedir}/root/usr/src/kernel
+git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git -b linux-4.4.y ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.4.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -225,16 +224,17 @@ git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/lin
 rm -rf ${basedir}/root/lib/firmware/.git
 # Need some firmware from the kernel so..
 cd ${basedir}/root/usr/src/kernel
-make modules_install INSTALL_MOD_PATH=${basedir}/root
+make firmware_install INSTALL_MOD_PATH=${basedir}/root
 make mrproper
 cp ../riot.config .config
 make modules_prepare
 cd ${basedir}
 
 # Mainline u-boot with RIoTboard fixes on top
-git clone --depth 1 git://git.denx.de/u-boot.git
-cd u-boot
-make riotboard_defconfig
+wget ftp://ftp.denx.de/pub/u-boot/u-boot-2015.04.tar.bz2
+tar -xf u-boot-2015.04.tar.bz2
+cd u-boot-2015.04
+make riotboard_config
 make -j $(grep -c processor /proc/cpuinfo)
 dd if=u-boot.imx of=$loopdevice bs=1024 seek=1
 cd ${basedir}
