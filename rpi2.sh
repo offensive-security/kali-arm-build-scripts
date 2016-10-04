@@ -188,15 +188,15 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.4.y ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.4.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi2-4.1.config .config
-cp ${basedir}/../kernel-configs/rpi2-4.1.config ../rpi2-4.1.config
+cp ${basedir}/../kernel-configs/rpi2-4.4.config .config
+cp ${basedir}/../kernel-configs/rpi2-4.4.config ../rpi2-4.4.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
@@ -213,7 +213,7 @@ rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}/root/usr/src/kernel
 make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
-cp ../rpi2-4.1.config .config
+cp ../rpi2-4.4.config .config
 make modules_prepare
 rm -rf rpi-firmware
 cd ${basedir}
