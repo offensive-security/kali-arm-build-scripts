@@ -6,10 +6,9 @@ debug() {
     if [ ${DEBUG:-0} -eq 1 ]; then
 	TEXT=${1}
 	if [ -z "$TEXT" ]; then
-		echo -n "paused - hit return to continue: "
-	else
-		echo -n "${TEXT}: "
+		TEXT="paused."
 	fi
+	echo -n "DEBUG: ${TEXT} (enter to continue): "
 	read SLEEP
 	echo ""
     fi
@@ -25,6 +24,11 @@ else
     MYVER=${1//[^0-9.]/}
 fi
 
+if [ "$(id -u)" -ne "0" ]; then
+        echo "This script requires root."
+        exit 1
+fi
+
 if [ -z "$(which debootstrap)" ]; then
     echo "have you run the build-deps.sh script yet?"
     exit 1
@@ -37,7 +41,9 @@ basedir=`pwd`/pine64-${MYVER}
 if [ "${MACHINE_TYPE}" != "aarch64" ] ; then
     export CROSS_COMPILE=aarch64-linux-gnu-
     if [ $(compgen -c $CROSS_COMPILE | wc -l) -eq 0 ] ; then
-        echo "Missing cross compiler. Set up PATH according to the README"
+        echo "Missing cross compiler."
+        echo "download the toolchain from http://releases.linaro.org/components/toolchain/binaries/4.9-2016.02/aarch64-linux-gnu/gcc-linaro-4.9-2016.02-x86_64_aarch64-linux-gnu.tar.xz"
+        echo "and then set up the PATH according to the README"
         exit 1
     fi
     # Unset CROSS_COMPILE so that if there is any native compiling needed it doesn't
@@ -58,7 +64,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg fake-hwclock ntpdate u-boot-tools"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils aptitude"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -79,7 +85,7 @@ cd ${basedir}
 
 debug "starting debootstrap"
 # create the rootfs - not much to modify here, except maybe the hostname.
-if [ ${BUILD_NATIVE:0} -eq 0 ] ; then
+if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
     debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
     cp /usr/bin/qemu-aarch64-static kali-$architecture/usr/bin/
 
