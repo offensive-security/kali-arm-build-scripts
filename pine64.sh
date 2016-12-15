@@ -86,9 +86,11 @@ cd ${basedir}
 debug "starting debootstrap"
 # create the rootfs - not much to modify here, except maybe the hostname.
 if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
-    debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+    debootstrap --foreign --arch $architecture --include=aptitude,apt kali-rolling kali-$architecture http://$mirror/kali
     cp /usr/bin/qemu-aarch64-static kali-$architecture/usr/bin/
 
+    debug "second stage"
+    
     LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 else
     debootstrap --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
