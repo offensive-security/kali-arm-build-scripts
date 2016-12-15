@@ -94,13 +94,16 @@ if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
     
     LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
-cat << EOF >> kali-$architecture/fix-apt-install
+    if [ ! -e kali-${architecture}/usr/bin/apt-get ] ; then
+        echo "manually working around broken 'apt' installation. ignore the remaining second-stage errors"
+        cat << EOF > kali-${architecture}/fix-apt-install
 #!/bin/bash
 cd /var/cache/apt/archives
-# --log=/dev/null
-dpkg -i $(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc*)
+dpkg -i --log=/dev/null \$(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc*)
 EOF
-    LANG=C chroot kali-$architecture /fix-apt-install
+        chmod +x kali-$architecture/fix-apt-install
+        LANG=C chroot kali-$architecture /fix-apt-install
+    fi
 
 else
     debootstrap --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
