@@ -65,7 +65,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg fake-hwclock ntpdate u-boot-tools"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils aptitude"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -87,12 +87,21 @@ cd ${basedir}
 debug "starting debootstrap"
 # create the rootfs - not much to modify here, except maybe the hostname.
 if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
-    debootstrap --foreign --arch $architecture --include=aptitude,apt kali-rolling kali-$architecture http://$mirror/kali
+    debootstrap --foreign --arch $architecture --include=apt kali-rolling kali-$architecture http://$mirror/kali
     cp /usr/bin/qemu-aarch64-static kali-$architecture/usr/bin/
 
     debug "second stage"
     
     LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+
+cat << EOF >> kali-$architecture/fix-apt-install
+#!/bin/bash
+cd /var/cache/apt/archives
+# --log=/dev/null
+dpkg -i $(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc*)
+EOF
+    LANG=C chroot kali-$architecture /fix-apt-install
+
 else
     debootstrap --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 fi
@@ -189,6 +198,7 @@ apt-get update
 apt-get clean
 rm -f /0
 rm -f /hs_err*
+rm -f /fix-apt-install
 rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
