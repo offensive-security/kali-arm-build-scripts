@@ -15,6 +15,7 @@ debug() {
 }
 
 MACHINE_TYPE=`uname -m`
+IMAGE_SIZE=7680
 DEBUG=1
 
 if [[ $# -eq 0 ]] ; then
@@ -205,7 +206,7 @@ umount kali-$architecture/proc
 # Create the disk and partition it
 echo "Creating image file for Pine64"
 debug ""
-dd if=/dev/zero of=${basedir}/kali-$1-pine64.img bs=1M count=7000
+dd if=/dev/zero of=${basedir}/kali-$1-pine64.img bs=1M count=${IMAGE_SIZE}
 parted kali-$1-pine64.img --script -- mklabel msdos
 parted kali-$1-pine64.img --script -- mkpart primary fat32 2048s 264191s
 parted kali-$1-pine64.img --script -- mkpart primary ext4 264192s 100%
