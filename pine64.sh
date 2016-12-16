@@ -101,6 +101,7 @@ if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
 cd /var/cache/apt/archives
 dpkg -i --log=/dev/null \$(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc* passwd_* base-passwd_*)
 apt-get -y -f install
+apt-key add /usr/share/keyrings/kali-archive-keyring.gpg 
 EOF
         chmod +x kali-$architecture/fix-apt-install
         LANG=C chroot kali-$architecture /fix-apt-install
