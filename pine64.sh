@@ -99,10 +99,13 @@ if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
         cat << EOF > kali-${architecture}/fix-apt-install
 #!/bin/bash
 cd /var/cache/apt/archives
-dpkg -i --log=/dev/null \$(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc*)
+dpkg -i --log=/dev/null \$(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc* passwd_* base-passwd_*)
+apt-get -y -f install
 EOF
         chmod +x kali-$architecture/fix-apt-install
         LANG=C chroot kali-$architecture /fix-apt-install
+
+	echo "dpkg errors above this line can be safely ignored"
     fi
 
 else
