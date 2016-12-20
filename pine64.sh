@@ -94,13 +94,24 @@ if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
     
     LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
-    if [ ! -e kali-${architecture}/usr/bin/apt-get ] ; then
-        echo "manually working around broken 'apt' installation. ignore the remaining second-stage errors"
+    if [ 1 = 0 -a ! -e kali-${architecture}/usr/bin/apt-get ] ; then
+        debug "manually working around broken 'apt' installation. ignore the remaining second-stage errors"
         cat << EOF > kali-${architecture}/fix-apt-install
 #!/bin/bash
+# Seriously, how does this not happen earlier?
+echo "setting up temporary linkages for mawk->awk"
+mkdir -p /etc/alternatives
+ln -s /usr/bin/mawk /etc/alternatives/awk
+ln -s /etc/alternatives/awk /usr/bin/awk
+# Work around the broken bootstrap
 cd /var/cache/apt/archives
-dpkg -i --log=/dev/null \$(ls -1 apt_* gpgv* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc* passwd_* base-passwd_*)
+dpkg -i --log=/dev/null \$(ls -1 apt_* apt-utils* gpgv* gnupg_* libgnupg* *keyring* init-sys* libapt-pkg* libc6_* libgcc* libstdc* passwd_* base-passwd_* gcc-6-base_* gnupg-agent* libassuan* libgcrypt* libgpg-error* libnpth* libreadline* libsqlite* )
+# fix the broken package dependencies from above, because dpkg is dumb.
+echo "fixing broken packages"
 apt-get -y -f install
+# install the damn kali keyring so there are no more verification complaints
+echo "adding keys"
+apt-key add /usr/share/keyrings/debian-archive-keyring.gpg 
 apt-key add /usr/share/keyrings/kali-archive-keyring.gpg 
 EOF
         chmod +x kali-$architecture/fix-apt-install
@@ -112,6 +123,8 @@ EOF
 else
     debootstrap --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 fi
+
+debug "adjusting base config, adding hosts file, sources list, network defaults"
 
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
