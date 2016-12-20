@@ -128,6 +128,10 @@ apt-get --yes --force-yes install $packages
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
+echo "Making the image insecure"
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+update-rc.d ssh enable
+
 rm /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
