@@ -16,7 +16,8 @@ debug() {
 
 MACHINE_TYPE=`uname -m`
 IMAGE_SIZE=7680
-DEBUG=1
+DEBUG=0
+CWD=$(pwd -P)
 
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 2.0"
@@ -35,7 +36,12 @@ if [ -z "$(which debootstrap)" ]; then
     exit 1
 fi
 
-basedir=`pwd`/pine64-${MYVER}
+basedir=${CWD}/pine64-${MYVER}
+if [ $(df -k ${CWD} | grep -v Filesystem | awk '{print $4}') -lt 18432000 ] ; then
+    echo "Not enough disk space to successfully complete."
+    echo "You need at least 18GB free space"
+    exit 1
+fi
 
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
@@ -94,7 +100,7 @@ if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
     
     LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 
-    if [ 1 = 0 -a ! -e kali-${architecture}/usr/bin/apt-get ] ; then
+    if [ 1 -eq 0 -a ! -e kali-${architecture}/usr/bin/apt-get ] ; then
         debug "manually working around broken 'apt' installation. ignore the remaining second-stage errors"
         cat << EOF > kali-${architecture}/fix-apt-install
 #!/bin/bash
@@ -162,6 +168,7 @@ debug "mounting bind dirs"
 mount -t proc proc kali-$architecture/proc
 mount -o bind /dev/ kali-$architecture/dev/
 mount -o bind /dev/pts kali-$architecture/dev/pts
+mount -o bind /proc/sys/fs/binfmt_misc  kali-$architecture/proc/sys/fs/binfmt_misc
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -283,14 +290,14 @@ cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 
-if [ ${BUILD_NATIVE:0} -eq 0 ] ; then
+if [ ${BUILD_NATIVE:-0} -eq 0 ] ; then
     export ARCH=arm64
     export CROSS_COMPILE=aarch64-linux-gnu-
 fi
 
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.12.patch
 # Patches for misc fixes
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Bluetooth-allocate-static-minor-for-vhci.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/pine64-Bluetooth-allocate-static-minor-for-vhci.patch
 
 cp ${basedir}/../kernel-configs/pine64.config .config
 cp .config ../pine64.config
@@ -298,9 +305,10 @@ test -e ${basedir}/root/usr/src/kernel/arch/arm64/boot/dts/sun50i-a64-pine64-plu
 		curl -sSL https://github.com/longsleep/build-pine64-image/raw/master/blobs/pine64.dts > \
 		${basedir}/root/usr/src/kernel/arch/arm64/boot/dts/sun50i-a64-pine64-plus.dts
 cp -a ${basedir}/root/usr/src/kernel ${basedir}/
-cd ${basedir}/kernel/
 
 debug "building kernel"
+cd ${basedir}/kernel/
+make oldconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 kver=$( make kernelrelease )
@@ -343,6 +351,7 @@ chmod +x ${basedir}/root/etc/init.d/zram
 # Hack...
 debug "building initrd"
 mount --bind ${basedir}/bootp ${basedir}/root/boot
+cp /usr/bin/qemu-aarch64-static ${basedir}/root/usr/bin/
 cat << EOF > ${basedir}/root/create-initrd
 #!/bin/bash
 update-initramfs -c -k ${kver}
@@ -354,7 +363,10 @@ chmod +x ${basedir}/root/create-initrd
 LANG=C chroot ${basedir}/root /create-initrd
 umount ${basedir}/root/boot
 
+debug "unmounting boot partition"
 # Unmount partitions
+umount ${basedir}/bootp
+umount ${basedir}/root
 umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
