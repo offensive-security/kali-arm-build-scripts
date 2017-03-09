@@ -21,7 +21,7 @@ basedir=`pwd`/rpi-$1
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
 base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
 extras="iceweasel xfce4-terminal wpasupplicant"
@@ -29,7 +29,7 @@ extras="iceweasel xfce4-terminal wpasupplicant"
 size=7000 # Size of image in megabytes
 
 # Git commit hash to check out for the kernel
-kernel_commit=20fe468
+#kernel_commit=20fe468
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
@@ -199,18 +199,18 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.4.y ${basedir}/root/usr/src/kernel
 git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 
 cd ${basedir}/root/usr/src/kernel
 git checkout $kernel_commit
 echo $kernel_commit > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.4.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-4.1.config .config
-cp ${basedir}/../kernel-configs/rpi-4.1.config ../rpi-4.1.config
+cp ${basedir}/../kernel-configs/rpi-4.4.config .config
+cp ${basedir}/../kernel-configs/rpi-4.4.config ../rpi-4.4.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
@@ -218,10 +218,11 @@ cp -rf rpi-firmware/boot/* ${basedir}/bootp/
 rm -rf rpi-firmware
 # Because of device trees being used we need to go back to using mkknlimg :(
 #cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
-${basedir}/tools/mkimage/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel.img
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel.img
 mkdir -p ${basedir}/bootp/overlays/
-cp arch/arm/boot/dts/bcm*.dtb ${basedir}/bootp/
-cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/bootp/overlays/
+cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
+# Not used for now, but here for the future where they will be required.
+#cp arch/arm/boot/dts/overlays/*.dtb ${basedir}/bootp/overlays/
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
@@ -229,8 +230,19 @@ rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}/root/usr/src/kernel
 make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
-cp ../rpi-4.1.config .config
+cp ../rpi-4.4.config .config
 make modules_prepare
+cd ${basedir}
+
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Create cmdline.txt file
