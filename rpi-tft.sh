@@ -123,7 +123,7 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
 

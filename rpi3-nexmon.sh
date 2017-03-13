@@ -171,7 +171,7 @@ apt-get --yes --force-yes purge xserver-xorg-input-libinput
 
 echo "Making the image insecure"
 rm -f /etc/ssh/ssh_host_*_key*
-sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 # Generate SSH host keys on first run
