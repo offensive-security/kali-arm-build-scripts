@@ -101,23 +101,23 @@ EOF
 # Create monitor mode start/remove
 cat << EOF > kali-$architecture/usr/bin/monstart
 #!/bin/bash
-echo "Brining interface down"
+echo "Bringing interface wlan0 down"
 ifconfig wlan0 down
 rmmod brcmfmac
 modprobe brcmutil
 echo "Copying modified firmware"
-cp /opt/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
-insmod /opt/brcmfmac.ko
+cp /opt/nexmon/firmware/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+insmod /opt/nexmon/firmware/brcmfmac.ko
 ifconfig wlan0 up 2> /dev/null
 EOF
 chmod +x kali-$architecture/usr/bin/monstart
 
 cat << EOF > kali-$architecture/usr/bin/monstop
 #!/bin/bash
-echo "Brining interface wlan0 down"
+echo "Bringing interface wlan0 down"
 ifconfig wlan0 down
 echo "Copying original firmware"
-cp /opt/brcmfmac43430-sdio.orig.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+cp /opt/nexmon/firmware/brcmfmac43430-sdio.orig.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
 rmmod brcmfmac
 sleep 1
 echo "Reloading brcmfmac"
@@ -271,7 +271,7 @@ git checkout remotes/origin/rpi-4.4.y-re4son
 # Get nexmon into /opt folder for later build
 cd ${TOPDIR}
 git clone --depth 1 https://github.com/seemoo-lab/nexmon.git ${basedir}/root/opt/nexmon
-
+mkdir -p ${basedir}/root/opt/nexmon/firmware # Create firmware folder for loading preloading
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -301,7 +301,7 @@ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
 # Build kernel
 cd ${TOPDIR}/bcm-rpi3/firmware_patching/nexmon
 make
-cp brcmfmac/brcmfmac.ko ${basedir}/root/opt/
+cp brcmfmac/brcmfmac.ko ${basedir}/root/opt/nexmon/firmware
 
 # Make kernel modules
 cd ${TOPDIR}/bcm-rpi3/kernel/
@@ -356,11 +356,11 @@ cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/b
 cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.bin ${basedir}/root/lib/firmware/brcm/
 
 # Copy firmware for original backup for Nexmon
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/opt/brcmfmac43430-sdio.txt
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.bin ${basedir}/root/opt/brcmfmac43430-sdio.orig.bin
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/opt/nexmon/firmware/brcmfmac43430-sdio.txt
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.bin ${basedir}/root/opt/nexmon/firmware/brcmfmac43430-sdio.orig.bin
 
-# Copy nexmon firmware to /opt/nexmon folder
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/root/opt/brcmfmac43430-sdio.bin
+# Copy nexmon firmware to /opt/nexmon/firmware folder
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/root/opt/nexmon/firmware/brcmfmac43430-sdio.bin
 
 cd ${basedir}
 
