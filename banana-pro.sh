@@ -118,7 +118,7 @@ apt-get --yes --force-yes install $packages
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
-sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d

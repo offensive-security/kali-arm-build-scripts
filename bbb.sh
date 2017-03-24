@@ -112,7 +112,7 @@ apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
 echo "Making the image insecure"
-sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
 
