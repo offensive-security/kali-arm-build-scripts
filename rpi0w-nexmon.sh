@@ -28,7 +28,7 @@ tools="passing-the-hash winexe aircrack-ng hydra john sqlmap libnfc-bin mfoc nma
 services="openssh-server apache2"
 extras=" wpasupplicant"
 # kernel sauces take up space
-size=5000 # Size of image in megabytes
+size=7000 # Size of image in megabytes
 
 packages="${arm} ${base} ${tools} ${services} ${extras}"
 architecture="armel"
