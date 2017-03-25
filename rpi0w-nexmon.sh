@@ -290,7 +290,6 @@ cp arch/arm/boot/dts/overlays/README ${basedir}/bootp/overlays/
 
 # Make firmware and headers
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/root
-make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- headers_install INSTALL_HDR_PATH=${basedir}/root/usr
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
