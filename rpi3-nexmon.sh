@@ -164,6 +164,8 @@ systemctl enable regenerate_ssh_host_keys
 
 update-rc.d ssh enable
 
+cp  /etc/bash.bashrc /root/.bashrc
+
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
 sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
 
@@ -319,9 +321,6 @@ cp ${basedir}/../misc/rpi3/nexutil ${basedir}/root/usr/bin/nexutil
 chmod +x ${basedir}/root/usr/bin/nexutil
 
 cd ${basedir}
-
-# Copy Kali bashrc to root
-cp ${basedir}/../misc/bashrc ${basedir}/root/.bashrc
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
