@@ -89,26 +89,6 @@ index 05d4042..7006d19 100644
  	}
  
  	/*
-diff --git a/drivers/net/wireless-3.8/brcm80211/brcmfmac/dhd_linux.c b/drivers/net/wireless-3.8/brcm80211/brcmfmac/dhd_linux.c
-index 128161c..d3db8f7 100644
---- a/drivers/net/wireless-3.8/brcm80211/brcmfmac/dhd_linux.c
-+++ b/drivers/net/wireless-3.8/brcm80211/brcmfmac/dhd_linux.c
-@@ -974,13 +974,13 @@ fail:
- 			brcmf_fws_deinit(drvr);
- 		}
- 		if (drvr->iflist[0]) {
--			if (ifp->ndev->destructor == NULL)
-+			if (ifp->ndev->destructor == NULL && ifp->vif)
- 				brcmf_free_vif(ifp->vif);
- 			free_netdev(ifp->ndev);
- 			drvr->iflist[0] = NULL;
- 		}
- 		if (p2p_ifp) {
--			if (p2p_ifp->ndev->destructor == NULL)
-+			if (p2p_ifp->ndev->destructor == NULL && p2p_ifp->vif)
- 				brcmf_free_vif(p2p_ifp->vif);
- 			free_netdev(p2p_ifp->ndev);
- 			drvr->iflist[1] = NULL;
 -- 
 2.4.4
 
