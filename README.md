@@ -12,7 +12,7 @@ that all the dependencies have been installed.
 
 armel images (RPi) will use https://github.com/offensive-security/gcc-arm-eabi-linaro-4.6.2
 
-armhf images will use https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+armhf images will use https://releases.linaro.org/components/toolchain/binaries/4.9-2017.01/arm-linux-gnueabihf/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf.tar.xz
 
 arm64 images (ODROID-C2) will use https://releases.linaro.org/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
 
