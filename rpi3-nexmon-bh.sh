@@ -24,7 +24,7 @@ TOPDIR=`pwd`
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-linux-nonfree firmware-libertas"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark net-tools"
 services="apache2 openssh-server"
@@ -36,7 +36,7 @@ packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
-mirror=http.kali.org
+mirror=192.168.11.43
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -241,22 +241,10 @@ EOF
 # them in this section.
 
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/seemoo-lab/nexmon.git ${basedir}/root/opt/nexmon
-mkdir -p ${basedir}/root/opt/nexmon/firmware/
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-
 # RPI Firmware
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-rm -rf ${basedir}/root/lib/firmware  # Remove /lib/firmware to copy linux firmware
 rm -rf rpi-firmware
-
-# Linux Firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 
 # Setup build
 cd ${TOPDIR}
@@ -268,7 +256,7 @@ ln -s /usr/include/asm-generic /usr/include/asm
 # Set default defconfig
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- re4son_pi2_defconfig
+make re4son_pi2_defconfig
 
 # Build kernel
 make -j $(grep -c processor /proc/cpuinfo)
@@ -283,7 +271,7 @@ cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/bootp/overlays/
 cp arch/arm/boot/dts/overlays/README ${basedir}/bootp/overlays/
 
 # Make firmware and headers
-make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/root
+make firmware_install INSTALL_MOD_PATH=${basedir}/root
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
@@ -345,8 +333,8 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpi3-nexmon.img"
-sha1sum kali-$1-rpi3-nexmon.img > ${basedir}/kali-$1-rpi3-nexmon.img.sha1sum
+echo "Generating sha256sum for kali-$1-rpi3-nexmon.img"
+sha256sum kali-$1-rpi3-nexmon.img > ${basedir}/kali-$1-rpi3-nexmon.img.sha256sum
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
@@ -354,7 +342,7 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 	echo "Compressing kali-$1-rpi3-nexmon.img"
 	pixz ${basedir}/kali-$1-rpi3-nexmon.img ${basedir}/kali-$1-rpi3-nexmon.img.xz
 	rm ${basedir}/kali-$1-rpi3-nexmon.img
-	echo "Generating sha1sum for kali-$1-rpi3-nexmon.img.xz"
-	sha1sum kali-$1-rpi3-nexmon.img.xz > ${basedir}/kali-$1-rpi3-nexmon.img.xz.sha1sum
+	echo "Generating sha265sum for kali-$1-rpi3-nexmon.img.xz"
+	sha256sum kali-$1-rpi3-nexmon.img.xz > ${basedir}/kali-$1-rpi3-nexmon.img.xz.sha256sum
 fi
 
