@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# This is the Raspberry Pi3 Kali ARM build script - http://www.kali.org/downloads
-# A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
+# This is the Raspberry Pi3 Kali ARM build script - https://www.kali.org/downloads
+# A trusted Kali Linux image created by Offensive Security - https://www.offensive-security.com
 # With nexmon for native monitor mode: https://github.com/seemoo-lab/nexmon/
 # Possibly needs: apt-get install gcc-multilib
 # Maintained by @binkybear
@@ -17,7 +17,7 @@ TOPDIR=`pwd`
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
-# See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
+# See https://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
 # use. You can also install packages, using just the package name, but keep in
 # mind that not all packages work on ARM! If you specify one of those, the
 # script will throw an error, but will still continue on, and create an unusable
@@ -198,7 +198,7 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for Raspberry Pi2"
+echo "Creating image file for Raspberry Pi3 Nexmon"
 dd if=/dev/zero of=${basedir}/kali-$1-rpi3-nexmon.img bs=1M count=$size
 parted kali-$1-rpi3-nexmon.img --script -- mklabel msdos
 parted kali-$1-rpi3-nexmon.img --script -- mkpart primary fat32 0 64
