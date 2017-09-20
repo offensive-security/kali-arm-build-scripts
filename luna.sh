@@ -16,7 +16,7 @@ basedir=`pwd`/luna-$1
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
-arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
+arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
 base="kali-menu kali-defaults initramfs-tools usbutils"
 desktop="xfce4 network-manager network-manager-gnome ntpdate xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
@@ -37,7 +37,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
@@ -152,7 +152,7 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat -F 16 $bootp
-mkfs.ext4 $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -204,6 +204,17 @@ git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmwar
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 #u-boot LUNA specific overrides: 
 cat << EOF > ${basedir}/bootp/uEnv.txt
 fdtfile=am335x-luna.dtb
@@ -223,6 +234,8 @@ mmcargs=setenv bootargs console=\${console} root=\${mmcroot} rootfstype=\${mmcro
 uenvcmd=run loadzimage; run loadfdt; run mmcargs; bootz \${loadaddr} - \${fdtaddr}
 EOF
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -236,15 +249,15 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/kernel
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-luna.img"
-sha1sum kali-$1-luna.img > ${basedir}/kali-$1-luna.img.sha1sum
+echo "Generating sha256sum for kali-$1-luna.img"
+sha256sum kali-$1-luna.img > ${basedir}/kali-$1-luna.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-luna.img"
 pixz ${basedir}/kali-$1-luna.img
-echo "Generating sha1sum for kali-$1-luna.img.xz"
-sha1sum kali-$1-luna.img.xz > ${basedir}/kali-$1-luna.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-luna.img.xz"
+sha256sum kali-$1-luna.img.xz > ${basedir}/kali-$1-luna.img.xz.sha256sum
 fi
