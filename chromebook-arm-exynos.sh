@@ -29,16 +29,18 @@ unset CROSS_COMPILE
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="alsa-utils btrfs-tools e2fsprogs initramfs-tools kali-defaults kali-menu laptop-mode-tools parted sudo usbutils"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="iceweasel xfce4-terminal wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
+
+kernel_release="R60-9592.B-chromeos-3.8"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -162,7 +164,7 @@ device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
-mkfs.ext4 -L rootfs $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
 
 mkdir -p ${basedir}/root
 mount $rootp ${basedir}/root
@@ -180,7 +182,7 @@ EOF
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.8 ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 cp ${basedir}/../kernel-configs/chromebook-3.8.config .config
 cp ${basedir}/../kernel-configs/chromebook-3.8.config ../exynos.config
@@ -417,10 +419,24 @@ cp ../exynos.config .config
 make modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Bit of a hack to hide eMMC partitions from XFCE
 cat << EOF > ${basedir}/root/etc/udev/rules.d/99-hide-emmc-partitions.rules
 KERNEL=="mmcblk0*", ENV{UDISKS_IGNORE}="1"
 EOF
+
+# Disable uap0 and p2p0 interfaces in NetworkManager
+printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> ${basedir}/root/etc/NetworkManager/NetworkManager.conf
 
 # Touchpad configuration
 mkdir -p ${basedir}/root/etc/X11/xorg.conf.d
@@ -506,6 +522,8 @@ git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmwar
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $rootp
 
@@ -521,16 +539,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader.bin
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-exynos.img"
-sha1sum kali-$1-exynos.img > ${basedir}/kali-$1-exynos.img.sha1sum
+echo "Generating sha256sum for kali-$1-exynos.img"
+sha256sum kali-$1-exynos.img > ${basedir}/kali-$1-exynos.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-exynos.img"
 pixz ${basedir}/kali-$1-exynos.img ${basedir}/kali-$1-exynos.img.xz
 rm ${basedir}/kali-$1-exynos.img
-echo "Generating sha1sum for kali-$1-exynos.img.xz"
-sha1sum kali-$1-exynos.img.xz > ${basedir}/kali-$1-exynos.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-exynos.img.xz"
+sha256sum kali-$1-exynos.img.xz > ${basedir}/kali-$1-exynos.img.xz.sha256sum
 fi
