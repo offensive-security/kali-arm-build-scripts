@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This is the FriendlyARM NanoPi2 Kali ARM build script - http://nanopi.io/
+# This is the FriendlyARM NanoPi3 Kali ARM build script - http://nanopi.io/
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
@@ -8,7 +8,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/nanopi2-$1
+basedir=`pwd`/nanopi3-$1
 
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
@@ -87,7 +87,7 @@ iface p2p0 inet manual
 EOF
 
 cat << EOF > kali-$architecture/etc/resolv.conf
-nameserver 8.8.8.8
+nameserver 192.168.11.1
 EOF
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
@@ -129,7 +129,7 @@ apt-get --yes --force-yes autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
-sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 update-rc.d ssh enable
 
 rm -f /usr/sbin/policy-rc.d
@@ -161,16 +161,20 @@ umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
+cat << EOF > kali-$architecture/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
+
 # Create the disk and partition it
 # We start out at around 3MB so there is room to write u-boot without issues.
-echo "Creating image file for NanoPi2"
-dd if=/dev/zero of=${basedir}/kali-$1-nanopi2.img bs=1M count=7000
-parted kali-$1-nanopi2.img --script -- mklabel msdos
-parted kali-$1-nanopi2.img --script -- mkpart primary ext4 3072s 264191s
-parted kali-$1-nanopi2.img --script -- mkpart primary ext4 264192s 100%
+echo "Creating image file for NanoPi3"
+dd if=/dev/zero of=${basedir}/kali-$1-nanopi3.img bs=1M count=7000
+parted kali-$1-nanopi3.img --script -- mklabel msdos
+parted kali-$1-nanopi3.img --script -- mkpart primary ext4 3072s 264191s
+parted kali-$1-nanopi3.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-nanopi2.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$1-nanopi3.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -213,10 +217,12 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 # Ugh, this patch is needed because the ethernet driver uses parts of netdev
 # from a newer kernel?
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Remove-define.patch
-cp ${basedir}/../kernel-configs/nanopi2* ..
-cp ../nanopi2-vendor.config .config
+cp ${basedir}/../kernel-configs/nanopi3* ..
+cp ../nanopi3-720p.config .config
+#make nanopi3_linux_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make uImage
+make modules
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 # We copy this twice because you can't do symlinks on fat partitions.
 # Also, the uImage known as uImage.hdmi is used by uboot if hdmi output is
@@ -224,10 +230,10 @@ make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/uImage ${basedir}/bootp/uImage-720p
 cp arch/arm/boot/uImage ${basedir}/bootp/uImage.hdmi
 # Friendlyarm suggests staying at 720p for now.
-#cp ../nanopi2-1080p.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-#cp arch/arm/boot/uImage ${basedir}/bootp/uImage-1080p
+cp ../nanopi3-1080p.config .config
+make -j $(grep -c processor /proc/cpuinfo)
+make uImage
+cp arch/arm/boot/uImage ${basedir}/bootp/uImage-1080p
 #cp ../nanopi2-lcd-hd101.config .config
 #make -j $(grep -c processor /proc/cpuinfo)
 #make uImage
@@ -245,7 +251,7 @@ cp arch/arm/boot/uImage ${basedir}/bootp/uImage.hdmi
 #cp arch/arm/boot/uImage ${basedir}/bootp/uImage.lcd
 #cp arch/arm/boot/uImage ${basedir}/bootp/uImage
 make mrproper
-cp ../nanopi2-vendor.config .config
+cp ../nanopi3-720p.config .config
 make modules_prepare
 cd ${basedir}
 
@@ -264,7 +270,7 @@ cd ..
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root INSTALL_MOD_PATH=${basedir}/root install
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root mrproper
 #cp ${basedir}/../kernel-configs/backports.config .config
-XCROSS=arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi2 -o ${basedir}/root
+XCROSS=arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi3 -o ${basedir}/root
 cd ${basedir}
 
 rm -rf ${basedir}/root/lib/firmware
@@ -302,9 +308,16 @@ kpartx -dv $loopdevice
 # Samsung bootloaders must be signed.
 # These are the same steps that are done by
 # https://github.com/friendlyarm/sd-fuse_nanopi2/blob/master/fusing.sh
-dd if=${basedir}/../misc/nanopi2/2ndboot.bin of=$loopdevice bs=512 seek=1
-dd if=${basedir}/../misc/nanopi2/boot.TBI of=$loopdevice bs=512 seek=64 count=1
-dd if=${basedir}/../misc/nanopi2/bootloader of=$loopdevice bs=512 seek=65
+cd ${basedir}
+mkdir -p bootloader
+cd ${basedir}/bootloader
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/2ndboot.bin?raw=true' -O ${basedir}/bootloader/2ndboot.bin
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/boot.TBI?raw=true' -O ${basedir}/bootloader/boot.TBI
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/bootloader?raw=true' -O ${basedir}/bootloader/bootloader
+
+dd if=${basedir}/bootloader/2ndboot.bin of=$loopdevice bs=512 seek=1
+dd if=${basedir}/bootloader/boot.TBI of=$loopdevice bs=512 seek=64 count=1
+dd if=${basedir}/bootloader/bootloader of=$loopdevice bs=512 seek=65
 sync
 
 cd ${basedir}
@@ -315,20 +328,20 @@ losetup -d $loopdevice
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Clean up the build system"
-rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/wireless
+rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-nanopi2.img"
-sha256sum kali-$1-nanopi2.img > ${basedir}/kali-$1-nanopi2.img.sha256sum
+echo "Generating sha256sum for kali-$1-nanopi3.img"
+sha256sum kali-$1-nanopi3.img > ${basedir}/kali-$1-nanopi3.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-nanopi2.img"
-pixz ${basedir}/kali-$1-nanopi2.img ${basedir}/kali-$1-nanopi2.img.xz
-echo "Deleting kali-$1-nanopi2.img"
-rm ${basedir}/kali-$1-nanopi2.img
-echo "Generating sha256sum for kali-$1-nanopi2.img"
-sha256sum kali-$1-nanopi2.img.xz > ${basedir}/kali-$1-nanopi2.img.xz.sha256sum
+echo "Compressing kali-$1-nanopi3.img"
+pixz ${basedir}/kali-$1-nanopi3.img ${basedir}/kali-$1-nanopi3.img.xz
+echo "Deleting kali-$1-nanopi3.img"
+rm ${basedir}/kali-$1-nanopi3.img
+echo "Generating sha256sum for kali-$1-nanopi3.img"
+sha256sum kali-$1-nanopi3.img.xz > ${basedir}/kali-$1-nanopi3.img.xz.sha256sum
 fi
