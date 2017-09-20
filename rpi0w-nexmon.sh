@@ -22,11 +22,11 @@ TOPDIR=`pwd`
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
+base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-linux-nonfree firmware-libertas"
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap libnfc-bin mfoc nmap ethtool usbutils net-tools"
 services="openssh-server apache2"
-extras=" wpasupplicant"
+extras=" wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip"
 # kernel sauces take up space
 size=7000 # Size of image in megabytes
 
@@ -76,9 +76,6 @@ EOF
 cat << EOF > kali-$architecture/etc/network/interfaces
 auto lo
 iface lo inet loopback
-
-auto eth0
-iface eth0 inet dhcp
 EOF
 
 cat << EOF > kali-$architecture/etc/resolv.conf
@@ -245,22 +242,11 @@ EOF
 # them in this section.
 
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/seemoo-lab/nexmon.git ${basedir}/root/opt/nexmon
-mkdir -p ${basedir}/root/opt/nexmon/firmware/
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
 
 # RPI Firmware
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-rm -rf ${basedir}/root/lib/firmware  # Remove /lib/firmware to copy linux firmware
 rm -rf rpi-firmware
-
-# Linux Firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 
 # Setup build
 cd ${TOPDIR}
@@ -334,6 +320,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -347,17 +335,17 @@ echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpi0w-nexmon.img"
-sha1sum kali-$1-rpi0w-nexmon.img > ${basedir}/kali-$1-rpi0w-nexmon.img.sha1sum
+echo "Generating sha256sum for kali-$1-rpi0w-nexmon.img"
+sha256sum kali-$1-rpi0w-nexmon.img > ${basedir}/kali-$1-rpi0w-nexmon.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpi0w-nexmon.img"
 pixz ${basedir}/kali-$1-rpi0w-nexmon.img ${basedir}/kali-$1-rpi0w-nexmon.img.xz
 rm ${basedir}/kali-$1-rpi0w-nexmon.img
-echo "Generating sha1sum for kali-$1-rpi0w-nexmon.img.xz"
-sha1sum kali-$1-rpi0w-nexmon.img.xz > ${basedir}/kali-$1-rpi0w-nexmon.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-rpi0w-nexmon.img.xz"
+sha256sum kali-$1-rpi0w-nexmon.img.xz > ${basedir}/kali-$1-rpi0w-nexmon.img.xz.sha256sum
 fi
 
