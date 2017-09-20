@@ -221,6 +221,17 @@ cp ../rpi-ada-3.15.config .config
 make modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
 dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 fbcon=font:VGA8x8 net.ifnames=0
@@ -279,6 +290,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -292,16 +305,16 @@ echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpitft.img"
-sha1sum kali-$1-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha1sum
+echo "Generating sha256sum for kali-$1-rpitft.img"
+sha256sum kali-$1-rpitft.img > ${basedir}/kali-$1-rpitft.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpitft.img"
 pixz ${basedir}/kali-$1-rpitft.img ${basedir}/kali-$1-rpitft.img.xz
 rm ${basedir}/kali-$1-rpitft.img
-echo "Generating sha1sum for kali-$1-rpitft.img.xz"
-sha1sum kali-$1-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-rpitft.img.xz"
+sha256sum kali-$1-rpitft.img.xz > ${basedir}/kali-$1-rpitft.img.xz.sha256sum
 fi
