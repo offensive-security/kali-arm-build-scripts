@@ -29,17 +29,18 @@ unset CROSS_COMPILE
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="alsa-utils btrfs-tools e2fsprogs initramfs-tools kali-defaults kali-menu parted pulseaudio sudo usbutils"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="florence iceweasel xfce4-goodies xfce4-terminal xinput wpasupplicant"
+extras="florence iceweasel xfce4-goodies xfce4-terminal xinput wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
-kernel_commit="7247c395ff6b325d2dbffc5a9c9f1c30417ce133"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
+
+kernel_release="R60-9592.B-chromeos-3.14"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -79,7 +80,7 @@ iface lo inet loopback
 EOF
 
 cat << EOF > kali-$architecture/etc/resolv.conf
-nameserver 8.8.8.8
+nameserver 192.168.11.1
 EOF
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
@@ -142,6 +143,10 @@ EOF
 chmod +x kali-$architecture/cleanup
 LANG=C chroot kali-$architecture /cleanup
 
+cat << EOF > kali-$architecture/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
+
 umount kali-$architecture/proc/sys/fs/binfmt_misc
 umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
@@ -163,7 +168,7 @@ device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
-mkfs.ext4 -L rootfs $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
 
 mkdir -p ${basedir}/root
 mount $rootp ${basedir}/root
@@ -181,19 +186,17 @@ EOF
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.14 ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-git checkout $kernel_commit
 cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config .config
 cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config ../veyron.config
-echo $kernel_commit > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
 touch .scmversion
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.8.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0003-UPSTREAM-soc-rockchip-add-handler-for-usb-uart-funct.patch
+#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0003-UPSTREAM-soc-rockchip-add-handler-for-usb-uart-funct.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0004-fix-brcmfmac-oops-and-race-condition.patch
 make WIFIVERSION="-3.8" -j$(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
@@ -225,26 +228,6 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
             };
         };
         fdt@2{
-            description = "rk3288-jaq-rev1.dtb";
-            data = /incbin/("dts/rk3288-jaq-rev1.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@3{
-            description = "rk3288-nicky-rev0.dtb";
-            data = /incbin/("dts/rk3288-nicky-rev0.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@4{
             description = "rk3288-danger-rev0.dtb";
             data = /incbin/("dts/rk3288-danger-rev0.dtb");
             type = "flat_dt";
@@ -254,9 +237,29 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
                 algo = "sha1";
             };
         };
+        fdt@3{
+            description = "rk3288-danger-rev1.dtb";
+            data = /incbin/("dts/rk3288-danger-rev1.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@4{
+            description = "rk3288-emile-rev0.dtb";
+            data = /incbin/("dts/rk3288-emile-rev0.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
         fdt@5{
-            description = "rk3288-jerry-rev2.dtb";
-            data = /incbin/("dts/rk3288-jerry-rev2.dtb");
+            description = "rk3288-evb-act8846.dtb";
+            data = /incbin/("dts/rk3288-evb-act8846.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -265,8 +268,8 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
             };
         };
         fdt@6{
-	    description = "rk3288-rialto-rev0.dtb";
-	    data = /incbin/("dts/rk3288-rialto-rev0.dtb");
+	    description = "rk3288-evb-rk808.dtb";
+	    data = /incbin/("dts/rk3288-evb-rk808.dtb");
 	    type = "flat_dt";
 	    arch = "arm";
 	    compression = "none";
@@ -275,8 +278,8 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 	    };
 	};
         fdt@7{
-	    description = "rk3288-danger-rev1.dtb";
-	    data = /incbin/("dts/rk3288-danger-rev1.dtb");
+	    description = "rk3288-fievel-rev0.dtb";
+	    data = /incbin/("dts/rk3288-fievel-rev0.dtb");
 	    type = "flat_dt";
 	    arch = "arm";
 	    compression = "none";
@@ -285,6 +288,46 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 	    };
 	};
         fdt@8{
+	    description = "rk3288-gus-rev1.dtb";
+	    data = /incbin/("dts/rk3288-gus-rev1.dtb");
+	    type = "flat_dt";
+	    arch = "arm";
+	    compression = "none";
+	    hash@1{
+		algo = "sha1";
+	    };
+	};
+        fdt@9{
+	    description = "rk3288-jaq-rev1.dtb";
+	    data = /incbin/("dts/rk3288-jaq-rev1.dtb");
+	    type = "flat_dt";
+	    arch = "arm";
+	    compression = "none";
+	    hash@1{
+		algo = "sha1";
+	    };
+	};
+        fdt@10{
+	    description = "rk3288-jerry-rev10.dtb";
+	    data = /incbin/("dts/rk3288-jerry-rev10.dtb");
+	    type = "flat_dt";
+	    arch = "arm";
+	    compression = "none";
+	    hash@1{
+		algo = "sha1";
+	    };
+	};
+        fdt@11{
+	    description = "rk3288-jerry-rev2.dtb";
+	    data = /incbin/("dts/rk3288-jerry-rev2.dtb");
+	    type = "flat_dt";
+	    arch = "arm";
+	    compression = "none";
+	    hash@1{
+		algo = "sha1";
+	    };
+	};
+        fdt@12{
 	    description = "rk3288-jerry-rev3.dtb";
 	    data = /incbin/("dts/rk3288-jerry-rev3.dtb");
 	    type = "flat_dt";
@@ -294,49 +337,9 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 		algo = "sha1";
 	    };
 	};
-        fdt@9{
-	    description = "rk3288-speedy.dtb";
-	    data = /incbin/("dts/rk3288-speedy.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@10{
-	    description = "rk3288-evb-act8846.dtb";
-	    data = /incbin/("dts/rk3288-evb-act8846.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@11{
+        fdt@13{
 	    description = "rk3288-mickey-rev0.dtb";
 	    data = /incbin/("dts/rk3288-mickey-rev0.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@12{
-	    description = "rk3288-speedy-rev1.dtb";
-	    data = /incbin/("dts/rk3288-speedy-rev1.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@13{
-	    description = "rk3288-evb-rk808.dtb";
-	    data = /incbin/("dts/rk3288-evb-rk808.dtb");
 	    type = "flat_dt";
 	    arch = "arm";
 	    compression = "none";
@@ -355,26 +358,6 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 	    };
 	};
         fdt@15{
-	    description = "rk3288-thea-rev0.dtb";
-	    data = /incbin/("dts/rk3288-thea-rev0.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@16{
-	    description = "rk3288-gus-rev1.dtb";
-	    data = /incbin/("dts/rk3288-gus-rev1.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@17{
 	    description = "rk3288-minnie-rev0.dtb";
 	    data = /incbin/("dts/rk3288-minnie-rev0.dtb");
 	    type = "flat_dt";
@@ -384,6 +367,66 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 		algo = "sha1";
 	    };
 	};
+        fdt@16{
+	    description = "rk3288-nicky-rev0.dtb";
+	    data = /incbin/("dts/rk3288-nicky-rev0.dtb");
+	    type = "flat_dt";
+	    arch = "arm";
+	    compression = "none";
+	    hash@1{
+		algo = "sha1";
+	    };
+	};
+        fdt@17{
+	    description = "rk3288-rialto-rev0.dtb";
+	    data = /incbin/("dts/rk3288-rialto-rev0.dtb");
+	    type = "flat_dt";
+	    arch = "arm";
+	    compression = "none";
+	    hash@1{
+		algo = "sha1";
+	    };
+	};
+        fdt@18{
+            description = "rk3288-speedy.dtb";
+            data = /incbin/("dts/rk3288-speedy.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@19{
+            description = "rk3288-speedy-rev1.dtb";
+            data = /incbin/("dts/rk3288-speedy-rev1.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@20{
+            description = "rk3288-thea-rev0.dtb";
+            data = /incbin/("dts/rk3288-thea-rev0.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
+        fdt@21{
+            description = "rk3288-tiger-rev0.dtb";
+            data = /incbin/("dts/rk3288-tiger-rev0.dtb");
+            type = "flat_dt";
+            arch = "arm";
+            compression = "none";
+            hash@1{
+                algo = "sha1";
+            };
+        };
 
     };
     configurations {
@@ -456,6 +499,22 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 	    kernel = "kernel@1";
 	    fdt = "fdt@17";
 	};
+        conf@18{
+            kernel = "kernel@1";
+            fdt = "fdt@18";
+        };
+        conf@19{
+            kernel = "kernel@1";
+            fdt = "fdt@19";
+        };
+        conf@20{
+            kernel = "kernel@1";
+            fdt = "fdt@20";
+        };
+        conf@21{
+            kernel = "kernel@1";
+            fdt = "fdt@21";
+        };
     };
 };
 __EOF__
@@ -476,10 +535,24 @@ cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config .co
 make WIFIVERSION="-3.8" modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Bit of a hack to hide the emmc partitions from XFCE
 cat << EOF > ${basedir}/root/etc/udev/rules.d/99-hide-emmc-partitions.rules
 KERNEL=="mmcblk0*", ENV{UDISKS_IGNORE}="1"
 EOF
+
+# Disable uap0 and p2p0 interfaces in NetworkManager
+printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> ${basedir}/root/etc/NetworkManager/NetworkManager.conf
 
 # Create these if they don't exist, to make sure we have proper audio with pulse
 mkdir -p ${basedir}/root/var/lib/alsa/
@@ -2285,10 +2358,6 @@ EOF
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 # Copy the broadcom firmware files in (for now) - once sources are released,
 # will be able to do this without having a local copy.
 mkdir -p ${basedir}/root/lib/firmware/brcm/
@@ -2305,6 +2374,8 @@ cp ${basedir}/../misc/bins/* ${basedir}/root/usr/sbin/
 cat << EOF > ${basedir}/root/etc/udev/rules.d/80-brcm-sdio-added.rules
 ACTION=="add", SUBSYSTEM=="sdio", ENV{SDIO_CLASS}=="02", ENV{SDIO_ID}=="02D0:4354", RUN+="/usr/sbin/brcm_patchram_plus -d --patchram /lib/firmware/brcm/BCM4354_003.001.012.0306.0659.hcd --no2bytes --enable_hci --enable_lpm --scopcm=1,2,0,1,1,0,0,0,0,0 --baudrate 3000000 --use_baudrate_for_download --tosleep=50000 /dev/ttyS0"
 EOF
+
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
 umount $rootp
@@ -2323,16 +2394,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader.bin
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-veyron.img"
-sha1sum kali-$1-veyron.img > ${basedir}/kali-$1-veyron.img.sha1sum
+echo "Generating sha256sum for kali-$1-veyron.img"
+sha256sum kali-$1-veyron.img > ${basedir}/kali-$1-veyron.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-veyron.img"
 pixz ${basedir}/kali-$1-veyron.img ${basedir}/kali-$1-veyron.img.xz
 rm ${basedir}/kali-$1-veyron.img
-echo "Generating sha1sum for kali-$1-veyron.img.xz"
-sha1sum kali-$1-veyron.img.xz > ${basedir}/kali-$1-veyron.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-veyron.img.xz"
+sha256sum kali-$1-veyron.img.xz > ${basedir}/kali-$1-veyron.img.xz.sha256sum
 fi
