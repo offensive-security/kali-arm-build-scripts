@@ -162,7 +162,7 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat -F 16 $bootp
-mkfs.ext4 $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -186,6 +186,14 @@ EOF
 cat << EOF > ${basedir}/root/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
+EOF
+
+echo "Setting up modules.conf"
+# rm the symlink if it exists, and the original files if they exist
+rm ${basedir}/root/etc/modules
+rm ${basedir}/root/etc/modules-load.d/modules.conf
+cat << EOF > ${basedir}/root/etc/modules-load.d/modules.conf
+g_ether
 EOF
 
 # Uncomment this if you use apt-cacher-ng or else git clones will fail.
@@ -282,6 +290,17 @@ make bb.org_defconfig
 make modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Unused currently, but this script is a part of using the usb as an ethernet
 # device.
 wget -c https://raw.github.com/RobertCNelson/tools/master/scripts/beaglebone-black-g-ether-load.sh -O ${basedir}/root/root/beaglebone-black-g-ether-load.sh
@@ -289,6 +308,8 @@ chmod +x ${basedir}/root/root/beaglebone-black-g-ether-load.sh
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
+
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
 umount $bootp
@@ -305,15 +326,15 @@ rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}
 
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-bbb.img"
-sha1sum kali-$1-bbb.img > ${basedir}/kali-$1-bbb.img.sha1sum
+echo "Generating sha256sum for kali-$1-bbb.img"
+sha256sum kali-$1-bbb.img > ${basedir}/kali-$1-bbb.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-bbb.img"
 pixz ${basedir}/kali-$1-bbb.img
-echo "Generating sha1sum for kali-$1-bbb.img.xz"
-sha1sum kali-$1-bbb.img.xz > ${basedir}/kali-$1-bbb.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-bbb.img.xz"
+sha256sum kali-$1-bbb.img.xz > ${basedir}/kali-$1-bbb.img.xz.sha256sum
 fi
