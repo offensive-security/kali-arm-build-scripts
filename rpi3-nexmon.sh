@@ -11,7 +11,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpi3-nexmon-bh-$1
+basedir=`pwd`/rpi3-nexmon-$1
 TOPDIR=`pwd`
 
 # Package installations for various sections.
