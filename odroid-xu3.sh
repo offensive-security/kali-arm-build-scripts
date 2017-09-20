@@ -170,7 +170,7 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat $bootp
-mkfs.ext4 $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -224,6 +224,17 @@ cp arch/arm/boot/dts/exynos5422-odroidxu3.dtb ${basedir}/bootp
 make mrproper
 cp ../odroid-xu3.config .config
 make modules_prepare
+cd ${basedir}
+
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
 cd ${basedir}
 
 cat << EOF > ${basedir}/bootp/boot.ini
@@ -284,6 +295,7 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Write the signed u-boot binary to the image so that it will boot.
 cd ${basedir}/root/usr/src/kernel/tools/hardkernel/prebuilt_uboot
@@ -305,16 +317,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-odroidxu3.img"
-sha1sum kali-$1-odroidxu3.img > ${basedir}/kali-$1-odroidxu3.img.sha1sum
+echo "Generating sha256sum for kali-$1-odroidxu3.img"
+sha256sum kali-$1-odroidxu3.img > ${basedir}/kali-$1-odroidxu3.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-odroidxu3.img"
 pixz ${basedir}/kali-$1-odroidxu3.img ${basedir}/kali-$1-odroidxu3.img.xz
 rm ${basedir}/kali-$1-odroidxu3.img
-echo "Generating sha1sum for kali-$1-odroidxu3.img.xz"
-sha1sum kali-$1-odroidxu3.img.xz > ${basedir}/kali-$1-odroidxu3.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-odroidxu3.img.xz"
+sha256sum kali-$1-odroidxu3.img.xz > ${basedir}/kali-$1-odroidxu3.img.xz.sha256sum
 fi
