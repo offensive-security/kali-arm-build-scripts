@@ -32,7 +32,7 @@ base="dosfstools e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo u
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
-extras="cryptsetup isc-dhcp-server lvm2 wpasupplicant"
+extras="cryptsetup kali-linux-top10 isc-dhcp-server lvm2 wpasupplicant"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -123,11 +123,11 @@ apt-get --yes --force-yes autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
-echo "Making the image insecure"
-sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-
 echo "Enabling sshd"
 update-rc.d ssh enable
+
+# Enable dhcp server
+update-rc.d isc-dhcp-server enable
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -162,7 +162,7 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for USB Armory"
-dd if=/dev/zero of=${basedir}/kali-$1-usbarmory.img bs=1M count=7000
+dd if=/dev/zero of=${basedir}/kali-$1-usbarmory.img bs=1M count=14500
 parted kali-$1-usbarmory.img --script -- mklabel msdos
 parted kali-$1-usbarmory.img --script -- mkpart primary ext2 5M 100%
 
@@ -190,20 +190,18 @@ rm ${basedir}/root/etc/modules-load.d/modules.conf
 cat << EOF > ${basedir}/root/etc/modules-load.d/modules.conf
 ledtrig_heartbeat
 ci_hdrc_imx
-#g_mass_storage
 g_ether
+#g_mass_storage
+#g_multi
 EOF
 
 echo "Setting up modprobe.d"
-cat << EOF > ${basedir}/root/etc/modprobe.d/g_ether.conf
+cat << EOF > ${basedir}/root/etc/modprobe.d/usbarmory.conf
 options g_ether use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42
-EOF
-
-cat << EOF > ${basedir}/root/etc/modprobe.d/g_mass.conf
-# Create this file if you want to use usb mass storage!
-# For example, this will create a 2GB img file for mass storage use.
-# dd if=/dev/zero of=/massstorage.img bs=1M count=2000
-#options g_mass_storage file=/massstorage.img
+# To use either of the following, you should create the file /disk.img via dd
+# "dd if=/dev/zero of=/disk.img bs=1M count=2048" would create a 2GB disk.img file.
+#options g_mass_storage file=disk.img
+#options g_multi use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42 file=disk.img
 EOF
 
 cat << EOF > ${basedir}/root/etc/network/interfaces
@@ -349,41 +347,44 @@ sed -i 's/INTERFACES.*/INTERFACES="usb0"/g' ${basedir}/root/etc/default/isc-dhcp
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone -b linux-4.2.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
+git clone -b linux-4.10.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-common.dtsi -O arch/arm/boot/dts/imx53-usbarmory-common.dtsi
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.9.patch
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.10.config -O .config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory.dts -O arch/arm/boot/dts/imx53-usbarmory.dts
-cp ${basedir}/../kernel-configs/usbarmory-4.2.config .config
-cp ${basedir}/../kernel-configs/usbarmory-4.2.config ../usbarmory-4.2.config
-make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory-i2c.dtb imx53-usbarmory-spi.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-scc2.dts -O arch/arm/boot/dts/imx53-usbarmory-scc2.dts
+make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory-i2c.dtb imx53-usbarmory-spi.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb imx53-usbarmory-scc2.dtb
 make modules_install INSTALL_MOD_PATH=${basedir}/root
-cp arch/arm/boot/uImage ${basedir}/root/boot/
-cp arch/arm/boot/dts/imx53-usbarmory-gpio.dtb ${basedir}/root/boot/
-cp arch/arm/boot/dts/imx53-usbarmory.dtb ${basedir}/root/boot/
-cp arch/arm/boot/dts/imx53-usbarmory-host.dtb ${basedir}/root/boot/
-cp arch/arm/boot/dts/imx53-usbarmory-i2c.dtb ${basedir}/root/boot/
-cp arch/arm/boot/dts/imx53-usbarmory-spi.dtb ${basedir}/root/boot/
+cp arch/arm/boot/zImage ${basedir}/root/boot/
+cp arch/arm/boot/dts/imx53-usbarmory*.dtb ${basedir}/root/boot/
 make mrproper
 # Since these aren't integrated into the kernel yet, mrproper removes them.
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-common.dtsi -O arch/arm/boot/dts/imx53-usbarmory-common.dtsi
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.10.config -O .config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory.dts -O arch/arm/boot/dts/imx53-usbarmory.dts
-cp ../usbarmory-4.2.config .config
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-scc2.dts -O arch/arm/boot/dts/imx53-usbarmory-scc2.dts
 make modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
@@ -395,12 +396,13 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
-wget ftp://ftp.denx.de/pub/u-boot/u-boot-2015.04.tar.bz2
-tar -xf u-boot-2015.04.tar.bz2
-cd ${basedir}/u-boot-2015.04
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
+wget ftp://ftp.denx.de/pub/u-boot/u-boot-2017.01.tar.bz2
+tar xvf u-boot-2017.01.tar.bz2 && cd u-boot-2017.01
 make distclean
 make usbarmory_config
-make
+make ARCH=arm
 dd if=u-boot.imx of=$loopdevice bs=512 seek=2 conv=fsync
 cd ${basedir}
 
@@ -416,16 +418,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/u-boot* ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-usbarmory.img"
-sha1sum kali-$1-usbarmory.img > ${basedir}/kali-$1-usbarmory.img.sha1sum
+echo "Generating sha256sum for kali-$1-usbarmory.img"
+sha256sum kali-$1-usbarmory.img > ${basedir}/kali-$1-usbarmory.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-usbarmory.img"
 pixz ${basedir}/kali-$1-usbarmory.img ${basedir}/kali-$1-usbarmory.img.xz
 rm ${basedir}/kali-$1-usbarmory.img
-echo "Generating sha1sum for kali-$1-usbarmory.img.xz"
-sha1sum kali-$1-usbarmory.img.xz > ${basedir}/kali-$1-usbarmory.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-usbarmory.img.xz"
+sha256sum kali-$1-usbarmory.img.xz > ${basedir}/kali-$1-usbarmory.img.xz.sha256sum
 fi
