@@ -35,15 +35,17 @@ unset CROSS_COMPILE
 # up in a weird state.
 # DO NOT REMOVE IT FROM THE PACKAGE LIST.
 
+# cgpt, vboot-utils and vboot-kernel-utils aren't available on arm64 yet.
 #arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 arm="abootimg fake-hwclock ntpdate u-boot-tools"
 base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="fbset iceweasel xfce4-terminal wpasupplicant"
+extras="fbset xfce4-terminal xfce4-goodies wpasupplicant"
+kali="build-essential debhelper devscripts dput lintian quilt git-buildpackage gitk dh-make sbuild"
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras} ${kali}"
 architecture="arm64"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -60,6 +62,7 @@ cd ${basedir}
 debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-aarch64-static kali-$architecture/usr/bin/
+cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
@@ -69,7 +72,7 @@ EOF
 echo "kali-arm64" > kali-$architecture/etc/hostname
 
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali-arm64    localhost
+127.0.0.1       kali-armhf    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -178,8 +181,8 @@ bootp=${device}p1
 rootp=${device}p2
 
 # Create file systems
-mkfs.vfat $bootp
-mkfs.ext4 -L rootfs $rootp
+mkfs.vfat -F 32 -n boot $bootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -203,15 +206,7 @@ EOF
 
 cat << EOF > ${basedir}/root/usr/bin/aml_fix_display
 #!/bin/bash
-for x in \$(cat /proc/cmdline); do
-        case \${x} in
-                m_bpp=*) export bpp=\${x#*=} ;;
-        esac
-done
-
-if [ "\$bpp" = "32" ]; then
-    echo d01068b4 0x7fc0 > /sys/kernel/debug/aml_reg/paddr
-fi
+exit 0
 EOF
 chmod +x ${basedir}/root/usr/bin/aml_fix_display
 
@@ -342,6 +337,18 @@ case \$mode in
             export X=1920
             export Y=1200
             ;;
+        2560x1080p60hz*)
+            export X=2560
+            export Y=1080
+            ;;
+        2560x1440p60hz*)
+            export X=2560
+            export Y=1440
+            ;;
+        2560x1600p60hz*)
+            export X=2560
+            export Y=1600
+            ;;
 esac
 
 common_display_setup
@@ -375,14 +382,10 @@ chmod +x ${basedir}/root/usr/share/initramfs-tools/hooks/fbset
 # keep the sources around for those who want/need to build external modules.
 git clone --depth 1 https://github.com/hardkernel/linux -b odroidc2-3.14.y ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
-# Patches for misc fixes
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Bluetooth-allocate-static-minor-for-vhci.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-KEYS-Fix-keyring-ref-leak-in-join_session_keyring.patch
 cp ${basedir}/../kernel-configs/odroid-c2.config .config
 cp .config ../odroid-c2.config
 cp -a ${basedir}/root/usr/src/kernel ${basedir}/
@@ -395,6 +398,17 @@ cd ${basedir}/root/usr/src/kernel
 make modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Create a boot.ini file with possible options if people want to change them.
 # Currently on my only nearby 1080p, I get a display that's only 1024x768 in the
 # upper left corner, so default to 720p which seems to work great.
@@ -404,6 +418,15 @@ ODROIDC2-UBOOT-CONFIG
 # Possible screen resolutions
 # Uncomment only a single Line! The line with setenv written.
 # At least one mode must be selected.
+
+# Custom modeline!
+# To use custom modeline you need to disable all the below resolutions
+# and setup your own! 
+# For more information check our wiki: 
+# http://odroid.com/dokuwiki/doku.php?id=en:c2_hdmi_autosetting
+# Example below:
+# setenv m "custombuilt" 
+# setenv modeline "1920,1200,154000,74040,60,1920,1968,2000,2080,1200,1202,1208,1235,1,0,1"
 
 # 480 Lines (720x480)
 # setenv m "480i60hz" # Interlaced 60Hz
@@ -447,12 +470,15 @@ setenv m "1080p60hz" # Progressive 60Hz
 # setenv m "1280x800p60hz"
 # setenv m "1280x1024p60hz"
 # setenv m "1360x768p60hz"
-# setenv m "1366x768p60hz"
 # setenv m "1440x900p60hz"
 # setenv m "1600x900p60hz"
 # setenv m "1680x1050p60hz"
+# setenv m "1600x1200p60hz"
 # setenv m "1920x1200p60hz"
-
+# setenv m "2560x1080p60hz"
+# setenv m "2560x1440p60hz"
+# setenv m "2560x1600p60hz"
+# setenv m "3440x1440p60hz"
 
 # HDMI BPP Mode
 setenv m_bpp "32"
@@ -465,13 +491,59 @@ setenv m_bpp "32"
 # setenv vout "dvi"
 # setenv vout "vga"
 
+# HDMI HotPlug Detection control
+# Allows you to force HDMI thinking that the cable is connected.
+# true = HDMI will believe that cable is always connected
+# false = will let board/monitor negotiate the connection status
+setenv hpd "true"
+# setenv hpd "false"
+
 # Default Console Device Setting
 setenv condev "console=ttyS0,115200n8 console=tty0"   # on both
+
+# Meson Timer
+# 1 - Meson Timer
+# 0 - Arch Timer 
+# Using meson_timer improves the video playback however it breaks KVM (virtualization).
+# Using arch timer allows KVM/Virtualization to work however you'll experience poor video
+setenv mesontimer "1"
+
+# Server Mode (aka. No Graphics)
+# Setting nographics to 1 will disable all video subsystem
+# This mode is ideal of server type usage. (Saves ~300Mb of RAM)
+setenv nographics "0"
+
+# CPU Frequency / Cores control
+###########################################
+### WARNING!!! WARNING!!! WARNING!!!
+# Before changing anything here please read the wiki entry: 
+# http://odroid.com/dokuwiki/doku.php?id=en:c2_set_cpu_freq
+#
+# MAX CPU's
+# setenv maxcpus "1"
+# setenv maxcpus "2"
+# setenv maxcpus "3"
+setenv maxcpus "4"
+
+# MAX Frequency
+# setenv max_freq "2016"  # 2.016GHz
+# setenv max_freq "1944"  # 1.944GHz
+# setenv max_freq "1944"  # 1.944GHz
+# setenv max_freq "1920"  # 1.920GHz
+# setenv max_freq "1896"  # 1.896GHz
+# setenv max_freq "1752"  # 1.752GHz
+# setenv max_freq "1680"  # 1.680GHz
+# setenv max_freq "1656"  # 1.656GHz
+setenv max_freq "1536"  # 1.536GHz
+
+
 
 ###########################################
 
 # Boot Arguments
-setenv bootargs "root=/dev/mmcblk0p2 quiet rootwait rw \${condev} no_console_suspend hdmimode=\${m} m_bpp=\${m_bpp} vout=\${vout} fsck.fix=yes net.ifnames=0"
+if test "\${m}" = "custombuilt"; then setenv cmode "modeline=\${modeline}"; fi
+
+setenv bootargs "root=/dev/mmcblk0p2 rootwait rw \${condev} no_console_suspend hdmimode=\${m} \${comde} m_bpp=\${m_bpp} vout=\${vout} fsck.repair=yes net.ifnames=0 elevator=noop disablehpd=\${hpd} max_freq=\${max_freq} maxcpus=\${maxcpus}"
 
 # Booting
 
@@ -479,14 +551,21 @@ setenv loadaddr "0x11000000"
 setenv dtb_loadaddr "0x1000000"
 setenv initrd_loadaddr "0x13000000"
 
-# If using an initramfs, uncomment the following line
 fatload mmc 0:1 \${initrd_loadaddr} uInitrd
 fatload mmc 0:1 \${loadaddr} Image
 fatload mmc 0:1 \${dtb_loadaddr} meson64_odroidc2.dtb
+fdt addr \${dtb_loadaddr}
 
-# If using an initramfs, uncomment this and comment out bottom.
-booti \${loadaddr} \${initrd_loadaddr} \${dtb_loadaddr}
-#booti \${loadaddr} - \${dtb_loadaddr}
+if test "\${mesontimer}" = "0"; then fdt rm /meson_timer; fdt rm /cpus/cpu@0/timer; fdt rm /cpus/cpu@1/timer; fdt rm /cpus/cpu@2/timer; fdt rm /cpus/cpu@3/timer; fi
+if test "\${mesontimer}" = "1"; then fdt rm /timer; fi
+
+if test "\${nographics}" = "1"; then fdt rm /reserved-memory; fdt rm /aocec; fi
+if test "\${nographics}" = "1"; then fdt rm /meson-fb; fdt rm /amhdmitx; fdt rm /picdec; fdt rm /ppmgr; fi
+if test "\${nographics}" = "1"; then fdt rm /meson-vout; fdt rm /mesonstream; fdt rm /meson-fb; fi
+if test "\${nographics}" = "1"; then fdt rm /deinterlace; fdt rm /codec_mm; fi
+
+#booti \${loadaddr} \${initrd_loadaddr} \${dtb_loadaddr}
+booti \${loadaddr} - \${dtb_loadaddr}
 EOF
 
 cat << EOF > ${basedir}/bootp/mkuinitrd
@@ -517,14 +596,16 @@ cp /usr/bin/qemu-aarch64-static ${basedir}/root/usr/bin
 cp /usr/bin/qemu-arm*-static ${basedir}/root/usr/bin
 cat << EOF > ${basedir}/root/create-initrd
 #!/bin/bash
-update-initramfs -c -k 3.14.29
-mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/initrd.img-3.14.29 /boot/uInitrd
+update-initramfs -c -k 3.14.79
+mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/initrd.img-3.14.79 /boot/uInitrd
 rm -f /create-initrd
 rm -f /usr/bin/qemu-*
 EOF
 chmod +x ${basedir}/root/create-initrd
 LANG=C chroot ${basedir}/root /create-initrd
 umount ${basedir}/root/boot
+
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
 umount $bootp
@@ -548,9 +629,8 @@ kpartx -dv $loopdevice
 
 mkdir -p ${basedir}/u-boot
 cd ${basedir}/u-boot
-wget http://odroid.in/mirror/dn.odroid.com/S905/BootLoader/ODROID-C2/c2_bootloader.tar.gz
-tar -xf c2_bootloader.tar.gz
-cd c2_bootloader
+git clone https://github.com/mdrjr/c2_uboot_binaries
+cd c2_uboot_binaries
 sh sd_fusing.sh $loopdevice
 cd ${basedir}
 
@@ -563,10 +643,10 @@ echo "Clean up the build system"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/u-boot
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-odroidc2.img"
-sha1sum kali-$1-odroidc2.img > ${basedir}/kali-$1-odroidc2.img.sha1sum
+echo "Generating sha256sum for kali-$1-odroidc2.img"
+sha256sum kali-$1-odroidc2.img > ${basedir}/kali-$1-odroidc2.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
@@ -574,6 +654,6 @@ echo "Compressing kali-$1-odroidc2.img"
 pixz ${basedir}/kali-$1-odroidc2.img ${basedir}/kali-$1-odroidc2.img.xz
 echo "Deleting kali-$1-odroidc2.img"
 rm ${basedir}/kali-$1-odroidc2.img
-echo "Generating sha1sum for kali-$1-odroidc2.img"
-sha1sum kali-$1-odroidc2.img.xz > ${basedir}/kali-$1-odroidc2.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-odroidc2.img"
+sha256sum kali-$1-odroidc2.img.xz > ${basedir}/kali-$1-odroidc2.img.xz.sha256sum
 fi
