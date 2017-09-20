@@ -167,7 +167,9 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat $bootp
-mkfs.ext4 $rootp
+# The utilite uses an older kernel, and newer mkfs tools add extras to ext4, so
+# we disable them otherwise there will be a kernel panic at boot.
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -222,10 +224,21 @@ cp ../utilite-3.10.config .config
 make modules_prepare
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Create a file to set up our u-boot environment
 cat << EOF > ${basedir}/bootp/boot.txt
 setenv mmcdev 2
-setenv bootargs 'quiet earlyprintk console=ttymxc3,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rw rootwait net.ifnames=0'
+setenv bootargs 'earlyprintk console=ttymxc3,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rw rootwait net.ifnames=0'
 setenv loadaddr  0x10800000
 setenv fdtaddr   0x15000000
 setenv bootm_low 0x15000000
@@ -252,6 +265,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -265,16 +280,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-utilite.img"
-sha1sum kali-$1-utilite.img > ${basedir}/kali-$1-utilite.img.sha1sum
+echo "Generating sha256sum for kali-$1-utilite.img"
+sha256sum kali-$1-utilite.img > ${basedir}/kali-$1-utilite.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-utilite.img"
 pixz ${basedir}/kali-$1-utilite.img ${basedir}/kali-$1-utilite.img.xz
 rm ${basedir}/kali-$1-utilite.img
-echo "Generating sha1sum for kali-$1-utilite.img.xz"
-sha1sum kali-$1-utilite.img.xz > ${basedir}/kali-$1-utilite.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-utilite.img.xz"
+sha256sum kali-$1-utilite.img.xz > ${basedir}/kali-$1-utilite.img.xz.sha256sum
 fi
