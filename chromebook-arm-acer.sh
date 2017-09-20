@@ -29,16 +29,18 @@ unset CROSS_COMPILE
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="alsa-utils btrfs-tools e2fsprogs initramfs-tools kali-defaults kali-menu laptop-mode-tools parted sudo usbutils"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-goodies xfce4-terminal wpasupplicant"
+extras="iceweasel xfce4-goodies xfce4-terminal wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
+
+kernel_release="R60-9592.B-chromeos-3.10"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -162,7 +164,7 @@ device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
-mkfs.ext4 -L rootfs $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
 
 mkdir -p ${basedir}/root
 mount $rootp ${basedir}/root
@@ -178,17 +180,10 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Install the firmware so we can add the xusb.bin from firmware directory
-# instead of downloading the tarball from CrOS.
-cd ${basedir}/root/lib
-rm -rf ${basedir}/root/lib/firmware
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
-
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
 cd ${basedir}
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.10 ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 mkdir -p ${basedir}/root/usr/src/kernel/firmware/nvidia/tegra124/
 cp ${basedir}/root/lib/firmware/nvidia/tegra124/xusb.bin firmware/nvidia/tegra124/
@@ -198,9 +193,7 @@ git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
-#export CROSS_COMPILE=arm-cortexa9-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.8.patch
-#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mwifiex-do-not-create-AP-and-P2P-interfaces-upon-driver-loading-3.8.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri-3.8.patch
 make WIFIVERSION="-3.8" -j $(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
@@ -361,6 +354,17 @@ make WIFIVERSION="-3.8" modules_prepare
 
 cd ${basedir}
 
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
+
 # Lid switch
 cat << EOF > ${basedir}/root/etc/udev/rules.d/99-tegra-lid-switch.rules
 ACTION=="remove", GOTO="tegra_lid_switch_end"
@@ -374,6 +378,9 @@ EOF
 cat << EOF > ${basedir}/root/etc/udev/rules.d/99-hide-emmc-partitions.rules
 KERNEL=="mmcblk0*", ENV{UDISKS_IGNORE}="1"
 EOF
+
+# Disable uap0 and p2p0 interfaces in NetworkManager
+printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> ${basedir}/root/etc/NetworkManager/NetworkManager.conf
 
 #nvidia device nodes
 cat << EOF > ${basedir}/root/lib/udev/rules.d/51-nvrm.rules
@@ -415,8 +422,7 @@ cd ${basedir}
 # lp0 resume firmware...
 git clone https://chromium.googlesource.com/chromiumos/third_party/coreboot
 cd ${basedir}/coreboot
-#git checkout 611465f6248cba0ddce0083b431cb7ee17bc4b4c
-git checkout 071167b667685c26106641e6899984c7bd91e84b
+git checkout 290e74ee4e6a102ba3de1cf0c42ce25e4074f4ac
 make -C src/soc/nvidia/tegra124/lp0 GCC_PREFIX=arm-linux-gnueabihf-
 mkdir -p ${basedir}/root/lib/firmware/tegra12x/
 cp src/soc/nvidia/tegra124/lp0/tegra_lp0_resume.fw ${basedir}/root/lib/firmware/tegra12x/
@@ -424,6 +430,8 @@ cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
+
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
 umount $rootp
@@ -440,16 +448,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/coreboot ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader.bin
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-acer.img"
-sha1sum kali-$1-acer.img > ${basedir}/kali-$1-acer.img.sha1sum
+echo "Generating sha256sum for kali-$1-acer.img"
+sha256sum kali-$1-acer.img > ${basedir}/kali-$1-acer.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-acer.img"
 pixz ${basedir}/kali-$1-acer.img ${basedir}/kali-$1-acer.img.xz
 rm ${basedir}/kali-$1-acer.img
-echo "Generating sha1sum for kali-$1-acer.img.xz"
-sha1sum kali-$1-acer.img.xz > ${basedir}/kali-$1-acer.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-acer.img.xz"
+sha256sum kali-$1-acer.img.xz > ${basedir}/kali-$1-acer.img.xz.sha256sum
 fi
