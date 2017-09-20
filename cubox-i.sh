@@ -158,7 +158,7 @@ device="/dev/mapper/${device}"
 rootp=${device}p1
 
 # Create file systems
-mkfs.ext4 $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root
@@ -181,16 +181,17 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 -b linux-linaro-lsk-3.10.42-mx6 https://github.com/SolidRun/linux-linaro-stable-mx6.git ${basedir}/root/usr/src/kernel
+#git clone --depth 1 -b linux-linaro-lsk-3.10.42-mx6 https://github.com/SolidRun/linux-linaro-stable-mx6.git ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/SolidRun/linux-fslc.git ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/cubox-i.config .config
 cp ${basedir}/../kernel-configs/cubox-i.config ../cubox-i.config
-make -j $(grep -c processor /proc/cpuinfo) zImage imx6q-cubox-i.dtb imx6dl-cubox-i.dtb imx6dl-hummingboard.dtb modules
+make -j $(grep -c processor /proc/cpuinfo) zImage imx6q-cubox-i.dtb imx6dl-cubox-i.dtb imx6q-hummingboard.dtb imx6dl-hummingboard.dtb modules
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 # This is kinda hacky, but since we're using 1 single partition
 # and their u-boot is kinda wonky, we put zImage and the dtbs in / because
@@ -199,9 +200,22 @@ make modules_install INSTALL_MOD_PATH=${basedir}/root
 cp arch/arm/boot/zImage ${basedir}/root/
 cp arch/arm/boot/dts/imx6q-cubox-i.dtb ${basedir}/root/
 cp arch/arm/boot/dts/imx6dl-cubox-i.dtb ${basedir}/root/
+cp arch/arm/boot/dts/imx6dl-hummingboard.dtb ${basedir}/root/
+cp arch/arm/boot/dts/imx6q-hummingboard.dtb ${basedir}/root/
 make mrproper
 cp ../cubox-i.config .config
 make modules_prepare
+cd ${basedir}
+
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Create boot.txt file
@@ -239,6 +253,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $rootp
 umount $rootp
@@ -252,16 +268,16 @@ echo "Removing temporary build files"
 rm -rf ${basedir}/kernel ${basedir}/root ${basedir}/u-boot-imx6 ${basedir}/wlan-firmware ${basedir}/kali-$architecture ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-cubox-i.img"
-sha1sum kali-$1-cubox-i.img > ${basedir}/kali-$1-cubox-i.img.sha1sum
+echo "Generating sha256sum for kali-$1-cubox-i.img"
+sha256sum kali-$1-cubox-i.img > ${basedir}/kali-$1-cubox-i.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-cubox-i.img"
 pixz ${basedir}/kali-$1-cubox-i.img ${basedir}/kali-$1-cubox-i.img.xz
 rm ${basedir}/kali-$1-cubox-i.img
-echo "Generating sha1sum for kali-$1-cubox-i.img.xz"
-sha1sum kali-$1-cubox-i.img.xz > ${basedir}/kali-$1-cubox-i.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-cubox-i.img.xz"
+sha256sum kali-$1-cubox-i.img.xz > ${basedir}/kali-$1-cubox-i.img.xz.sha256sum
 fi
