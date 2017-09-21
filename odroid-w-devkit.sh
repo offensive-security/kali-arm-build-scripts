@@ -31,7 +31,7 @@ packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
-mirror=repo.kali.org
+mirror=http.kali.org
 
 # Check to ensure that the architecture is set to ARMEL since the ODWK is the
 # only board that is armel.
@@ -167,7 +167,7 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat $bootp
-mkfs.ext4 $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
@@ -218,6 +218,17 @@ cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/bootp/overlays/
 make mrproper
 cp ../rpi-4.1.config .config
 make modules_prepare
+cd ${basedir}
+
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/root/lib/modules/)
+cd ${basedir}/root/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Create cmdline.txt file
@@ -296,6 +307,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -312,7 +325,7 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
 echo "Generating sha1sum for kali-$1-owdk.img"
-sha1sum kali-$1-odwk.img > ${basedir}/kali-$1-owdk.img.sha1sum
+sha1sum kali-$1-owdk.img > ${basedir}/kali-$1-owdk.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
