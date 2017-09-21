@@ -21,10 +21,15 @@ basedir=`pwd`/rpi2-$1
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+# XFCE desktop (Default)
+desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics xfce4-terminal"
+# GNOME desktop
+#desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-gnome kali-root-login gdm network-manager network-manager-gnome xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+# i3 desktop
+#desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-root-login lightdm i3 nitrogen xautolock scrot network-manager-gnome xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="iceweasel wpasupplicant"
 # kernel sauces take up space yo.
 size=7000 # Size of image in megabytes
 
@@ -211,7 +216,7 @@ rm -rf rpi-firmware
 perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
 cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
 mkdir -p ${basedir}/bootp/overlays/
-cp arch/arm/boot/dts/overlays/*.dtb ${basedir}/bootp/overlays/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/bootp/overlays/
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
 git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
@@ -260,6 +265,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -273,16 +280,16 @@ echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpi2.img"
-sha1sum kali-$1-rpi2.img > ${basedir}/kali-$1-rpi2.img.sha1sum
+echo "Generating sha256sum for kali-$1-rpi2.img"
+sha256sum kali-$1-rpi2.img > ${basedir}/kali-$1-rpi2.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpi2.img"
 pixz ${basedir}/kali-$1-rpi2.img ${basedir}/kali-$1-rpi2.img.xz
 rm ${basedir}/kali-$1-rpi2.img
-echo "Generating sha1sum for kali-$1-rpi2.img.xz"
-sha1sum kali-$1-rpi2.img.xz > ${basedir}/kali-$1-rpi2.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-rpi2.img.xz"
+sha256sum kali-$1-rpi2.img.xz > ${basedir}/kali-$1-rpi2.img.xz.sha256sum
 fi
