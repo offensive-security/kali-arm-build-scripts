@@ -271,6 +271,8 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -284,16 +286,16 @@ echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
+# don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-rpi.img"
-sha1sum kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha1sum
+echo "Generating sha256sum for kali-$1-rpi.img"
+sha256sum kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpi.img"
 pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
 rm ${basedir}/kali-$1-rpi.img
-echo "Generating sha1sum for kali-$1-rpi.img.xz"
-sha1sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha1sum
+echo "Generating sha256sum for kali-$1-rpi.img.xz"
+sha256sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha256sum
 fi
