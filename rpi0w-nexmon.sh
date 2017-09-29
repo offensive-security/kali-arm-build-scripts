@@ -26,7 +26,7 @@ base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils fir
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap libnfc-bin mfoc nmap ethtool usbutils net-tools"
 services="openssh-server apache2"
-extras=" wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip"
+extras=" wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
 # kernel sauces take up space
 size=7000 # Size of image in megabytes
 
@@ -126,6 +126,16 @@ WantedBy=multi-user.target
 EOF
 chmod 755 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 
+# Bluetooth enabling
+mkdir -p kali-$architecture/etc/udev/rules.d
+cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-$architecture/etc/udev/rules.d/99-com.rules
+mkdir -p kali-$architecture/lib/systemd/system/
+cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-$architecture/lib/systemd/system/hciuart.service
+mkdir -p kali-$architecture/usr/bin
+cp ${basedir}/../misc/pi-bluetooth/btuart kali-$architecture/usr/bin/btuart
+# Ensure btuart is executable
+chmod +x kali-$architecture/usr/bin/btuart
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -157,6 +167,7 @@ sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 rm -f /etc/ssh/ssh_host_*_key*
 
 systemctl enable regenerate_ssh_host_keys
+systemctl enable hciuart
 update-rc.d ssh enable
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
@@ -300,6 +311,7 @@ proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
 EOF
+
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts

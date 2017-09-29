@@ -28,7 +28,7 @@ base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils fir
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark net-tools"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip"
+extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
 # kernel sauces take up space yo.
 size=7000 # Size of image in megabytes
 
@@ -94,6 +94,7 @@ ExecStartPost=/bin/rm /lib/systemd/system/regenerate_ssh_host_keys.service ; /us
 [Install]
 WantedBy=multi-user.target
 EOF
+chmod 755 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
@@ -122,6 +123,16 @@ cat << EOF > kali-$architecture/usr/bin/monstop
 echo "Monitor mode stopped"
 EOF
 chmod +x kali-$architecture/usr/bin/monstop
+
+# Bluetooth enabling
+mkdir -p kali-$architecture/etc/udev/rules.d
+cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-$architecture/etc/udev/rules.d/99-com.rules
+mkdir -p kali-$architecture/lib/systemd/system/
+cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-$architecture/lib/systemd/system/hciuart.service
+mkdir -p kali-$architecture/usr/bin
+cp ${basedir}/../misc/pi-bluetooth/btuart kali-$architecture/usr/bin/btuart
+# Ensure btuart is executable
+chmod +x kali-$architecture/usr/bin/btuart
 
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
@@ -160,6 +171,8 @@ sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
+# Enable hciuart for bluetooth device
+systemctl enable hciuart
 
 update-rc.d ssh enable
 
