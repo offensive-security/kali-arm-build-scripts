@@ -158,7 +158,7 @@ device="/dev/mapper/${device}"
 rootp=${device}p1
 
 # Create file systems
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -O ^64bit $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root
