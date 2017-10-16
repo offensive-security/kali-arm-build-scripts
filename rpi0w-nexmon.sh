@@ -22,7 +22,7 @@ TOPDIR=`pwd`
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-linux-nonfree firmware-libertas"
+base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-linux-nonfree firmware-libertas firmware-atheros"
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap libnfc-bin mfoc nmap ethtool usbutils net-tools"
 services="openssh-server apache2"

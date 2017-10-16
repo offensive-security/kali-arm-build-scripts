@@ -32,7 +32,7 @@ base="alsa-utils btrfs-tools e2fsprogs initramfs-tools kali-defaults kali-menu p
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="florence iceweasel xfce4-goodies xfce4-terminal xinput wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas"
+extras="florence iceweasel xfce4-goodies xfce4-terminal xinput wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas firmware-atheros"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
