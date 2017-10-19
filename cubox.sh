@@ -233,8 +233,8 @@ fi
 
 if itest.s \$root_device -ne ?; then
   setenv bootargs "console=ttyS0,115200n8 vmalloc=448M video=dovefb:lcd0:1920x1080-32@60-edid clcd.lcd0_enable=1 clcd.lcd1_enable=0 root=\${root_device} rootfstype=ext4 rw net.ifnames=0"
-  setenv loadimage "\${fstype}load \${device_name} \${unit_no}:\${partition} 0x00200000 \${directory}\${image_name}" 
-  \$loadimage && bootm 0x00200000
+  setenv loadimage "\${fstype}load \${device_name} \${unit_no}:\${partition} 0x02000000 \${directory}\${image_name}" 
+  \$loadimage && bootm 0x02000000
 
   echo "!! Unable to load \${directory}\${image_name} from \${device_name} \${unit_no}:\${partition} !!"
   exit
