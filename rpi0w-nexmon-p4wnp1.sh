@@ -165,7 +165,10 @@ apt-get --yes --force-yes autoremove
 # Install P4wnP1 (kali version)
 git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
 chmod +x /root/P4wnP1/install.sh
-cd /root/P4wnP1 && ./install.sh
+cd /root/P4wnP1 
+git submodule init
+git submodule update --recursive --remote && 
+./install.sh
 
 echo "dwc2" | sudo tee -a /etc/modules
 echo "libcomposite" | sudo tee -a /etc/modules
@@ -192,7 +195,6 @@ sed -i 's/^RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6.*/Restric
 systemctl unmask bluetooth.service
 systemctl enable bluetooth
 systemctl enable hciuart
-ln -s /usr/bin/hciconfig /bin/hciconfig
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
