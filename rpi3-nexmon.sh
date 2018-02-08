@@ -90,7 +90,7 @@ Type=oneshot
 ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
 ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
 ExecStart=/usr/bin/ssh-keygen -A -v
-ExecStartPost=for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <"$i") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -317,7 +317,7 @@ proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
 EOF
 
-# Firmware needed for rpi3 wifi (copy nexmon firmware) 
+# Firmware needed for rpi3 wifi (copy nexmon firmware)
 mkdir -p ${basedir}/root/lib/firmware/brcm/
 #cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/root/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
 cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/brcm/
