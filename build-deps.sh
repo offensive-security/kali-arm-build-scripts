@@ -1,5 +1,5 @@
 #!/bin/bash
-apt-get install -y git-core gnupg flex bison gperf libesd0-dev build-essential \
+apt-get install -y git-core gnupg flex bison gperf build-essential \
 zip curl libncurses5-dev zlib1g-dev libncurses5-dev gcc-multilib g++-multilib \
 parted kpartx debootstrap pixz qemu-user-static abootimg cgpt vboot-kernel-utils \
 vboot-utils u-boot-tools bc lzma lzop automake autoconf m4 dosfstools rsync \
