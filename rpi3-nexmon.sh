@@ -11,8 +11,19 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpi3-nexmon-$1
-TOPDIR=`pwd`
+############# MENU OPTIONS #####################
+architecture="armhf"                        # DEFAULT ARCH (PI3 IS ARMHF)
+TOPDIR=`pwd`                                # CURRENT FOLDER
+basedir=`pwd`/rpi3-nexmon-$1                # OUTPUT FOLDER
+DIRECTORY=`pwd`/kali-$architecture          # CHROOT FS FOLDER
+SIZE=7000                                   # SIZE OF OUTPUT FILE
+VERSION=$1                                  # VERSION PASSED
+COMPRESS=true                               # COMPRESS OR NOTkali-$VERSION
+OUTPUTFILE="${basedir}/kali-$VERSION-rpi3-nexmon.img"
+
+############# BUILD FILE SYSTEM IMAGE #####################
+
+function build_chroot(){
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -30,11 +41,9 @@ tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlm
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
 nexmon="libgmp3-dev gawk qpdf bison flex make git"
-# kernel sauces take up space yo.
-size=7000 # Size of image in megabytes
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras} ${nexmon}"
-architecture="armhf"
+
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
@@ -47,20 +56,20 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-rolling $DIRECTORY http://$mirror/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+cp /usr/bin/qemu-arm-static $DIRECTORY/usr/bin/
 
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
+LANG=C chroot $DIRECTORY /debootstrap/debootstrap --second-stage
+cat << EOF > $DIRECTORY/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
+echo "kali" > $DIRECTORY/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
-cat << EOF > kali-$architecture/etc/hosts
+cat << EOF > $DIRECTORY/etc/hosts
 127.0.0.1       kali    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
@@ -69,7 +78,13 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+cat << EOF > $DIRECTORY/etc/modprobe.d/ipv6.conf
+# Don't load ipv6 by default
+alias net-pf-10 off
+#alias ipv6 off
+EOF
+
+cat << EOF > $DIRECTORY/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -77,11 +92,11 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > $DIRECTORY/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
-cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+cat << 'EOF' > $DIRECTORY/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -94,23 +109,23 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 $DIRECTORY/lib/systemd/system/regenerate_ssh_host_keys.service
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-mount -t proc proc kali-$architecture/proc
-mount -o bind /dev/ kali-$architecture/dev/
-mount -o bind /dev/pts kali-$architecture/dev/pts
+mount -t proc proc $DIRECTORY/proc
+mount -o bind /dev/ $DIRECTORY/dev/
+mount -o bind /dev/pts $DIRECTORY/dev/pts
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > $DIRECTORY/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
 # Create monitor mode start/remove
-cat << 'EOF' > kali-$architecture/usr/bin/monstart
+cat << 'EOF' > $DIRECTORY/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
 echo "Bring up monitor mode interface ${interface}"
@@ -120,28 +135,28 @@ if [ $? -eq 0 ]; then
 	echo "started monitor interface on ${interface}"
 fi
 EOF
-chmod +x kali-$architecture/usr/bin/monstart
+chmod +x $DIRECTORY/usr/bin/monstart
 
-cat << 'EOF' > kali-$architecture/usr/bin/monstop
+cat << 'EOF' > $DIRECTORY/usr/bin/monstop
 #!/bin/bash
 interface=wlan0mon
 ifconfig ${interface} down
 sleep 1
 iw dev ${interface} del
 EOF
-chmod +x kali-$architecture/usr/bin/monstop
+chmod +x $DIRECTORY/usr/bin/monstop
 
 # Bluetooth enabling
-mkdir -p kali-$architecture/etc/udev/rules.d
-cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-$architecture/etc/udev/rules.d/99-com.rules
-mkdir -p kali-$architecture/lib/systemd/system/
-cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-$architecture/lib/systemd/system/hciuart.service
-mkdir -p kali-$architecture/usr/bin
-cp ${basedir}/../misc/pi-bluetooth/btuart kali-$architecture/usr/bin/btuart
+mkdir -p $DIRECTORY/etc/udev/rules.d
+cp ${basedir}/../misc/pi-bluetooth/99-com.rules $DIRECTORY/etc/udev/rules.d/99-com.rules
+mkdir -p $DIRECTORY/lib/systemd/system/
+cp ${basedir}/../misc/pi-bluetooth/hciuart.service $DIRECTORY/lib/systemd/system/hciuart.service
+mkdir -p $DIRECTORY/usr/bin
+cp ${basedir}/../misc/pi-bluetooth/btuart $DIRECTORY/usr/bin/btuart
 # Ensure btuart is executable
-chmod +x kali-$architecture/usr/bin/btuart
+chmod +x $DIRECTORY/usr/bin/btuart
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > $DIRECTORY/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
@@ -195,10 +210,10 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/third-stage
-LANG=C chroot kali-$architecture /third-stage
+chmod +x $DIRECTORY/third-stage
+LANG=C chroot $DIRECTORY /third-stage
 
-cat << EOF > kali-$architecture/cleanup
+cat << EOF > $DIRECTORY/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
@@ -209,23 +224,42 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/cleanup
-LANG=C chroot kali-$architecture /cleanup
+chmod +x $DIRECTORY/cleanup
+LANG=C chroot $DIRECTORY /cleanup
 
-umount kali-$architecture/proc/sys/fs/binfmt_misc
-umount kali-$architecture/dev/pts
-umount kali-$architecture/dev/
-umount kali-$architecture/proc
+umount $DIRECTORY/proc/sys/fs/binfmt_misc
+umount $DIRECTORY/dev/pts
+umount $DIRECTORY/dev/
+umount $DIRECTORY/proc
+}
+
+############# BUILD KERNEL/IMAGE #####################
+
+function build_image(){
+
+echo "*********************************************"
+echo "$(tput setaf 2)
+   .~~.   .~~.
+  '. \ ' ' / .'$(tput setaf 1)
+   .~ .~~~..~.
+  : .~.'~'.~. :
+ ~ (   ) (   ) ~
+( : '~'.~.'~' : )
+ ~ .~ (   ) ~. ~
+  (  : '~' :  ) $(tput sgr0)Kali PI3 Image Generator$(tput setaf 1)
+   '~ .~~~. ~'
+       '~'
+$(tput sgr0)"
+
+echo "*********************************************"
+mkdir -p ${basedir}
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi3 Nexmon"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi3-nexmon.img bs=1M count=$size
-parted kali-$1-rpi3-nexmon.img --script -- mklabel msdos
-parted kali-$1-rpi3-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi3-nexmon.img --script -- mkpart primary ext4 64 -1
-
-# For chroot later
-OUTPUTFILE="${basedir}/kali-$1-rpi3-nexmon.img"
+dd if=/dev/zero of=${OUTPUTFILE} bs=1M count=$SIZE
+parted ${OUTPUTFILE} --script -- mklabel msdos
+parted ${OUTPUTFILE} --script -- mkpart primary fat32 0 64
+parted ${OUTPUTFILE} --script -- mkpart primary ext4 64 -1
 
 loopdevice=`losetup -f --show $OUTPUTFILE`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
@@ -244,7 +278,7 @@ mount $bootp ${basedir}/bootp
 mount $rootp ${basedir}/root
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+rsync -HPavz -q ${DIRECTORY}/ ${basedir}/root/
 
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
@@ -268,7 +302,7 @@ rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.y-nexutil ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 
 ln -s /usr/include/asm-generic /usr/include/asm
@@ -317,20 +351,26 @@ proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
 EOF
 
-# Firmware needed for rpi3 wifi (copy nexmon firmware)
+# Firmware needed for rpi3 wifi (copy nexmon firmware) 
 mkdir -p ${basedir}/root/lib/firmware/brcm/
 #cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/root/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/brcm/
+cp ${TOPDIR}/misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/brcm/
+
+# Firmware needed for rpi3 b+ wifi - we comment this out if building for nexmon
+cp ${TOPDIR}/misc/brcm/brcmfmac43455-sdio.bin ${basedir}/root/lib/firmware/brcm/
+cp ${TOPDIR}/misc/brcm/brcmfmac43455-sdio.txt ${basedir}/root/lib/firmware/brcm/
+cp ${TOPDIR}/misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/root/lib/firmware/brcm/
 
 # Copy nexutil
-cp ${basedir}/../misc/rpi3/nexutil ${basedir}/root/usr/bin/nexutil
+cp ${TOPDIR}/misc/rpi3/nexutil ${basedir}/root/usr/bin/nexutil
 chmod +x ${basedir}/root/usr/bin/nexutil
 
 cd ${basedir}
 
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
+cp ${TOPDIR}/misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
+# Permit root by default
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
@@ -344,9 +384,19 @@ rm -rf ${basedir}/root
 rm -rf ${basedir}/boot
 rm -rf ${basedir}/patches
 
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Cleaning up the temporary build files..."
+rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/$DIRECTORY ${basedir}/boot ${basedir}/patches
+
+##### START NEXMON BUILD #####
+
+echo "[?] Checking for ${OUTPUTFILE}"
 # Load img file into chroot
-OUTPUTFILE="${basedir}/kali-$1-rpi3-nexmon.img"
 if [ -f "${OUTPUTFILE}" ]; then
+
+    echo "[+] Starting nexmon build porition"
 
     dir=/tmp/rpi
     test "umount" = "${OUTPUTFILE}" && sudo umount $dir/boot && sudo umount $dir
@@ -383,22 +433,30 @@ CC=$CCgcc
 make
 make install
 ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
+ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
 # make scripts doesn't work if we cross crompile. Needs libisl.so before we can compile in scripts
 cd /usr/src/kernel
 make ARCH=arm scripts
 cd /opt/nexmon/
 source setup_env.sh
-# Build nexmon
-cd patches/bcm43430a1/7_45_41_46/nexmon/
+# Build nexmon for pi 3
+cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
 make clean
 make
+# Copy the ko file twice. Unsure if changes across both devices break compatibility
 cp brcmfmac_kernel49/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+# Build nexmon for pi 3 b+
+cd /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon
+make clean
+make
+cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
+cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
 EOF
 chmod +x $dir/tmp/buildnexmon.sh
 
 # This is required in order to trick nexmon into thinking we are building on ARM
-cat << EOF > $dir/tmp/fakeuname.c
+cat << 'EOF' > $dir/tmp/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -413,7 +471,7 @@ int uname(struct utsname *buf)
 {
  int ret;
  ret = syscall(SYS_uname, buf);
- strcpy(buf->release, "4.9.59-v7_Re4son-Kali-Pi+");
+ strcpy(buf->release, "4.9.80-Re4son-v7+");
  strcpy(buf->machine, "armv7l");
  return ret;
 }
@@ -423,8 +481,11 @@ EOF
     chroot $dir /bin/bash -c "cd /tmp && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
     chroot $dir /bin/bash -c "chmod +x /tmp/buildnexmon.sh && LD_PRELOAD=/tmp/libfakeuname.so /tmp/buildnexmon.sh"
 
-     # Enable regenerate ssh host keys at first boot
+    # Enable regenerate ssh host keys at first boot
     chroot $dir /bin/bash -c "systemctl enable regenerate_ssh_host_keys"
+
+    echo "[+] Cleanup"
+#    rm -rf $dir/tmp/*
 
     echo "[+] Unmounting"
     sleep 10
@@ -436,24 +497,69 @@ EOF
     rm -rf $dir
 fi
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-$1-rpi3-nexmon.img"
-sha256sum kali-$1-rpi3-nexmon.img > ${basedir}/kali-$1-rpi3-nexmon.img.sha256sum
-
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-	echo "Compressing kali-$1-rpi3-nexmon.img"
-	pixz ${basedir}/kali-$1-rpi3-nexmon.img ${basedir}/kali-$1-rpi3-nexmon.img.xz
-	rm ${basedir}/kali-$1-rpi3-nexmon.img
-	echo "Generating sha265sum for kali-$1-rpi3-nexmon.img.xz"
-	sha256sum kali-$1-rpi3-nexmon.img.xz > ${basedir}/kali-$1-rpi3-nexmon.img.xz.sha256sum
+if [ "$COMPRESS" = true ] ; then
+    MACHINE_TYPE=`uname -m`
+    if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+    	echo "Compressing kali-$VERSION-rpi3-nexmon.img"
+    	pixz ${basedir}/kali-$VERSION-rpi3-nexmon.img ${basedir}/kali-$VERSION-rpi3-nexmon.img.xz
+    	rm ${basedir}/kali-$VERSION-rpi3-nexmon.img
+    	echo "Generating sha265sum for kali-$VERSION-rpi3-nexmon.img.xz"
+    	sha256sum kali-$VERSION-rpi3-nexmon.img.xz > ${basedir}/kali-$VERSION-rpi3-nexmon.img.xz.sha256sum
+    fi
+fi
+}
+
+
+
+############# ASK FUNCTION FOR MENU #####################
+
+function ask() {
+    # http://djm.me/ask
+    while true; do
+
+        if [ "${2:-}" = "Y" ]; then
+            prompt="Y/n"
+            default=Y
+        elif [ "${2:-}" = "N" ]; then
+            prompt="y/N"
+            default=N
+        else
+            prompt="y/n"
+            default=
+        fi
+
+        # Ask the question
+        read -p "$1 [$prompt] " REPLY
+
+        # Default?
+        if [ -z "$REPLY" ]; then
+            REPLY=$default
+        fi
+
+        # Check if the reply is valid
+        case "$REPLY" in
+            Y*|y*) return 0 ;;
+            N*|n*) return 1 ;;
+        esac
+    done
+}
+
+############# MAIN MENU #####################
+
+if [ ! -d "$DIRECTORY" ]; then
+    if ask "[?] Missing chroot. Build?"; then
+        build_chroot
+        build_image
+    else
+        exit
+    fi
+else
+    if ask "[?] Previous chroot found.  Build new one?"; then
+        build_chroot
+        build_image
+    else
+        echo "Skipping chroot build"
+        build_image
+    fi
 fi
