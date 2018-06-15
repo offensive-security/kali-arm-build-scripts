@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export PATH=$PATH:/usr/sbin/:/sbin/
 # This is the Raspberry Pi Kali ARM build script - http://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
@@ -52,11 +53,28 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+if sudo debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+then
+  echo "Boostrap Success"
+else
+  echo "Boostrap Failure"
+  exit 1
+fi
+
+sudo chown -R $USER:$USER kali-$architecture/
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C sudo chroot kali-$architecture /debootstrap/debootstrap --second-stage
+then
+  echo "Secondary Boostrap Success"
+else
+  echo "Secondary Boostrap Failure"
+  exit 1
+fi
+
+sudo chown -R $USER:$USER kali-$architecture/
+
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -90,9 +108,9 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-mount -t proc proc kali-$architecture/proc
-mount -o bind /dev/ kali-$architecture/dev/
-mount -o bind /dev/pts kali-$architecture/dev/pts
+sudo mount -t proc proc kali-$architecture/proc
+sudo mount -o bind /dev/ kali-$architecture/dev/
+sudo mount -o bind /dev/pts kali-$architecture/dev/pts
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -133,15 +151,7 @@ update-rc.d ssh enable
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
-
-rm -f /third-stage
-EOF
-
-chmod +x kali-$architecture/third-stage
-LANG=C chroot kali-$architecture /third-stage
-
-cat << EOF > kali-$architecture/cleanup
-#!/bin/bash
+# Do some cleanup
 rm -rf /root/.bash_history
 apt-get update
 apt-get clean
@@ -149,42 +159,56 @@ rm -f /0
 rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
+
+rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/cleanup
-LANG=C chroot kali-$architecture /cleanup
+chmod +x kali-$architecture/third-stage
 
-umount kali-$architecture/proc/sys/fs/binfmt_misc
-umount kali-$architecture/dev/pts
-umount kali-$architecture/dev/
-umount kali-$architecture/proc
+
+if LANG=C sudo chroot kali-$architecture /third-stage
+then
+  echo "Third Stage Success"
+else
+  echo "Third Stage Failure"
+  exit 1
+fi
+
+sudo umount kali-$architecture/proc/sys/fs/binfmt_misc
+sudo umount kali-$architecture/dev/pts
+sudo umount kali-$architecture/dev/
+sudo umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
 dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=$size
-parted kali-$1-rpi.img --script -- mklabel msdos
-parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
+sudo parted kali-$1-rpi.img --script -- mklabel msdos
+sudo parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
+sudo kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+loopdevice=`sudo losetup -f --show ${basedir}/kali-$1-rpi.img`
+device=`sudo kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
 # Create file systems
-mkfs.vfat $bootp
-mkfs.ext4 $rootp
+sudo mkfs.vfat $bootp
+sudo mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
+sudo mount $bootp ${basedir}/bootp
+sudo mount $rootp ${basedir}/root
+
+sudo chown -R $USER:$USER kali-$architecture/
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+sudo rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+
+# Halfway 
 
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
