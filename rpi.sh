@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 # This is the Raspberry Pi Kali ARM build script - http://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
