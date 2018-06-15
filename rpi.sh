@@ -296,7 +296,7 @@ MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpi.img"
 pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
-mv ${basedir}/kali-$1-rpi.img.xz .
+mv ${basedir}/kali-$1-rpi.img.xz ${basedir}/../
 rm ${basedir}/kali-$1-rpi.img
 fi
 
