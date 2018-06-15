@@ -9,7 +9,7 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 basedir=`pwd`/rpi-$1
-
+workfile=rpi-$1
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
@@ -132,6 +132,7 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
+rm -f /etc/ssh/ssh_host_*_key*
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
@@ -175,13 +176,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=$size
-parted kali-$1-rpi.img --script -- mklabel msdos
-parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-$workfile-rpi.img bs=1M count=$size
+parted kali-$workfile-rpi.img --script -- mklabel msdos
+parted kali-$workfile-rpi.img --script -- mkpart primary fat32 0 64
+parted kali-$workfile-rpi.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$workfile-rpi.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -294,10 +295,10 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpi.img"
-pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
-mv ${basedir}/kali-$1-rpi.img.xz ${basedir}/../
-rm ${basedir}/kali-$1-rpi.img
+echo "Compressing kali-$workfile-rpi.img"
+pixz ${basedir}/kali-$workfile-rpi.img ${basedir}/kali-$workfile-rpi.img.xz
+mv ${basedir}/kali-$workfile-rpi.img.xz ${basedir}/../
+rm ${basedir}/kali-$workfile-rpi.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
