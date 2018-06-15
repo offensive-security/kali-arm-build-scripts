@@ -288,11 +288,6 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
@@ -301,5 +296,12 @@ MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-$1-rpi.img"
 pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
+mv ${basedir}/kali-$1-rpi.img.xz .
 rm ${basedir}/kali-$1-rpi.img
 fi
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Cleaning up the temporary build files..."
+rm -rf ${basedir}
