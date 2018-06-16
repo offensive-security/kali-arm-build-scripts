@@ -37,8 +37,7 @@ size=7000 # Size of image in megabytes
 # Git commit hash to check out for the kernel
 #kernel_commit=20fe468
 
-#packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
-packages="${arm} ${base} ${services}"
+packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
