@@ -9,8 +9,8 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 basedir=`pwd`/rpi-$1
-workfile=rpi-$1
-kalname=kali
+workfile=$1
+kaliname=kali
 
 if [ $2 ]; then
     kalname=$2
@@ -83,10 +83,10 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "${kalname}" > kali-$architecture/etc/hostname
+echo "${kaliname}" > kali-$architecture/etc/hostname
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       ${kalname}    localhost
+127.0.0.1       ${kaliname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -285,8 +285,6 @@ cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
-
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
 umount $bootp
