@@ -1,15 +1,21 @@
 #!/bin/bash
 set -e
-# This is the Raspberry Pi Kali ARM build script - http://www.kali.org/downloads
-# A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
+# This is the Raspberry Pi Kali ARM build script - https://www.kali.org/downloads
+# A trusted Kali Linux image created by Offensive Security - https://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 2.0"
+    echo "Please pass version number, e.g. $0 2.0, and (if you want) a hostname, default is kali"
     exit 0
 fi
 
 basedir=`pwd`/rpi-$1
 workfile=rpi-$1
+kalname=kali
+
+if [ $2 ]; then
+    kalname=$2
+fi
+
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
@@ -77,11 +83,10 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
-
+echo "${kalname}" > kali-$architecture/etc/hostname
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1       ${kalname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
