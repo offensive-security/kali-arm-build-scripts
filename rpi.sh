@@ -44,13 +44,6 @@ architecture="armel"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-# Check to ensure that the architecture is set to ARMEL since the RPi is the
-# only board that is armel.
-if [[ $architecture != "armel" ]] ; then
-    echo "The Raspberry Pi cannot run the Debian armhf binaries"
-    exit 0
-fi
-
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
 #export http_proxy="http://localhost:3142/"
@@ -62,9 +55,9 @@ cd ${basedir}
 
 if debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 then
-  echo "Boostrap Success"
+  echo "[*] Boostrap Success"
 else
-  echo "Boostrap Failure"
+  echo "[*] Boostrap Failure"
   exit 1
 fi
 
@@ -72,9 +65,9 @@ cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 if LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
 then
-  echo "Secondary Boostrap Success"
+  echo "[*] Secondary Boostrap Success"
 else
-  echo "Secondary Boostrap Failure"
+  echo "[*] Secondary Boostrap Failure"
   exit 1
 fi
 
@@ -169,9 +162,9 @@ chmod +x kali-$architecture/third-stage
 
 if LANG=C chroot kali-$architecture /third-stage
 then
-  echo "Boostrap Success"
+  echo "[*] Boostrap Success"
 else
-  echo "Boostrap Failure"
+  echo "[*] Boostrap Failure"
   exit 1
 fi
 
@@ -209,56 +202,8 @@ rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
 
-# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
-#unset http_proxy
-
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.4.y ${basedir}/root/usr/src/kernel
-git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
-
-cd ${basedir}/root/usr/src/kernel
-git checkout $kernel_commit
-echo $kernel_commit > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.4.patch
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-4.4.config .config
-cp ${basedir}/../kernel-configs/rpi-4.4.config ../rpi-4.4.config
-make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/root
-git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-rm -rf rpi-firmware
-# Because of device trees being used we need to go back to using mkknlimg :(
-#cp arch/arm/boot/zImage ${basedir}/bootp/kernel.img
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel.img
-mkdir -p ${basedir}/bootp/overlays/
-cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
-# Not used for now, but here for the future where they will be required.
-#cp arch/arm/boot/dts/overlays/*.dtb ${basedir}/bootp/overlays/
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
-cd ${basedir}/root/usr/src/kernel
-make INSTALL_MOD_PATH=${basedir}/root firmware_install
-make mrproper
-cp ../rpi-4.4.config .config
-make modules_prepare
-cd ${basedir}
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd ${basedir}
+# REPLACE
+# REPLACE
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/bootp/cmdline.txt
