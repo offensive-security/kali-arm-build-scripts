@@ -118,7 +118,6 @@ apt-get --yes --force-yes install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
-apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
