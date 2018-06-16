@@ -1,14 +1,20 @@
 #!/bin/bash
-
-# This is the Raspberry Pi Kali ARM build script - http://www.kali.org/downloads
-# A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
+set -e
+# This is the Raspberry Pi Kali ARM build script - https://www.kali.org/downloads
+# A trusted Kali Linux image created by Offensive Security - https://www.offensive-security.com
 
 if [[ $# -eq 0 ]] ; then
-    echo "Please pass version number, e.g. $0 2.0"
+    echo "Please pass version number, e.g. $0 2.0, and (if you want) a hostname, default is kali"
     exit 0
 fi
 
 basedir=`pwd`/rpi-$1
+workfile=$1
+kaliname=kali
+
+if [ $2 ]; then
+    kalname=$2
+fi
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -31,18 +37,12 @@ size=7000 # Size of image in megabytes
 # Git commit hash to check out for the kernel
 #kernel_commit=20fe468
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+#packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
-
-# Check to ensure that the architecture is set to ARMEL since the RPi is the
-# only board that is armel.
-if [[ $architecture != "armel" ]] ; then
-    echo "The Raspberry Pi cannot run the Debian armhf binaries"
-    exit 0
-fi
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -52,21 +52,34 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+
+if debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+then
+  echo "[*] Boostrap Success"
+else
+  echo "[*] Boostrap Failure"
+  exit 1
+fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+then
+  echo "[*] Secondary Boostrap Success"
+else
+  echo "[*] Secondary Boostrap Failure"
+  exit 1
+fi
+
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
-
+echo "${kaliname}" > kali-$architecture/etc/hostname
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1       ${kaliname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -86,14 +99,6 @@ cat << EOF > kali-$architecture/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
-export MALLOC_CHECK_=0 # workaround for LP: #520465
-export LC_ALL=C
-export DEBIAN_FRONTEND=noninteractive
-
-mount -t proc proc kali-$architecture/proc
-mount -o bind /dev/ kali-$architecture/dev/
-mount -o bind /dev/pts kali-$architecture/dev/pts
-
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
@@ -111,7 +116,6 @@ apt-get --yes --force-yes install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
-apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
@@ -126,6 +130,7 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
+rm -f /etc/ssh/ssh_host_*_key*
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
@@ -134,14 +139,6 @@ rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 
-rm -f /third-stage
-EOF
-
-chmod +x kali-$architecture/third-stage
-LANG=C chroot kali-$architecture /third-stage
-
-cat << EOF > kali-$architecture/cleanup
-#!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
 apt-get clean
@@ -149,25 +146,41 @@ rm -f /0
 rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
+
+rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/cleanup
-LANG=C chroot kali-$architecture /cleanup
+export MALLOC_CHECK_=0 # workaround for LP: #520465
+export LC_ALL=C
+export DEBIAN_FRONTEND=noninteractive
 
-umount kali-$architecture/proc/sys/fs/binfmt_misc
+mount -t proc proc kali-$architecture/proc
+mount -o bind /dev/ kali-$architecture/dev/
+mount -o bind /dev/pts kali-$architecture/dev/pts
+
+chmod +x kali-$architecture/third-stage
+
+if LANG=C chroot kali-$architecture /third-stage
+then
+  echo "[*] Boostrap Success"
+else
+  echo "[*] Boostrap Failure"
+  exit 1
+fi
+
 umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=$size
-parted kali-$1-rpi.img --script -- mklabel msdos
-parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-$workfile-rpi.img bs=1M count=$size
+parted kali-$workfile-rpi.img --script -- mklabel msdos
+parted kali-$workfile-rpi.img --script -- mkpart primary fat32 0 64
+parted kali-$workfile-rpi.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$workfile-rpi.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -188,11 +201,6 @@ rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
-
-cat << EOF > ${basedir}/root/etc/apt/sources.list
-deb http://http.kali.org/kali kali-rolling main non-free contrib
-deb-src http://http.kali.org/kali kali-rolling main non-free contrib
-EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
@@ -271,31 +279,26 @@ cd ${basedir}
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
-
 # Unmount partitions
 umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
+# If you're building an image for yourself, comment all of this out, as you
+# don't need the sha256sum or to compress the image, since you will be testing it
+# soon.
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing kali-$workfile-rpi.img"
+pixz ${basedir}/kali-$workfile-rpi.img ${basedir}/kali-$workfile-rpi.img.xz
+mv ${basedir}/kali-$workfile-rpi.img.xz ${basedir}/../
+rm ${basedir}/kali-$workfile-rpi.img
+fi
+
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-$1-rpi.img"
-sha256sum kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpi.img"
-pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
-rm ${basedir}/kali-$1-rpi.img
-echo "Generating sha256sum for kali-$1-rpi.img.xz"
-sha256sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha256sum
-fi
+rm -rf ${basedir}
