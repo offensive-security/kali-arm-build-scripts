@@ -150,14 +150,14 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for kalitap"
-dd if=/dev/zero of=${basedir}/kali-$1-kalitap.img bs=1M count=7000
-parted kali-$1-kalitap.img --script -- mklabel msdos
-parted kali-$1-kalitap.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-kalitap.img --script -- mkpart primary ext4 264192s 100%
-parted kali-$1-kalitap.img --script -- set 1 boot on
+dd if=/dev/zero of=${basedir}/kali-linux-$1-kalitap.img bs=1M count=7000
+parted kali-linux-$1-kalitap.img --script -- mklabel msdos
+parted kali-linux-$1-kalitap.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-linux-$1-kalitap.img --script -- mkpart primary ext4 264192s 100%
+parted kali-linux-$1-kalitap.img --script -- set 1 boot on
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-kalitap.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-kalitap.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -200,6 +200,7 @@ git clone --depth 1 https://github.com/wawtechnologies/linux-kernel-3.14.51-catc
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ${basedir}/root/usr/src/kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -222,7 +223,7 @@ EOF
 
 rm -rf ${basedir}/root/lib/firmware
 cd ${basedir}/root/lib
-git clone file:///root/sandbox/mirror/linux-firmware.git firmware
+git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
 rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
@@ -295,13 +296,13 @@ rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/u-boot ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-kalitap.img"
-sha256sum kali-$1-kalitap.img > ${basedir}/kali-$1-kalitap.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-kalitap.img"
+sha256sum kali-linux-$1-kalitap.img > ${basedir}/kali-linux-$1-kalitap.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-kalitap.img"
-pixz ${basedir}/kali-$1-kalitap.img
-echo "Generating sha256sum for kali-$1-kalitap.img.xz"
-sha256sum kali-$1-kalitap.img.xz > ${basedir}/kali-$1-kalitap.img.xz.sha256sum
+echo "Compressing kali-linux-$1-kalitap.img"
+pixz ${basedir}/kali-linux-$1-kalitap.img
+echo "Generating sha256sum for kali-linux-$1-kalitap.img.xz"
+sha256sum kali-linux-$1-kalitap.img.xz > ${basedir}/kali-linux-$1-kalitap.img.xz.sha256sum
 fi

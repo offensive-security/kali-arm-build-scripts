@@ -161,13 +161,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi.img bs=1M count=$size
-parted kali-$1-rpi.img --script -- mklabel msdos
-parted kali-$1-rpi.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-linux-$1-rpi.img bs=1M count=$size
+parted kali-linux-$1-rpi.img --script -- mklabel msdos
+parted kali-linux-$1-rpi.img --script -- mkpart primary fat32 0 64
+parted kali-linux-$1-rpi.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-rpi.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -288,14 +288,14 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-rpi.img"
-sha256sum kali-$1-rpi.img > ${basedir}/kali-$1-rpi.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-rpi.img"
+sha256sum kali-linux-$1-rpi.img > ${basedir}/kali-linux-$1-rpi.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpi.img"
-pixz ${basedir}/kali-$1-rpi.img ${basedir}/kali-$1-rpi.img.xz
-rm ${basedir}/kali-$1-rpi.img
-echo "Generating sha256sum for kali-$1-rpi.img.xz"
-sha256sum kali-$1-rpi.img.xz > ${basedir}/kali-$1-rpi.img.xz.sha256sum
+echo "Compressing kali-linux-$1-rpi.img"
+pixz ${basedir}/kali-linux-$1-rpi.img ${basedir}/kali-linux-$1-rpi.img.xz
+rm ${basedir}/kali-linux-$1-rpi.img
+echo "Generating sha256sum for kali-linux-$1-rpi.img.xz"
+sha256sum kali-linux-$1-rpi.img.xz > ${basedir}/kali-linux-$1-rpi.img.xz.sha256sum
 fi

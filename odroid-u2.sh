@@ -150,13 +150,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for ODROID-U2"
-dd if=/dev/zero of=${basedir}/kali-$1-odroid.img bs=1M count=7000
-parted kali-$1-odroid.img --script -- mklabel msdos
-parted kali-$1-odroid.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-odroid.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-odroid.img bs=1M count=7000
+parted kali-linux-$1-odroid.img --script -- mklabel msdos
+parted kali-linux-$1-odroid.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-linux-$1-odroid.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-odroid.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-odroid.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -250,6 +250,7 @@ export ARCH=arm
 # NOTE: 3.8 now works with a 4.8 compiler, 3.4 does not!
 export CROSS_COMPILE=arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 make odroidu_defconfig
 cp .config ../odroidu.config
 make -j $(grep -c processor /proc/cpuinfo)
@@ -326,15 +327,15 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-odroid.img"
-sha256sum kali-$1-odroid.img > ${basedir}/kali-$1-odroid.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-odroid.img"
+sha256sum kali-linux-$1-odroid.img > ${basedir}/kali-linux-$1-odroid.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-odroid.img"
-pixz ${basedir}/kali-$1-odroid.img ${basedir}/kali-$1-odroid.img.xz
-echo "Deleting kali-$1-odroid.img"
-rm ${basedir}/kali-$1-odroid.img
-echo "Generating sha256sum for kali-$1-odroid.img.xz"
-sha256sum kali-$1-odroid.img.xz > ${basedir}/kali-$1-odroid.img.xz.sha256sum
+echo "Compressing kali-linux-$1-odroid.img"
+pixz ${basedir}/kali-linux-$1-odroid.img ${basedir}/kali-linux-$1-odroid.img.xz
+echo "Deleting kali-linux-$1-odroid.img"
+rm ${basedir}/kali-linux-$1-odroid.img
+echo "Generating sha256sum for kali-linux-$1-odroid.img.xz"
+sha256sum kali-linux-$1-odroid.img.xz > ${basedir}/kali-linux-$1-odroid.img.xz.sha256sum
 fi

@@ -149,15 +149,15 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 echo "Creating image file for Exynos-based Chromebooks"
-dd if=/dev/zero of=${basedir}/kali-$1-exynos.img bs=1M count=7000
-parted kali-$1-exynos.img --script -- mklabel gpt
-cgpt create -z kali-$1-exynos.img
-cgpt create kali-$1-exynos.img
+dd if=/dev/zero of=${basedir}/kali-linux-$1-exynos.img bs=1M count=7000
+parted kali-linux-$1-exynos.img --script -- mklabel gpt
+cgpt create -z kali-linux-$1-exynos.img
+cgpt create kali-linux-$1-exynos.img
 
-cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 kali-$1-exynos.img
-cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show kali-$1-exynos.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root kali-$1-exynos.img
+cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 kali-linux-$1-exynos.img
+cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show kali-linux-$1-exynos.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root kali-linux-$1-exynos.img
 
-loopdevice=`losetup -f --show ${basedir}/kali-$1-exynos.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-exynos.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -541,14 +541,14 @@ rm -rf ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-exynos.img"
-sha256sum kali-$1-exynos.img > ${basedir}/kali-$1-exynos.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-exynos.img"
+sha256sum kali-linux-$1-exynos.img > ${basedir}/kali-linux-$1-exynos.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-exynos.img"
-pixz ${basedir}/kali-$1-exynos.img ${basedir}/kali-$1-exynos.img.xz
-rm ${basedir}/kali-$1-exynos.img
-echo "Generating sha256sum for kali-$1-exynos.img.xz"
-sha256sum kali-$1-exynos.img.xz > ${basedir}/kali-$1-exynos.img.xz.sha256sum
+echo "Compressing kali-linux-$1-exynos.img"
+pixz ${basedir}/kali-linux-$1-exynos.img ${basedir}/kali-linux-$1-exynos.img.xz
+rm ${basedir}/kali-linux-$1-exynos.img
+echo "Generating sha256sum for kali-linux-$1-exynos.img.xz"
+sha256sum kali-linux-$1-exynos.img.xz > ${basedir}/kali-linux-$1-exynos.img.xz.sha256sum
 fi

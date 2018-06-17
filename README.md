@@ -14,7 +14,7 @@ armel images (RPi) will use https://github.com/offensive-security/gcc-arm-eabi-l
 
 armhf images will use https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
-arm64 images (ODROID-C2) will use https://releases.linaro.org/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
+arm64 images (ODROID-C2) will use https://releases.linaro.org/archive/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
 
 A sample workflow would look similar to (armhf):
 

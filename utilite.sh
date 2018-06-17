@@ -152,13 +152,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Utilite"
-dd if=/dev/zero of=${basedir}/kali-$1-utilite.img bs=1M count=1 seek=7000
-parted kali-$1-utilite.img --script -- mklabel msdos
-parted kali-$1-utilite.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-utilite.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-utilite.img bs=1M count=1 seek=7000
+parted kali-linux-$1-utilite.img --script -- mklabel msdos
+parted kali-linux-$1-utilite.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-linux-$1-utilite.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-utilite.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-utilite.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -206,6 +206,7 @@ git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 # Needed for issues with hdmi being inited already in u-boot.
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/f922b0d.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 # This patch is necessary for older revisions of the Utilite so leave the patch
 # and comment in the repo to know why this is here.  Should be fixed by a u-boot
 # upgrade but CompuLab haven't released it yet, so leave it here for now.
@@ -282,14 +283,14 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-utilite.img"
-sha256sum kali-$1-utilite.img > ${basedir}/kali-$1-utilite.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-utilite.img"
+sha256sum kali-linux-$1-utilite.img > ${basedir}/kali-linux-$1-utilite.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-utilite.img"
-pixz ${basedir}/kali-$1-utilite.img ${basedir}/kali-$1-utilite.img.xz
-rm ${basedir}/kali-$1-utilite.img
-echo "Generating sha256sum for kali-$1-utilite.img.xz"
-sha256sum kali-$1-utilite.img.xz > ${basedir}/kali-$1-utilite.img.xz.sha256sum
+echo "Compressing kali-linux-$1-utilite.img"
+pixz ${basedir}/kali-linux-$1-utilite.img ${basedir}/kali-linux-$1-utilite.img.xz
+rm ${basedir}/kali-linux-$1-utilite.img
+echo "Generating sha256sum for kali-linux-$1-utilite.img.xz"
+sha256sum kali-linux-$1-utilite.img.xz > ${basedir}/kali-linux-$1-utilite.img.xz.sha256sum
 fi

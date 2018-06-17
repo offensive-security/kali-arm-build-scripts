@@ -168,13 +168,13 @@ EOF
 # Create the disk and partition it
 # We start out at around 3MB so there is room to write u-boot without issues.
 echo "Creating image file for NanoPi3"
-dd if=/dev/zero of=${basedir}/kali-$1-nanopi3.img bs=1M count=7000
-parted kali-$1-nanopi3.img --script -- mklabel msdos
-parted kali-$1-nanopi3.img --script -- mkpart primary ext4 3072s 264191s
-parted kali-$1-nanopi3.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-nanopi3.img bs=1M count=7000
+parted kali-linux-$1-nanopi3.img --script -- mklabel msdos
+parted kali-linux-$1-nanopi3.img --script -- mkpart primary ext4 3072s 264191s
+parted kali-linux-$1-nanopi3.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-nanopi3.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-nanopi3.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -333,15 +333,15 @@ rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-nanopi3.img"
-sha256sum kali-$1-nanopi3.img > ${basedir}/kali-$1-nanopi3.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-nanopi3.img"
+sha256sum kali-linux-$1-nanopi3.img > ${basedir}/kali-linux-$1-nanopi3.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-nanopi3.img"
-pixz ${basedir}/kali-$1-nanopi3.img ${basedir}/kali-$1-nanopi3.img.xz
-echo "Deleting kali-$1-nanopi3.img"
-rm ${basedir}/kali-$1-nanopi3.img
-echo "Generating sha256sum for kali-$1-nanopi3.img"
-sha256sum kali-$1-nanopi3.img.xz > ${basedir}/kali-$1-nanopi3.img.xz.sha256sum
+echo "Compressing kali-linux-$1-nanopi3.img"
+pixz ${basedir}/kali-linux-$1-nanopi3.img ${basedir}/kali-linux-$1-nanopi3.img.xz
+echo "Deleting kali-linux-$1-nanopi3.img"
+rm ${basedir}/kali-linux-$1-nanopi3.img
+echo "Generating sha256sum for kali-linux-$1-nanopi3.img"
+sha256sum kali-linux-$1-nanopi3.img.xz > ${basedir}/kali-linux-$1-nanopi3.img.xz.sha256sum
 fi

@@ -151,13 +151,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for ODROID-W"
-dd if=/dev/zero of=${basedir}/kali-$1-odroidw.img bs=1M count=$size
-parted kali-$1-odroidw.img --script -- mklabel msdos
-parted kali-$1-odroidw.img --script -- mkpart primary fat32 0 64
-parted kali-$1-odroidw.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-linux-$1-odroidw.img bs=1M count=$size
+parted kali-linux-$1-odroidw.img --script -- mklabel msdos
+parted kali-linux-$1-odroidw.img --script -- mkpart primary fat32 0 64
+parted kali-linux-$1-odroidw.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-odroidw.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-odroidw.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -195,6 +195,7 @@ git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
@@ -259,14 +260,14 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha1sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha1sum for kali-$1-odroidw.img"
-sha1sum kali-$1-odroidw.img > ${basedir}/kali-$1-odroidw.img.sha1sum
+echo "Generating sha1sum for kali-linux-$1-odroidw.img"
+sha1sum kali-linux-$1-odroidw.img > ${basedir}/kali-linux-$1-odroidw.img.sha1sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-odroidw.img"
-pixz ${basedir}/kali-$1-odroidw.img ${basedir}/kali-$1-odroidw.img.xz
-rm ${basedir}/kali-$1-odroidw.img
-echo "Generating sha1sum for kali-$1-odroidw.img.xz"
-sha1sum kali-$1-odroidw.img.xz > ${basedir}/kali-$1-odroidw.img.xz.sha1sum
+echo "Compressing kali-linux-$1-odroidw.img"
+pixz ${basedir}/kali-linux-$1-odroidw.img ${basedir}/kali-linux-$1-odroidw.img.xz
+rm ${basedir}/kali-linux-$1-odroidw.img
+echo "Generating sha1sum for kali-linux-$1-odroidw.img.xz"
+sha1sum kali-linux-$1-odroidw.img.xz > ${basedir}/kali-linux-$1-odroidw.img.xz.sha1sum
 fi

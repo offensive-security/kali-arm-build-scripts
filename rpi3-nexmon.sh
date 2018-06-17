@@ -18,8 +18,8 @@ basedir=`pwd`/rpi3-nexmon-$1                # OUTPUT FOLDER
 DIRECTORY=`pwd`/kali-$architecture          # CHROOT FS FOLDER
 SIZE=7000                                   # SIZE OF OUTPUT FILE
 VERSION=$1                                  # VERSION PASSED
-COMPRESS=true                               # COMPRESS OR NOTkali-$VERSION
-OUTPUTFILE="${basedir}/kali-$VERSION-rpi3-nexmon.img"
+COMPRESS=true                               # COMPRESS OR NOT kali-$VERSION
+OUTPUTFILE="${basedir}/kali-linux-$VERSION-rpi3-nexmon.img"
 
 ############# BUILD FILE SYSTEM IMAGE #####################
 
@@ -56,13 +56,13 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling $DIRECTORY http://$mirror/kali
+debootstrap --foreign --arch $architecture kali-last-snapshot $DIRECTORY http://$mirror/kali
 
 cp /usr/bin/qemu-arm-static $DIRECTORY/usr/bin/
 
 LANG=C chroot $DIRECTORY /debootstrap/debootstrap --second-stage
 cat << EOF > $DIRECTORY/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+deb http://$mirror/kali kali-last-snapshot main contrib non-free
 EOF
 
 # Set hostname
@@ -176,6 +176,10 @@ sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+if [ $? > 0 ];
+then
+    apt-get --yes --force-yes --fix-broken install
+fi
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
@@ -425,6 +429,8 @@ git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
 unset CROSS_COMPILE
 export CROSS_COMPILE=/opt/nexmon/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-armv7l/bin/arm-none-eabi-
 cd /opt/nexmon/
+# We do not want to report back statistics
+touch DISABLE_STATISTICS
 source setup_env.sh
 make
 cd buildtools/isl-0.10
@@ -501,11 +507,11 @@ fi
 if [ "$COMPRESS" = true ] ; then
     MACHINE_TYPE=`uname -m`
     if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-    	echo "Compressing kali-$VERSION-rpi3-nexmon.img"
-    	pixz ${basedir}/kali-$VERSION-rpi3-nexmon.img ${basedir}/kali-$VERSION-rpi3-nexmon.img.xz
-    	rm ${basedir}/kali-$VERSION-rpi3-nexmon.img
+    	echo "Compressing kali-linux-$VERSION-rpi3-nexmon.img"
+    	pixz ${basedir}/kali-linux-$VERSION-rpi3-nexmon.img ${basedir}/kali-linux-$VERSION-rpi3-nexmon.img.xz
+    	rm ${basedir}/kali-linux-$VERSION-rpi3-nexmon.img
     	echo "Generating sha265sum for kali-$VERSION-rpi3-nexmon.img.xz"
-    	sha256sum kali-$VERSION-rpi3-nexmon.img.xz > ${basedir}/kali-$VERSION-rpi3-nexmon.img.xz.sha256sum
+    	sha256sum kali-linux-$VERSION-rpi3-nexmon.img.xz > ${basedir}/kali-linux-$VERSION-rpi3-nexmon.img.xz.sha256sum
     fi
 fi
 }
@@ -548,12 +554,8 @@ function ask() {
 ############# MAIN MENU #####################
 
 if [ ! -d "$DIRECTORY" ]; then
-    if ask "[?] Missing chroot. Build?"; then
         build_chroot
         build_image
-    else
-        exit
-    fi
 else
     if ask "[?] Previous chroot found.  Build new one?"; then
         build_chroot

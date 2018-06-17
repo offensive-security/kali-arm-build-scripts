@@ -146,12 +146,12 @@ umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 echo "Creating image file for Cubox-i"
-dd if=/dev/zero of=${basedir}/kali-$1-cubox-i.img bs=1 count=0 seek=7G
-parted kali-$1-cubox-i.img --script -- mklabel msdos
-parted kali-$1-cubox-i.img --script -- mkpart primary ext4 2048 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-cubox-i.img bs=1 count=0 seek=7G
+parted kali-linux-$1-cubox-i.img --script -- mklabel msdos
+parted kali-linux-$1-cubox-i.img --script -- mkpart primary ext4 2048 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-cubox-i.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-cubox-i.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -186,6 +186,7 @@ git clone --depth 1 https://github.com/SolidRun/linux-fslc.git ${basedir}/root/u
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -270,14 +271,14 @@ rm -rf ${basedir}/kernel ${basedir}/root ${basedir}/u-boot-imx6 ${basedir}/wlan-
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-cubox-i.img"
-sha256sum kali-$1-cubox-i.img > ${basedir}/kali-$1-cubox-i.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-cubox-i.img"
+sha256sum kali-linux-$1-cubox-i.img > ${basedir}/kali-linux-$1-cubox-i.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-cubox-i.img"
-pixz ${basedir}/kali-$1-cubox-i.img ${basedir}/kali-$1-cubox-i.img.xz
-rm ${basedir}/kali-$1-cubox-i.img
-echo "Generating sha256sum for kali-$1-cubox-i.img.xz"
-sha256sum kali-$1-cubox-i.img.xz > ${basedir}/kali-$1-cubox-i.img.xz.sha256sum
+echo "Compressing kali-linux-$1-cubox-i.img"
+pixz ${basedir}/kali-linux-$1-cubox-i.img ${basedir}/kali-linux-$1-cubox-i.img.xz
+rm ${basedir}/kali-linux-$1-cubox-i.img
+echo "Generating sha256sum for kali-linux-$1-cubox-i.img.xz"
+sha256sum kali-linux-$1-cubox-i.img.xz > ${basedir}/kali-linux-$1-cubox-i.img.xz.sha256sum
 fi

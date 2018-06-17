@@ -162,12 +162,12 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for USB Armory"
-dd if=/dev/zero of=${basedir}/kali-$1-usbarmory.img bs=1M count=14500
-parted kali-$1-usbarmory.img --script -- mklabel msdos
-parted kali-$1-usbarmory.img --script -- mkpart primary ext2 5M 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-usbarmory.img bs=1M count=14500
+parted kali-linux-$1-usbarmory.img --script -- mklabel msdos
+parted kali-linux-$1-usbarmory.img --script -- mkpart primary ext2 5M 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-usbarmory.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-usbarmory.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -354,6 +354,7 @@ touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.9.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.10.config -O .config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
@@ -420,14 +421,14 @@ rm -rf ${basedir}/kernel ${basedir}/u-boot* ${basedir}/root ${basedir}/kali-$arc
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-usbarmory.img"
-sha256sum kali-$1-usbarmory.img > ${basedir}/kali-$1-usbarmory.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-usbarmory.img"
+sha256sum kali-linux-$1-usbarmory.img > ${basedir}/kali-linux-$1-usbarmory.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-usbarmory.img"
-pixz ${basedir}/kali-$1-usbarmory.img ${basedir}/kali-$1-usbarmory.img.xz
-rm ${basedir}/kali-$1-usbarmory.img
-echo "Generating sha256sum for kali-$1-usbarmory.img.xz"
-sha256sum kali-$1-usbarmory.img.xz > ${basedir}/kali-$1-usbarmory.img.xz.sha256sum
+echo "Compressing kali-linux-$1-usbarmory.img"
+pixz ${basedir}/kali-linux-$1-usbarmory.img ${basedir}/kali-linux-$1-usbarmory.img.xz
+rm ${basedir}/kali-linux-$1-usbarmory.img
+echo "Generating sha256sum for kali-linux-$1-usbarmory.img.xz"
+sha256sum kali-linux-$1-usbarmory.img.xz > ${basedir}/kali-linux-$1-usbarmory.img.xz.sha256sum
 fi

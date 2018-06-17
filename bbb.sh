@@ -147,13 +147,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Beaglebone Black"
-dd if=/dev/zero of=${basedir}/kali-$1-bbb.img bs=1M count=7000
-parted kali-$1-bbb.img --script -- mklabel msdos
-parted kali-$1-bbb.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-bbb.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-bbb.img bs=1M count=7000
+parted kali-linux-$1-bbb.img --script -- mklabel msdos
+parted kali-linux-$1-bbb.img --script -- mkpart primary fat32 2048s 264191s
+parted kali-linux-$1-bbb.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-bbb.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-bbb.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -207,6 +207,7 @@ export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 touch .scmversion
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 make bb.org_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 cp arch/arm/boot/zImage ${basedir}/bootp/zImage
@@ -328,13 +329,13 @@ rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-bbb.img"
-sha256sum kali-$1-bbb.img > ${basedir}/kali-$1-bbb.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-bbb.img"
+sha256sum kali-linux-$1-bbb.img > ${basedir}/kali-linux-$1-bbb.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-bbb.img"
-pixz ${basedir}/kali-$1-bbb.img
-echo "Generating sha256sum for kali-$1-bbb.img.xz"
-sha256sum kali-$1-bbb.img.xz > ${basedir}/kali-$1-bbb.img.xz.sha256sum
+echo "Compressing kali-linux-$1-bbb.img"
+pixz ${basedir}/kali-linux-$1-bbb.img
+echo "Generating sha256sum for kali-linux-$1-bbb.img.xz"
+sha256sum kali-linux-$1-bbb.img.xz > ${basedir}/kali-linux-$1-bbb.img.xz.sha256sum
 fi

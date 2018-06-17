@@ -155,13 +155,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for ODROID-XU3"
-dd if=/dev/zero of=${basedir}/kali-$1-odroidxu3.img bs=1M count=7000
-parted kali-$1-odroidxu3.img --script -- mklabel msdos
-parted kali-$1-odroidxu3.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-$1-odroidxu3.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/kali-linux-$1-odroidxu3.img bs=1M count=7000
+parted kali-linux-$1-odroidxu3.img --script -- mklabel msdos
+parted kali-linux-$1-odroidxu3.img --script -- mkpart primary fat32 3072s 264191s
+parted kali-linux-$1-odroidxu3.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-odroidxu3.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-odroidxu3.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -212,6 +212,7 @@ git clone --depth 1 https://github.com/hardkernel/linux.git -b odroidxu3-3.10.y 
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -250,10 +251,13 @@ setenv macaddr "00:1e:06:61:7a:39"
 #------------------------------------------------------------------------------------------------------
 # Basic Ubuntu Setup. Don't touch unless you know what you are doing.
 # --------------------------------
-setenv bootrootfs "console=tty1 console=ttySAC2,115200n8 root=/dev/mmcblk0p2 rootwait rootfstype=ext4 net.ifnames=0"
+setenv bootrootfs "console=tty1 console=ttySAC2,115200n8 root=/dev/mmcblk0p2 rootwait rootfstype=ext4 net.ifnames=0 rw"
 
 # boot commands
-setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; fatload mmc 0:1 0x44000000 exynos5422-odroidxu3.dtb; bootz 0x40008000 0x42000000 0x44000000"
+# Uncomment the following if you use an initrd
+#setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; fatload mmc 0:1 0x44000000 exynos5422-odroidxu3.dtb; bootz 0x40008000 0x42000000 0x44000000"
+# Uncomment the following if you do NOT use an initrd
+setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; fatload mmc 0:1 0x44000000 exynos5422-odroidxu3.dtb; bootz 0x40008000 - 0x44000000"
 
 # --- Screen Configuration for HDMI --- # 
 # ---------------------------------------
@@ -319,14 +323,14 @@ rm -rf ${basedir}/patches ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${b
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-$1-odroidxu3.img"
-sha256sum kali-$1-odroidxu3.img > ${basedir}/kali-$1-odroidxu3.img.sha256sum
+echo "Generating sha256sum for kali-linux-$1-odroidxu3.img"
+sha256sum kali-linux-$1-odroidxu3.img > ${basedir}/kali-linux-$1-odroidxu3.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-odroidxu3.img"
-pixz ${basedir}/kali-$1-odroidxu3.img ${basedir}/kali-$1-odroidxu3.img.xz
-rm ${basedir}/kali-$1-odroidxu3.img
-echo "Generating sha256sum for kali-$1-odroidxu3.img.xz"
-sha256sum kali-$1-odroidxu3.img.xz > ${basedir}/kali-$1-odroidxu3.img.xz.sha256sum
+echo "Compressing kali-linux-$1-odroidxu3.img"
+pixz ${basedir}/kali-linux-$1-odroidxu3.img ${basedir}/kali-linux-$1-odroidxu3.img.xz
+rm ${basedir}/kali-linux-$1-odroidxu3.img
+echo "Generating sha256sum for kali-linux-$1-odroidxu3.img.xz"
+sha256sum kali-linux-$1-odroidxu3.img.xz > ${basedir}/kali-linux-$1-odroidxu3.img.xz.sha256sum
 fi
