@@ -231,10 +231,10 @@ EOF
 chmod +x $DIRECTORY/cleanup
 LANG=C chroot $DIRECTORY /cleanup
 
-umount $DIRECTORY/proc/sys/fs/binfmt_misc
-umount $DIRECTORY/dev/pts
-umount $DIRECTORY/dev/
-umount $DIRECTORY/proc
+umount -l $DIRECTORY/proc/sys/fs/binfmt_misc
+umount -l $DIRECTORY/dev/pts
+umount -l $DIRECTORY/dev/
+umount -l $DIRECTORY/proc
 }
 
 ############# BUILD KERNEL/IMAGE #####################
@@ -499,7 +499,7 @@ EOF
     sudo umount -l $dir/proc
     sudo umount -l $dir/dev/
     sudo umount -l $dir/dev/pts
-    sudo umount $dir
+    sudo umount -l $dir
     rm -rf $dir
 fi
 
