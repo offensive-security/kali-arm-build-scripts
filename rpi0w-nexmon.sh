@@ -185,41 +185,30 @@ apt-get --yes --force-yes purge xserver-xorg-input-libinput
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
-
-rm -f /third-stage
-EOF
-
-chmod +x kali-$architecture/third-stage
-LANG=C chroot kali-$architecture /third-stage
-
-cat << EOF > kali-$architecture/cleanup
-#!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
 apt-get clean
 rm -f /0
 rm -f /hs_err*
-rm -f cleanup
-rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/cleanup
-LANG=C chroot kali-$architecture /cleanup
+chmod +x kali-$architecture/third-stage
+LANG=C chroot kali-$architecture /third-stage
 
-umount kali-$architecture/proc/sys/fs/binfmt_misc
+#umount kali-$architecture/proc/sys/fs/binfmt_misc
 umount kali-$architecture/dev/pts
 umount kali-$architecture/dev/
 umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-rpi0w-nexmon.img bs=1M count=$size
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mklabel msdos
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-$1-rpi0w-nexmon.img bs=1M count=$size
+parted kali-$1-rpi0w-nexmon.img --script -- mklabel msdos
+parted kali-$1-rpi0w-nexmon.img --script -- mkpart primary fat32 0 64
+parted kali-$1-rpi0w-nexmon.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-rpi0w-nexmon.img`
+loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi0w-nexmon.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -346,18 +335,16 @@ losetup -d $loopdevice
 echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
 
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-rpi0w-nexmon.img"
-sha256sum kali-linux-$1-rpi0w-nexmon.img > ${basedir}/kali-linux-$1-rpi0w-nexmon.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-rpi0w-nexmon.img"
-pixz ${basedir}/kali-linux-$1-rpi0w-nexmon.img ${basedir}/kali-linux-$1-rpi0w-nexmon.img.xz
-rm ${basedir}/kali-linux-$1-rpi0w-nexmon.img
-echo "Generating sha256sum for kali-linux-$1-rpi0w-nexmon.img.xz"
-sha256sum kali-linux-$1-rpi0w-nexmon.img.xz > ${basedir}/kali-linux-$1-rpi0w-nexmon.img.xz.sha256sum
+echo "Compressing kali-$1-rpi0w-nexmon.img"
+pixz ${basedir}/kali-$1-rpi0w-nexmon.img ${basedir}/kali-$1-rpi0w-nexmon.img.xz
+mv ${basedir}/kali-$1-rpi0w-nexmon.img.xz ${basedir}/../
+rm ${basedir}/kali-$1-rpi0w-nexmon.img
 fi
-
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Cleaning up the temporary build files..."
+rm -rf ${basedir}
