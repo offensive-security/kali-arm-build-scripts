@@ -96,9 +96,9 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-mount -t proc proc kali-$architecture/proc
-mount -o bind /dev/ kali-$architecture/dev/
-mount -o bind /dev/pts kali-$architecture/dev/pts
+#mount -t proc proc kali-$architecture/proc
+#mount -o bind /dev/ kali-$architecture/dev/
+#mount -o bind /dev/pts kali-$architecture/dev/pts
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -164,10 +164,10 @@ EOF
 chmod +x kali-$architecture/cleanup
 LANG=C systemd-nspawn -D kali-$architecture /cleanup
 
-umount kali-$architecture/proc/sys/fs/binfmt_misc
-umount kali-$architecture/dev/pts
-umount kali-$architecture/dev/
-umount kali-$architecture/proc
+#umount kali-$architecture/proc/sys/fs/binfmt_misc
+#umount kali-$architecture/dev/pts
+#umount kali-$architecture/dev/
+#umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for ODROID-C2"
