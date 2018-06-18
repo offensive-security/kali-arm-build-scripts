@@ -5,7 +5,8 @@ zip curl libncurses5-dev zlib1g-dev libncurses5-dev kali-archive-keyring \
 parted kpartx debootstrap pixz qemu-user-static abootimg cgpt vboot-kernel-utils \
 vboot-utils u-boot-tools bc lzma lzop automake autoconf m4 dosfstools rsync \
 schedtool git dosfstools e2fsprogs device-tree-compiler libssl-dev qemu-user-static \
-crossbuild-essential-armhf crossbuild-essential-armel crossbuild-essential-arm64
+crossbuild-essential-armhf crossbuild-essential-armel crossbuild-essential-arm64 \
+systemd-container
 
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
