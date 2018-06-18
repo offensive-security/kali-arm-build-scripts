@@ -57,7 +57,7 @@ fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-if LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
 then
   echo "[*] Secondary Boostrap Success"
 else
@@ -267,11 +267,11 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-mount -t proc proc kali-$architecture/proc
-mount -o bind /dev/ kali-$architecture/dev/
-mount -o bind /dev/pts kali-$architecture/dev/pts
+#mount -t proc proc kali-$architecture/proc
+#mount -o bind /dev/ kali-$architecture/dev/
+#mount -o bind /dev/pts kali-$architecture/dev/pts
 
-if LANG=C chroot kali-$architecture /third-stage
+if LANG=C systemd-nspawn -D kali-$architecture /third-stage
 then
   echo "[*] Third Stage Boostrap Success"
 else
@@ -281,9 +281,9 @@ fi
 
 rm -rf kali-$architecture/third-stage
 
-umount kali-$architecture/dev/pts
-umount kali-$architecture/dev/
-umount kali-$architecture/proc
+#umount kali-$architecture/dev/pts
+#umount kali-$architecture/dev/
+#umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi3 Nexmon"
@@ -386,8 +386,8 @@ chmod +x ${basedir}/root/usr/bin/nexutil
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
-LANG=C chroot ${basedir}/root/ /bin/bash -c "cd /tmp && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C chroot ${basedir}/root/ /bin/bash -c "chmod +x /tmp/buildnexmon.sh && LD_PRELOAD=/tmp/libfakeuname.so /tmp/buildnexmon.sh"
+LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "cd /tmp && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "chmod +x /tmp/buildnexmon.sh && LD_PRELOAD=/tmp/libfakeuname.so /tmp/buildnexmon.sh"
 
 umount $bootp
 umount $rootp

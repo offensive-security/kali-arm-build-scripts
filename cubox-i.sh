@@ -54,7 +54,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C chroot kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -84,9 +84,9 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-mount -t proc proc kali-$architecture/proc
-mount -o bind /dev/ kali-$architecture/dev/
-mount -o bind /dev/pts kali-$architecture/dev/pts
+#mount -t proc proc kali-$architecture/proc
+#mount -o bind /dev/ kali-$architecture/dev/
+#mount -o bind /dev/pts kali-$architecture/dev/pts
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -128,7 +128,7 @@ rm -f /third-stage
 EOF
 
 chmod +x kali-$architecture/third-stage
-LANG=C chroot kali-$architecture /third-stage
+LANG=C systemd-nspawn -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -142,12 +142,12 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod +x kali-$architecture/cleanup
-LANG=C chroot kali-$architecture /cleanup
+LANG=C systemd-nspawn -D kali-$architecture /cleanup
 
-umount kali-$architecture/proc/sys/fs/binfmt_misc
-umount kali-$architecture/dev/pts
-umount kali-$architecture/dev/
-umount kali-$architecture/proc
+#umount kali-$architecture/proc/sys/fs/binfmt_misc
+#umount kali-$architecture/dev/pts
+#umount kali-$architecture/dev/
+#umount kali-$architecture/proc
 
 echo "Creating image file for Cubox-i"
 dd if=/dev/zero of=${basedir}/kali-linux-$1-cubox-i.img bs=1 count=0 seek=7G
