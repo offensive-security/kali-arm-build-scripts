@@ -204,8 +204,8 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-mwifiex-do-not-cr
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0004-fix-brcmfmac-oops-and-race-condition.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Update-carl9170-in-wireless-3.8-for-3.14-s-changes.patch
 # Backported patch to support building the kernel with GCC newer than 5.
-patch -p1 --no-backup-if-mismatch < ${basedir}/../3711edaf01a01818f2aed9f21efe29b9818134b9.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../615829a03dc729e78372d40d95ba40e2ad51783b.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/3711edaf01a01818f2aed9f21efe29b9818134b9.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/615829a03dc729e78372d40d95ba40e2ad51783b.patch
 make WIFIVERSION="-3.8" -j$(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
 make WIFIVERSION="-3.8" modules_install INSTALL_MOD_PATH=${basedir}/root
