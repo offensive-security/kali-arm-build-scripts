@@ -40,8 +40,6 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-kernel_release="R60-9592.B-chromeos-3.14"
-
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
 #export http_proxy="http://localhost:3142/"
@@ -80,7 +78,7 @@ iface lo inet loopback
 EOF
 
 cat << EOF > kali-$architecture/etc/resolv.conf
-nameserver 192.168.11.1
+nameserver 8.8.8.8
 EOF
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
@@ -116,6 +114,10 @@ sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+if [ $? > 0 ];
+then
+    apt-get --yes --allow-change-held-packages --fix-broken install
+fi
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 
@@ -186,18 +188,24 @@ EOF
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.14 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config .config
-cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config ../veyron.config
+cp ${basedir}/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
+cp ${basedir}/../kernel-configs/chromebook-3.14_wireless-3.8.config ../veyron.config
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
 touch .scmversion
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.8.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
+# Commented out as it causes issues, but if you want to use the usb port as a
+# serial port, you can uncomment this and build an image with it enabled.
 #patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0003-UPSTREAM-soc-rockchip-add-handler-for-usb-uart-funct.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0004-fix-brcmfmac-oops-and-race-condition.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Update-carl9170-in-wireless-3.8-for-3.14-s-changes.patch
+# Backported patch to support building the kernel with GCC newer than 5.
+patch -p1 --no-backup-if-mismatch < ${basedir}/../3711edaf01a01818f2aed9f21efe29b9818134b9.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../615829a03dc729e78372d40d95ba40e2ad51783b.patch
 make WIFIVERSION="-3.8" -j$(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
 make WIFIVERSION="-3.8" modules_install INSTALL_MOD_PATH=${basedir}/root

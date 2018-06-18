@@ -114,6 +114,10 @@ sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+if [ $? > 0 ];
+then
+    apt-get --yes --allow-change-held-packages --fix-broken install
+fi
 apt-get --yes --force-yes dist-upgrade
 apt-get --yes --force-yes autoremove
 

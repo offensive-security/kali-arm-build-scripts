@@ -121,7 +121,10 @@ echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 apt-get --yes --force-yes install $packages
-
+if [ $? > 0 ];
+then
+    apt-get --yes --allow-change-held-packages --fix-broken install
+fi
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d

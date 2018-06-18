@@ -169,6 +169,10 @@ echo "root:toor" | chpasswd
 # rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
+if [ $? > 0 ];
+then
+    apt-get --yes --allow-change-held-packages --fix-broken install
+fi
 apt-get --yes --force-yes autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
