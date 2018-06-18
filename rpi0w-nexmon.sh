@@ -202,13 +202,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-$1-rpi0w-nexmon.img bs=1M count=$size
-parted kali-$1-rpi0w-nexmon.img --script -- mklabel msdos
-parted kali-$1-rpi0w-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-$1-rpi0w-nexmon.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-linux-$1-rpi0w-nexmon.img bs=1M count=$size
+parted kali-linux-$1-rpi0w-nexmon.img --script -- mklabel msdos
+parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary fat32 0 64
+parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-rpi0w-nexmon.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-rpi0w-nexmon.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -338,10 +338,10 @@ rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$archi
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-rpi0w-nexmon.img"
-pixz ${basedir}/kali-$1-rpi0w-nexmon.img ${basedir}/kali-$1-rpi0w-nexmon.img.xz
-mv ${basedir}/kali-$1-rpi0w-nexmon.img.xz ${basedir}/../
-rm ${basedir}/kali-$1-rpi0w-nexmon.img
+echo "Compressing kali-linux-$1-rpi0w-nexmon.img"
+pixz ${basedir}/kali-linux-$1-rpi0w-nexmon.img ${basedir}/kali-linux-$1-rpi0w-nexmon.img.xz
+mv ${basedir}/kali-linux-$1-rpi0w-nexmon.img.xz ${basedir}/../
+rm ${basedir}/kali-linux-$1-rpi0w-nexmon.img
 fi
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone

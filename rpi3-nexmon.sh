@@ -283,13 +283,13 @@ umount kali-$architecture/proc
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi3 Nexmon"
-dd if=/dev/zero of=${basedir}/kali-$workfile-rpi3-nexmon.img bs=1M count=$size
-parted kali-$workfile-rpi3-nexmon.img --script -- mklabel msdos
-parted kali-$workfile-rpi3-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-$workfile-rpi3-nexmon.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/kali-linux-$workfile-rpi3-nexmon.img bs=1M count=$size
+parted kali-linux-$workfile-rpi3-nexmon.img --script -- mklabel msdos
+parted kali-linux-$workfile-rpi3-nexmon.img --script -- mkpart primary fat32 0 64
+parted kali-linux-$workfile-rpi3-nexmon.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$workfile-rpi3-nexmon.img`
+loopdevice=`losetup -f --show ${basedir}/kali-linux-$workfile-rpi3-nexmon.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -397,10 +397,10 @@ rm -rf ${basedir}/patches
 
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$workfile-rpi3-nexmon.img"
-pixz ${basedir}/kali-$workfile-rpi3-nexmon.img ${basedir}/kali-$workfile-rpi3-nexmon.img.xz
-mv ${basedir}/kali-$workfile-rpi3-nexmon.img.xz ${basedir}/../
-rm ${basedir}/kali-$workfile-rpi3-nexmon.img
+echo "Compressing kali-linux-$workfile-rpi3-nexmon.img"
+pixz ${basedir}/kali-linux-$workfile-rpi3-nexmon.img ${basedir}/kali-linux-$workfile-rpi3-nexmon.img.xz
+mv ${basedir}/kali-linux-$workfile-rpi3-nexmon.img.xz ${basedir}/../
+rm ${basedir}/kali-linux-$workfile-rpi3-nexmon.img
 fi
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
