@@ -59,7 +59,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 
 cp /usr/bin/qemu-aarch64-static kali-$architecture/usr/bin/
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
