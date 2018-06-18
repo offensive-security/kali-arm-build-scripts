@@ -539,7 +539,7 @@ dd if=/dev/zero of=bootloader.bin bs=512 count=1
 vbutil_kernel --arch arm --pack ${basedir}/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --bootloader bootloader.bin --vmlinuz veyron-kernel
 cd ${basedir}/root/usr/src/kernel
 make WIFIVERSION="-3.8" mrproper
-cp ${basedir}/../kernel-configs/chromebook-rockchip-3.14_wireless-3.8.config .config
+cp ${basedir}/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
 make WIFIVERSION="-3.8" modules_prepare
 cd ${basedir}
 
