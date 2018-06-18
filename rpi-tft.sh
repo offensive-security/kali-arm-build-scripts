@@ -327,7 +327,12 @@ MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-rpitft.img"
 pixz ${basedir}/kali-linux-$1-rpitft.img ${basedir}/kali-linux-$1-rpitft.img.xz
+mv ${basedir}/kali-linux-$1-rpitft.img.xz ${basedir}/../
 rm ${basedir}/kali-linux-$1-rpitft.img
-echo "Generating sha256sum for kali-linux-$1-rpitft.img.xz"
-sha256sum kali-linux-$1-rpitft.img.xz > ${basedir}/kali-linux-$1-rpitft.img.xz.sha256sum
 fi
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Cleaning up the temporary build files..."
+rm -rf ${basedir}
