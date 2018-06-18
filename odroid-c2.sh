@@ -659,6 +659,6 @@ echo "Compressing kali-linux-$1-odroidc2.img"
 pixz ${basedir}/kali-linux-$1-odroidc2.img ${basedir}/kali-linux-$1-odroidc2.img.xz
 echo "Deleting kali-linux-$1-odroidc2.img"
 rm ${basedir}/kali-linux-$1-odroidc2.img
-echo "Generating sha256sum for kali-linux-$1-odroidc2.img"
+echo "Generating sha256sum for kali-linux-$1-odroidc2.img.xz"
 sha256sum kali-linux-$1-odroidc2.img.xz > ${basedir}/kali-linux-$1-odroidc2.img.xz.sha256sum
 fi
