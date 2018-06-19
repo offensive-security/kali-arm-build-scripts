@@ -1,0 +1,28 @@
+From 877ad0d1be69497fdd0c8d649443e6cdb0f6717a Mon Sep 17 00:00:00 2001
+From: Steev Klimaszewski <threeway@gmail.com>
+Date: Tue, 19 Jun 2018 16:58:16 -0500
+Subject: [PATCH] Comment out a pr_debug print.
+
+Line 390 of dir.c throws an error due to dentry not having a d_count
+entry.  Since this is just a debug print, and we don't enable debug
+output in the kernel, go ahead and comment it out.
+---
+ fs/configfs/dir.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/configfs/dir.c b/fs/configfs/dir.c
+index 7aabc6ad4e9b..7e5dcc3462cc 100644
+--- a/fs/configfs/dir.c
++++ b/fs/configfs/dir.c
+@@ -387,7 +387,7 @@ static void remove_dir(struct dentry * d)
+ 	if (d->d_inode)
+ 		simple_rmdir(parent->d_inode,d);
+ 
+-	pr_debug(" o %s removing done (%d)\n",d->d_name.name, d->d_count);
++/*	pr_debug(" o %s removing done (%d)\n",d->d_name.name, d->d_count); */
+ 
+ 	dput(parent);
+ }
+-- 
+2.17.1
+

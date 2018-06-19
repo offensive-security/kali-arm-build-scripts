@@ -190,8 +190,8 @@ EOF
 # that.
 
 cd ${basedir}
-wget https://releases.linaro.org/components/toolchain/binaries/5.3-2016.02/arm-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
-tar -xf gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
+git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
@@ -205,9 +205,10 @@ cp ${basedir}/../kernel-configs/chromebook-3.10.config ../nyan.config
 git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=${basedir}/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.8.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri-3.8.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Comment-out-a-pr_debug-print.patch
 make WIFIVERSION="-3.8" -j $(grep -c processor /proc/cpuinfo)
 make WIFIVERSION="-3.8" dtbs
 make WIFIVERSION="-3.8" modules_install INSTALL_MOD_PATH=${basedir}/root
