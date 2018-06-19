@@ -242,6 +242,11 @@ cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/fi
 EOF
 chmod +x kali-$architecture/root/buildnexmon.sh
 
+# rpi-wiggle
+mkdir -p ${basedir}/root/scripts
+wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
+
 cat << 'EOF' > kali-$architecture/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
@@ -388,6 +393,8 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
 LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "chmod +x /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+
+rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
 umount $bootp
 umount $rootp
