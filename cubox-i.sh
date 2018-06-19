@@ -186,7 +186,7 @@ EOF
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 #git clone --depth 1 -b linux-linaro-lsk-3.10.42-mx6 https://github.com/SolidRun/linux-linaro-stable-mx6.git ${basedir}/root/usr/src/kernel
-git clone --depth 1 https://github.com/SolidRun/linux-fslc.git ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/SolidRun/linux-fslc.git --branch 3.14-1.0.x-mx6-sr ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
