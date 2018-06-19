@@ -37,7 +37,7 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-if [ $1 == 'nightly' ] then
+if [ $0 == 'nightly' ]; then
     debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
 else
     debootstrap --foreign --arch $architecture kali-last-snapshot kali-$architecture http://$mirror/kali
@@ -47,7 +47,7 @@ cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C systemd-nspawn -M bbb -D kali-$architecture /debootstrap/debootstrap --second-stage
 
-if [[ $1 == 'nightly' ]] then
+if [ $0 == 'nightly' ]; then
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
