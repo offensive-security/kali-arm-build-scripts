@@ -274,7 +274,7 @@ EOF
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts
-wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
 
 cd ${basedir}
