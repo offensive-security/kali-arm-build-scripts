@@ -32,7 +32,7 @@ base="dosfstools e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo u
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
-extras="cryptsetup kali-linux-top10 isc-dhcp-server lvm2 wpasupplicant"
+extras="cryptsetup isc-dhcp-server lvm2 wpasupplicant"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -351,15 +351,15 @@ sed -i 's/INTERFACES.*/INTERFACES="usb0"/g' ${basedir}/root/etc/default/isc-dhcp
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone -b linux-4.10.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
+git clone -b linux-4.14.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.9.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.14.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.10.config -O .config
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.14.config -O .config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
@@ -371,7 +371,7 @@ cp arch/arm/boot/zImage ${basedir}/root/boot/
 cp arch/arm/boot/dts/imx53-usbarmory*.dtb ${basedir}/root/boot/
 make mrproper
 # Since these aren't integrated into the kernel yet, mrproper removes them.
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.10.config -O .config
+wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.14.config -O .config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
@@ -403,6 +403,12 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
+# Point to kali-rolling for  sources.list
+cat << EOF > ${basedir}/root/etc/apt/sources.list
+deb http://http.kali.org/kali kali-rolling main contrib non-free
+deb-src http://http.kali.org/kali kali-rolling main contrib non-free
+EOF
+
 wget ftp://ftp.denx.de/pub/u-boot/u-boot-2017.01.tar.bz2
 tar xvf u-boot-2017.01.tar.bz2 && cd u-boot-2017.01
 make distclean
@@ -416,23 +422,15 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/u-boot* ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
 
 # If you're building an image for yourself, comment all of this out, as you
 # don't need the sha256sum or to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-linux-$1-usbarmory.img"
-sha256sum kali-linux-$1-usbarmory.img > ${basedir}/kali-linux-$1-usbarmory.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-usbarmory.img"
-pixz ${basedir}/kali-linux-$1-usbarmory.img ${basedir}/kali-linux-$1-usbarmory.img.xz
+pixz ${basedir}/kali-linux-$1-usbarmory.img ${basedir}/../kali-linux-$1-usbarmory.img.xz
 rm ${basedir}/kali-linux-$1-usbarmory.img
-echo "Generating sha256sum for kali-linux-$1-usbarmory.img.xz"
-sha256sum kali-linux-$1-usbarmory.img.xz > ${basedir}/kali-linux-$1-usbarmory.img.xz.sha256sum
-fi
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Removing build directory"
+rm -rf ${basedir}
