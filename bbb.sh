@@ -37,14 +37,26 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
+if $1 == 'nightly';
+then
 debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+else
+debootstrap --foreign --arch $architecture kali-last-snapshot kali-$architecture http://$mirror/kali
+fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C systemd-nspawn -M bbb -D kali-$architecture /debootstrap/debootstrap --second-stage
+
+if $1 == 'nightly'; then
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
+else
+cat << EOF > kali-$architecture/etc/apt/sources.list
+deb http://$mirror/kali kali-last-snapshot main contrib non-free
+EOF
+fi
 
 echo "kali" > kali-$architecture/etc/hostname
 cat << EOF > kali-$architecture/etc/hosts
@@ -88,6 +100,21 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -118,7 +145,8 @@ apt-get --yes --force-yes autoremove
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-update-rc.d ssh enable
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
