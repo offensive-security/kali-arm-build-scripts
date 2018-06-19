@@ -57,7 +57,7 @@ fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-if LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C systemd-nspawn -M rpi3 -D kali-$architecture /debootstrap/debootstrap --second-stage
 then
   echo "[*] Secondary Boostrap Success"
 else
@@ -278,7 +278,7 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -o bind /dev/ kali-$architecture/dev/
 #mount -o bind /dev/pts kali-$architecture/dev/pts
 
-if LANG=C systemd-nspawn -D kali-$architecture /third-stage
+if LANG=C systemd-nspawn -M rpi3 -D kali-$architecture /third-stage
 then
   echo "[*] Third Stage Boostrap Success"
 else
@@ -393,8 +393,8 @@ chmod +x ${basedir}/root/usr/bin/nexutil
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
-LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "chmod +x /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod +x /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 

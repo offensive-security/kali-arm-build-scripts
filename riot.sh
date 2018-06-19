@@ -55,7 +55,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M riot -D kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -138,7 +138,7 @@ rm -f /third-stage
 EOF
 
 chmod +x kali-$architecture/third-stage
-LANG=C systemd-nspawn -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M riot -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -152,7 +152,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod +x kali-$architecture/cleanup
-LANG=C systemd-nspawn -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M riot -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
@@ -247,9 +247,9 @@ ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Mainline u-boot with RIoTboard fixes on top
-wget ftp://ftp.denx.de/pub/u-boot/u-boot-2015.04.tar.bz2
-tar -xf u-boot-2015.04.tar.bz2
-cd u-boot-2015.04
+wget ftp://ftp.denx.de/pub/u-boot/u-boot-2018.05.tar.bz2
+tar -xf u-boot-2018.05.tar.bz2
+cd u-boot-2018.05
 make riotboard_config
 make -j $(grep -c processor /proc/cpuinfo)
 dd if=u-boot.imx of=$loopdevice bs=1024 seek=1

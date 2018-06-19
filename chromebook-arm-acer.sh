@@ -40,7 +40,7 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-kernel_release="R60-9592.B-chromeos-3.10"
+kernel_release="R67.10575.B-chromeos-3.10"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -54,7 +54,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M nyan -D kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
@@ -131,7 +131,7 @@ rm -f /third-stage
 EOF
 
 chmod +x kali-$architecture/third-stage
-LANG=C systemd-nspawn -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M nyan -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -145,7 +145,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod +x kali-$architecture/cleanup
-LANG=C systemd-nspawn -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M nyan -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
@@ -184,6 +184,15 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+
+# Pull in the gcc 5.3 cross compiler to build the kernel.
+# Debian uses a 7.3 based kernel, and the chromebook kernel doesn't support
+# that.
+
+cd ${basedir}
+wget https://releases.linaro.org/components/toolchain/binaries/5.3-2016.02/arm-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
+tar -xf gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
+
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
 cd ${basedir}
@@ -196,7 +205,7 @@ cp ${basedir}/../kernel-configs/chromebook-3.10.config ../nyan.config
 git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-3.8.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri-3.8.patch
 make WIFIVERSION="-3.8" -j $(grep -c processor /proc/cpuinfo)
@@ -426,7 +435,7 @@ cd ${basedir}
 # lp0 resume firmware...
 git clone https://chromium.googlesource.com/chromiumos/third_party/coreboot
 cd ${basedir}/coreboot
-git checkout 290e74ee4e6a102ba3de1cf0c42ce25e4074f4ac
+git checkout cd626fc5fd2c13f3a0292eda20eaef0f532af389
 make -C src/soc/nvidia/tegra124/lp0 GCC_PREFIX=arm-linux-gnueabihf-
 mkdir -p ${basedir}/root/lib/firmware/tegra12x/
 cp src/soc/nvidia/tegra124/lp0/tegra_lp0_resume.fw ${basedir}/root/lib/firmware/tegra12x/

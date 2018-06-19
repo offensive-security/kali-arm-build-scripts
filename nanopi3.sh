@@ -55,7 +55,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M nanopi3 -D kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -144,7 +144,7 @@ rm -f /third-stage
 EOF
 
 chmod +x kali-$architecture/third-stage
-LANG=C systemd-nspawn -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M nanopi3 -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -158,7 +158,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod +x kali-$architecture/cleanup
-LANG=C systemd-nspawn -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M nanopi3 -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
@@ -315,13 +315,15 @@ kpartx -dv $loopdevice
 cd ${basedir}
 mkdir -p bootloader
 cd ${basedir}/bootloader
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/2ndboot.bin?raw=true' -O ${basedir}/bootloader/2ndboot.bin
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/boot.TBI?raw=true' -O ${basedir}/bootloader/boot.TBI
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/bootloader?raw=true' -O ${basedir}/bootloader/bootloader
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/bl1-mmcboot.bin?raw=true' -O ${basedir}/bootloader/bl1-mmcboot.bin
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-loader.img?raw=true' -O ${basedir}/bootloader/fip-loader.img
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-secure.img?raw=true' -O ${basedir}/bootloader/fip-secure.img
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-nonsecure.img?raw=true' -O ${basedir}/bootloader/fip-nonsecure.img
 
-dd if=${basedir}/bootloader/2ndboot.bin of=$loopdevice bs=512 seek=1
-dd if=${basedir}/bootloader/boot.TBI of=$loopdevice bs=512 seek=64 count=1
-dd if=${basedir}/bootloader/bootloader of=$loopdevice bs=512 seek=65
+dd if=${basedir}/bootloader/bl1-mmcboot.bin of=$loopdevice bs=512 seek=1
+dd if=${basedir}/bootloader/fip-loader.img of=$loopdevice bs=512 seek=129 count=1
+dd if=${basedir}/bootloader/fip-secure.img of=$loopdevice bs=512 seek=769
+dd if=${basedir}/bootloader/fip-nonsecure.img of=$loopdevice bs=512 seek=3841
 sync
 
 cd ${basedir}

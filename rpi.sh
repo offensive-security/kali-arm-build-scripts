@@ -62,7 +62,7 @@ fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-if LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C systemd-nspawn -M rpi -D kali-$architecture /debootstrap/debootstrap --second-stage
 then
   echo "[*] Secondary Boostrap Success"
 else
@@ -163,7 +163,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 chmod +x kali-$architecture/third-stage
 
-if LANG=C systemd-nspawn -D kali-$architecture /third-stage
+if LANG=C systemd-nspawn -M rpi -D kali-$architecture /third-stage
 then
   echo "[*] Boostrap Success"
 else

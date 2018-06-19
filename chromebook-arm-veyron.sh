@@ -52,7 +52,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M veyron -D kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
@@ -129,7 +129,7 @@ rm -f /third-stage
 EOF
 
 chmod +x kali-$architecture/third-stage
-LANG=C systemd-nspawn -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M veyron -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -143,7 +143,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod +x kali-$architecture/cleanup
-LANG=C systemd-nspawn -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M veyron -D kali-$architecture /cleanup
 
 cat << EOF > kali-$architecture/etc/resolv.conf
 nameserver 8.8.8.8

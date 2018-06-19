@@ -55,7 +55,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M 0w -D kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -197,7 +197,7 @@ rm -f /hs_err*
 EOF
 
 chmod +x kali-$architecture/third-stage
-LANG=C systemd-nspawn -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M 0w -D kali-$architecture /third-stage
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
