@@ -16,9 +16,9 @@ if [ $2 ]; then
 fi
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools parted sudo usbutils firmware-linux firmware-linux-nonfree firmware-atheros firmware-libertas net-tools"
+base="e2fsprogs initramfs-tools parted sudo usbutils firmware-linux firmware-linux-nonfree firmware-atheros firmware-libertas net-tools iw wget"
 desktop="fonts-croscore kali-defaults kali-menu fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark net-tools"
+tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
 nexmon="libgmp3-dev gawk qpdf bison flex make git"
@@ -233,6 +233,8 @@ make
 # Copy the ko file twice. Unsure if changes across both devices break compatibility
 cp brcmfmac_kernel49/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
+
 # Build nexmon for pi 3 b+
 cd /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon
 make clean
