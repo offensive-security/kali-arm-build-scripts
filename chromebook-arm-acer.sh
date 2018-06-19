@@ -433,9 +433,11 @@ EOF
 cd ${basedir}
 
 # lp0 resume firmware...
+# Check https://chromium.googlesource.com/chromiumos/overlays/chromiumos-overlay/+/master/sys-kernel/tegra_lp0_resume/
+# to find the lastest commit to use (note: CROS_WORKON_COMMIT )
 git clone https://chromium.googlesource.com/chromiumos/third_party/coreboot
 cd ${basedir}/coreboot
-git checkout cd626fc5fd2c13f3a0292eda20eaef0f532af389
+git checkout acd9450a51da71c0ecc0415ed5b6589db714bfa3
 make -C src/soc/nvidia/tegra124/lp0 GCC_PREFIX=arm-linux-gnueabihf-
 mkdir -p ${basedir}/root/lib/firmware/tegra12x/
 cp src/soc/nvidia/tegra124/lp0/tegra_lp0_resume.fw ${basedir}/root/lib/firmware/tegra12x/
