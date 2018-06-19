@@ -398,8 +398,8 @@ LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod +x /root/b
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
-umount $bootp
-umount $rootp
+umount -l $bootp
+umount -l $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
