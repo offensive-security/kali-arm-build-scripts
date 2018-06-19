@@ -142,7 +142,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod +x kali-$architecture/cleanup
-LANG=C systemd-nspawn kali-$architecture /cleanup
+LANG=C systemd-nspawn -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
