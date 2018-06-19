@@ -205,7 +205,7 @@ EOF
 
 chmod +x kali-$architecture/third-stage
 
-cat << 'EOF' > kali-$architecture/tmp/buildnexmon.sh
+cat << 'EOF' > kali-$architecture/root/buildnexmon.sh
 #!/bin/bash
 kernel=$(uname -r) # Kernel is read from fakeuname.c
 git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
@@ -240,9 +240,9 @@ make
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
 EOF
-chmod +x kali-$architecture/tmp/buildnexmon.sh
+chmod +x kali-$architecture/root/buildnexmon.sh
 
-cat << 'EOF' > kali-$architecture/tmp/fakeuname.c
+cat << 'EOF' > kali-$architecture/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -386,8 +386,8 @@ chmod +x ${basedir}/root/usr/bin/nexutil
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
-LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "cd /tmp && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "chmod +x /tmp/buildnexmon.sh && LD_PRELOAD=/tmp/libfakeuname.so /tmp/buildnexmon.sh"
+LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+LANG=C systemd-nspawn -D ${basedir}/root/ /bin/bash -c "chmod +x /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 umount $bootp
 umount $rootp
