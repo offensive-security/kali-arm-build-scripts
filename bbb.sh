@@ -203,14 +203,14 @@ EOF
 # Uncomment this if you use apt-cacher-ng or else git clones will fail.
 #unset http_proxy
 
-git clone https://github.com/beagleboard/linux -b 4.1 --depth 1 ${basedir}/root/usr/src/kernel
+git clone https://github.com/beagleboard/linux -b 4.9 --depth 1 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
 export CROSS_COMPILE=arm-linux-gnueabihf-
 touch .scmversion
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.9.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 make bb.org_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
