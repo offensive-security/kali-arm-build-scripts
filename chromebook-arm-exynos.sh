@@ -40,7 +40,7 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-kernel_release="R60-9592.B-chromeos-3.8"
+kernel_release="R67-10575.B-chromeos-3.8"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -184,6 +184,13 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# Pull in the gcc 5.3 cross compiler to build the kernel.
+# Debian uses a 7.3 based kernel, and the chromebook kernel doesn't support
+# that.
+cd ${basedir}
+wget https://releases.linaro.org/components/toolchain/binaries/5.3-2016.02/arm-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
+tar -xf gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
+
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/root/usr/src/kernel
@@ -194,7 +201,7 @@ cp ${basedir}/../kernel-configs/chromebook-3.8_wireless-3.4.config exynos_wifi34
 git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-exynos-drm-smem-start-len.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
