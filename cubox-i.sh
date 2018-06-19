@@ -245,10 +245,14 @@ cp -a ${basedir}/wlan-firmware/firmware/brcm ${basedir}/root/lib/firmware/
 cd ${basedir}
 
 
+# We need an older cross compiler for compiling u-boot so check out the 4.7
+# cross compiler.
+git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 git clone https://github.com/SolidRun/u-boot-imx6.git
 cd ${basedir}/u-boot-imx6
-make mx6_cubox-i_config
-make
+make CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- mx6_cubox-i_config
+make CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 
 dd if=SPL of=$loopdevice bs=1K seek=1
 dd if=u-boot.img of=$loopdevice bs=1K seek=42
