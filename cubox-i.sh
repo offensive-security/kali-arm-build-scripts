@@ -295,6 +295,7 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-cubox-i.img"
 pixz ${basedir}/kali-linux-$1-cubox-i.img ${basedir}/../kali-linux-$1-cubox-i.img.xz
 rm ${basedir}/kali-linux-$1-cubox-i.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
