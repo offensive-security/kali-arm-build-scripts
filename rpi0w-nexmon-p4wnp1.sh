@@ -147,7 +147,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod +x /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get --yes --force-yes install locales-all
+apt-get --yes --allow-change-held-packages install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -158,13 +158,13 @@ echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --force-yes install $packages
+apt-get --yes --allow-change-held-packages install $packages
 if [ $? > 0 ];
 then
     apt-get --yes --allow-change-held-packages --fix-broken install
 fi
-apt-get --yes --force-yes dist-upgrade
-apt-get --yes --force-yes autoremove
+apt-get --yes --allow-change-held-packages dist-upgrade
+apt-get --yes --allow-change-held-packages autoremove
 
 # Install P4wnP1 (kali version)
 git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
@@ -210,7 +210,7 @@ cp  /etc/bash.bashrc /root/.bashrc
 # libinput seems to fail hard on RaspberryPi devices, so we make sure it's not
 # installed here (and we have xserver-xorg-input-evdev and
 # xserver-xorg-input-synaptics packages installed above!)
-apt-get --yes --force-yes purge xserver-xorg-input-libinput
+apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d

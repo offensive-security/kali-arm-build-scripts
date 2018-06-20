@@ -120,7 +120,7 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
-apt-get --yes --force-yes install $packages
+apt-get --yes --allow-change-held-packages install $packages
 if [ $? > 0 ];
 then
     apt-get --yes --allow-change-held-packages --fix-broken install
