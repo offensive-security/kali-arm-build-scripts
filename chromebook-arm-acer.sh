@@ -457,23 +457,20 @@ dd if=${basedir}/kernel.bin of=$bootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Removing temporary build files"
-rm -rf ${basedir}/coreboot ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader.bin
 
 # If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
+# don't need to compress the image, since you will be testing it
 # soon.
-echo "Generating sha256sum for kali-linux-$1-acer.img"
-sha256sum kali-linux-$1-acer.img > ${basedir}/kali-linux-$1-acer.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-acer.img"
-pixz ${basedir}/kali-linux-$1-acer.img ${basedir}/kali-linux-$1-acer.img.xz
+pixz ${basedir}/kali-linux-$1-acer.img ${basedir}/../kali-linux-$1-acer.img.xz
 rm ${basedir}/kali-linux-$1-acer.img
-echo "Generating sha256sum for kali-linux-$1-acer.img.xz"
-sha256sum kali-linux-$1-acer.img.xz > ${basedir}/kali-linux-$1-acer.img.xz.sha256sum
 fi
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Removing temporary build files"
+rm -rf ${basedir}
