@@ -304,7 +304,7 @@ proc /proc proc nodev,noexec,nosuid 0  0
 EOF
 
 # rpi-wiggle
-mkdir -p ${basedir}/root/scripts
+mkdir -p ${basedir}/root/root/scripts
 wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
 
