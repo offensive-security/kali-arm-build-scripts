@@ -103,7 +103,7 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+cat << EOF > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -117,6 +117,19 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 WantedBy=multi-user.target
 EOF
 chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
@@ -149,7 +162,10 @@ apt-get --yes --allow-change-held-packages autoremove
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-# Generate SSH host keys on first run
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
+
+# Generate SSH host keys on first-ish run
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
