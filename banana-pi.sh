@@ -14,6 +14,18 @@ if [ $(compgen -c $CROSS_COMPILE | wc -l) -eq 0 ] ; then
     echo "Missing cross compiler. Set up PATH according to the README"
     exit 1
 fi
+
+# If libfdt-dev is installed, u-boot will fail to compile due to the fdt headers
+# being different than the ones the build system expects, so we uninstall libfdt
+# and at the end of the script we will reinstall it.
+
+if [ $(dpkg-query -W -f='${Status}' libfdt-dev 2>/dev/null | grep -c "ok installed") -eq 1 ];
+then
+    echo "Removing libfdt-dev because it causes issues with the build"
+    apt-get --yes purge libfdt-dev
+    libfdtdev=1
+fi
+
 # Unset CROSS_COMPILE so that if there is any native compiling needed it doesn't
 # get cross compiled.
 unset CROSS_COMPILE
@@ -95,6 +107,22 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -111,7 +139,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -123,7 +150,10 @@ apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-update-rc.d ssh enable
+
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -202,6 +232,9 @@ git clone --depth 1 https://github.com/LeMaker/linux-sunxi -b lemaker-3.4 ${base
 git clone --depth 1 https://github.com/linux-sunxi/sunxi-tools
 git clone --depth 1 https://github.com/LeMaker/sunxi-boards
 
+# Clone a cross compiler to use instead of the Kali one due to kernel age.
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 cd ${basedir}/sunxi-tools
 make fex2bin
 ./fex2bin ${basedir}/sunxi-boards/sys_config/a20/BananaPi.fex ${basedir}/bootp/script.bin
@@ -211,7 +244,7 @@ git rev-parse HEAD > ../kernel-at-commit
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 cp ${basedir}/../kernel-configs/lemaker.config .config
 cp ${basedir}/../kernel-configs/lemaker.config ../lemaker.config
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
@@ -271,23 +304,22 @@ umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/u-boot-bananapi ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches ${basedir}/*sunxi*
+if [[ "$libfdtdev" -eq "1" ]]; then
+    echo "Installing libfdt-dev because it was installed before image build"
+    apt-get --yes install libfdt-dev;
+fi
 
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum of kali-linux-$1-bananapi.img"
-sha256sum kali-linux-$1-bananapi.img > ${basedir}/kali-linux-$1-bananapi.img.sha256sum
+
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-bananapi.img"
-pixz ${basedir}/kali-linux-$1-bananapi.img ${basedir}/kali-linux-$1-bananapi.img.xz
+pixz ${basedir}/kali-linux-$1-bananapi.img ${basedir}/../kali-linux-$1-bananapi.img.xz
 rm ${basedir}/kali-linux-$1-bananapi.img
-echo "Generating sha256sum of kali-linux-$1-bananapi.img.xz"
-sha256sum kali-linux-$1-bananapi.img.xz > ${basedir}/kali-linux-$1-bananapi.img.xz.sha256sum
 fi
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Cleaning up the temporary build files..."
+rm -rf ${basedir}
