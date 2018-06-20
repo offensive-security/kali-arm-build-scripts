@@ -126,6 +126,7 @@ Before=regenerate_ssh_host_keys.service
 Type=oneshot
 ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/bin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
