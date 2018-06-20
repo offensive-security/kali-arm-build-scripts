@@ -116,6 +116,22 @@ EOF
 
 chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/sbin/reboot
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
@@ -183,11 +199,15 @@ apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 echo "Making the image insecure"
 rm -f /etc/ssh/ssh_host_*_key*
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+systemctl enable rpiwiggle
 # Generate SSH host keys on first run
+
 systemctl enable regenerate_ssh_host_keys
 # Enable hciuart for bluetooth device
 systemctl enable hciuart
-update-rc.d ssh enable
+
+systemctl enable ssh
+
 cp  /etc/bash.bashrc /root/.bashrc
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
 sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
