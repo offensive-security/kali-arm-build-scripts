@@ -103,6 +103,21 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -118,7 +133,6 @@ rm -f /debconf.set
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --force-yes install $packages
@@ -133,10 +147,11 @@ apt-get --yes --force-yes autoremove
 # image insecure and enable root login with a password.
 
 echo "Making the image insecure"
-rm -f /etc/ssh/ssh_host_*_key*
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-update-rc.d ssh enable
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
