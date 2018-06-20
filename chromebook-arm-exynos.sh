@@ -184,12 +184,11 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Pull in the gcc 5.3 cross compiler to build the kernel.
+# Pull in the gcc 4.7 cross compiler to build the kernel.
 # Debian uses a 7.3 based kernel, and the chromebook kernel doesn't support
 # that.
 cd ${basedir}
-wget https://releases.linaro.org/components/toolchain/binaries/5.3-2016.02/arm-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
-tar -xf gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf.tar.xz
+git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
@@ -201,10 +200,12 @@ cp ${basedir}/../kernel-configs/chromebook-3.8_wireless-3.4.config exynos_wifi34
 git rev-parse HEAD > ../kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=${basedir}/gcc-linaro-5.3-2016.02-x86_64_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-exynos-drm-smem-start-len.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Commented-out-pr_debug-line.patch
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-Fix-udl_connector-include.patch
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
 make modules_install INSTALL_MOD_PATH=${basedir}/root
