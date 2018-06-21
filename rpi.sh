@@ -315,6 +315,8 @@ cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod +x ${basedir}/root/etc/init.d/zram
 
 # Unmount partitions
+# Sync before unmounting to ensure everything is written
+sync
 umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
@@ -335,7 +337,5 @@ fi
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
-# Sync beforehand so that the filesystem is settled
-sync
 echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}
