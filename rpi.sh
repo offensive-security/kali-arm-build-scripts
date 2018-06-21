@@ -335,5 +335,7 @@ fi
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
+# Sync beforehand so that the filesystem is settled
+sync
 echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}
