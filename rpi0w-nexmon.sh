@@ -110,21 +110,34 @@ echo "Monitor mode stopped"
 EOF
 chmod +x kali-$architecture/usr/bin/monstop
 
-cat << EOF > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
-#
+cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
-
+Before=ssh.service
 [Service]
 Type=oneshot
-ExecStartPre=/bin/sh -c "if [ -e /dev/hwrng ]; then dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096; fi"
-ExecStart=/usr/bin/ssh-keygen -A
-ExecStartPost=/bin/rm /lib/systemd/system/regenerate_ssh_host_keys.service ; /usr/sbin/update-rc.d regenerate_ssh_host_keys remove; /etc/init.d/ssh restart
-
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 755 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/bin/reboot
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
 
 # Bluetooth enabling
 mkdir -p kali-$architecture/etc/udev/rules.d
@@ -152,7 +165,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -170,9 +182,12 @@ echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 rm -f /etc/ssh/ssh_host_*_key*
 
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
+
+# Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
-systemctl enable hciuart
-update-rc.d ssh enable
+systemctl enable ssh
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
@@ -307,8 +322,8 @@ EOF
 
 
 # rpi-wiggle
-mkdir -p ${basedir}/root/scripts
-wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
+mkdir -p ${basedir}/root/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
 
 # Firmware needed for rpi3 wifi (copy nexmon firmware)
@@ -333,18 +348,11 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
-
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-rpi0w-nexmon.img"
-pixz ${basedir}/kali-linux-$1-rpi0w-nexmon.img ${basedir}/kali-linux-$1-rpi0w-nexmon.img.xz
-mv ${basedir}/kali-linux-$1-rpi0w-nexmon.img.xz ${basedir}/../
+pixz ${basedir}/kali-linux-$1-rpi0w-nexmon.img ${basedir}/../kali-linux-$1-rpi0w-nexmon.img.xz
 rm ${basedir}/kali-linux-$1-rpi0w-nexmon.img
 fi
 # Clean up all the temporary build stuff and remove the directories.
