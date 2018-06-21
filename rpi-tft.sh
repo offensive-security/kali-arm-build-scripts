@@ -24,7 +24,7 @@ base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="iceweasel xfce4-terminal wpasupplicant firmware-linux firmware-linux-free firmware-linux-nonfree firmware-realtek"
 # kernel sauces take up space yo.
 size=7000 # Size of image in megabytes
 
@@ -111,6 +111,20 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/sbin/reboot
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -127,7 +141,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -143,6 +156,9 @@ apt-get --yes --allow-change-held-packages autoremove
 
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
@@ -305,15 +321,10 @@ Option "SwapAxes" "1"
 EndSection
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
-
 # rpi-wiggle
-mkdir -p ${basedir}/root/scripts
-wget https://raw.github.com/dweeber/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
+mkdir -p ${basedir}/root/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/root/root/scripts/rpi-wiggle.sh
 
 cd ${basedir}
 
@@ -322,29 +333,20 @@ chmod +x ${basedir}/root/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
+# Sync beforehand so that the filesystem is settled
+sync
+
 # Unmount partitions
 umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-rpitft.img"
-sha256sum kali-linux-$1-rpitft.img > ${basedir}/kali-linux-$1-rpitft.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-rpitft.img"
-pixz ${basedir}/kali-linux-$1-rpitft.img ${basedir}/kali-linux-$1-rpitft.img.xz
-mv ${basedir}/kali-linux-$1-rpitft.img.xz ${basedir}/../
+pixz ${basedir}/kali-linux-$1-rpitft.img ${basedir}/../kali-linux-$1-rpitft.img.xz
 rm ${basedir}/kali-linux-$1-rpitft.img
 fi
 
