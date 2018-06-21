@@ -1,4 +1,9 @@
 #!/bin/bash
+
+while fuser /var/lib/dpkg/lock >/dev/null ; do
+    sleep 5
+done
+
 apt-get update
 apt-get install -y git-core gnupg flex bison gperf build-essential \
 zip curl libncurses5-dev zlib1g-dev libncurses5-dev kali-archive-keyring \
@@ -8,6 +13,8 @@ schedtool git dosfstools e2fsprogs device-tree-compiler libssl-dev qemu-user-sta
 crossbuild-essential-armhf crossbuild-essential-armel crossbuild-essential-arm64 \
 systemd-container
 
+
+echo "Waiting for other software manager to finish..."
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     dpkg --add-architecture i386
