@@ -17,7 +17,7 @@ basedir=`pwd`/beaglebone-black-$1
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -311,10 +311,6 @@ Section "ServerLayout"
 EndSection
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}/root/usr/src/kernel
 make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
@@ -360,9 +356,7 @@ rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-bbb.img"
-
-pixz ${basedir}/kali-linux-$1-bbb.img ${basedir}/kali-linux-$1-bbb.img.xz
-mv ${basedir}/kali-linux-$1-bbb.img.xz ${basedir}/../
+pixz ${basedir}/kali-linux-$1-bbb.img ${basedir}/../kali-linux-$1-bbb.img.xz
 rm ${basedir}/kali-linux-$1-bbb.img
 fi
 
