@@ -30,7 +30,7 @@ base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="iceweasel xfce4-terminal wpasupplicant firmware-linux firmware-linux-free firmware-linux-nonfree"
 # kernel sauces take up space
 size=7000 # Size of image in megabytes
 
@@ -266,10 +266,6 @@ mkdir -p ${basedir}/bootp/overlays/
 cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
 # Not used for now, but here for the future where they will be required.
 #cp arch/arm/boot/dts/overlays/*.dtb ${basedir}/bootp/overlays/
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}/root/usr/src/kernel
 make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
@@ -317,8 +313,8 @@ chmod +x ${basedir}/root/etc/init.d/zram
 # Unmount partitions
 # Sync before unmounting to ensure everything is written
 sync
-umount $bootp
-umount $rootp
+umount -l $bootp
+umount -l $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
