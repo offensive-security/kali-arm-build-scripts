@@ -3,6 +3,11 @@
 # This is the HardKernel ODROID C2 Kali ARM64 build script - http://hardkernel.com/main/main.php
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
+
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 2.0"
     exit 0
