@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
+
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 2.0, and (if you want) a hostname, default is kali"
     exit 0

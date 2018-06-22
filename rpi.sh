@@ -3,6 +3,11 @@ set -e
 # This is the Raspberry Pi Kali ARM build script - https://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - https://www.offensive-security.com
 
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
+
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 2.0, and (if you want) a hostname, default is kali"
     exit 0
