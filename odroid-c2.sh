@@ -40,15 +40,13 @@ unset CROSS_COMPILE
 # up in a weird state.
 # DO NOT REMOVE IT FROM THE PACKAGE LIST.
 
-# cgpt, vboot-utils and vboot-kernel-utils aren't available on arm64 yet.
-#arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-arm="abootimg fake-hwclock ntpdate u-boot-tools"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="fbset xfce4-terminal xfce4-goodies wpasupplicant"
-kali="build-essential debhelper devscripts dput lintian quilt git-buildpackage gitk dh-make sbuild"
+#kali="build-essential debhelper devscripts dput lintian quilt git-buildpackage gitk dh-make sbuild"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras} ${kali}"
 architecture="arm64"
@@ -620,11 +618,6 @@ fi
 mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/initrd.img-\$(uname -r) /boot/uInitrd
 EOF
 
-
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
