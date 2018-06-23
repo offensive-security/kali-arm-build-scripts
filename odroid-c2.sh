@@ -131,7 +131,7 @@ cat << EOF > kali-$architecture/third-stage
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
 
 apt-get update
 apt-get --yes --allow-change-held-packages install locales-all
@@ -169,7 +169,7 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/third-stage
+chmod 755 kali-$architecture/third-stage
 LANG=C systemd-nspawn -M odroidc2 -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
@@ -183,7 +183,7 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/cleanup
+chmod 755 kali-$architecture/cleanup
 LANG=C systemd-nspawn -M odroidc2 -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
@@ -234,7 +234,7 @@ cat << EOF > ${basedir}/root/usr/bin/aml_fix_display
 #!/bin/bash
 exit 0
 EOF
-chmod +x ${basedir}/root/usr/bin/aml_fix_display
+chmod 755 ${basedir}/root/usr/bin/aml_fix_display
 
 # Create systemd service to setup display.
 cat << EOF > ${basedir}/root/lib/systemd/system/amlogic.service
@@ -383,7 +383,7 @@ common_display_setup
 echo 0 > /sys/class/graphics/fb0/blank
 echo 0 > /sys/class/graphics/fb1/blank
 EOF
-chmod +x ${basedir}/root/usr/bin/amlogic.sh
+chmod 755 ${basedir}/root/usr/bin/amlogic.sh
 
 # And because we need to run c2_init in the initramfs and it calls fbset,
 # create a hook for adding /bin/fbset to the initrd as well.
@@ -396,7 +396,7 @@ case \$1 in
         . /usr/share/initramfs-tools/hook-functions
         copy_exec /bin/fbset /bin
 EOF
-chmod +x ${basedir}/root/usr/share/initramfs-tools/hooks/fbset
+chmod 755 ${basedir}/root/usr/share/initramfs-tools/hooks/fbset
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
@@ -613,7 +613,7 @@ rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod +x ${basedir}/root/etc/init.d/zram
+chmod 755 ${basedir}/root/etc/init.d/zram
 
 # Now, to get display working properly, we need an initramfs, so we can run the
 # c2_init.sh file before we launch X.
@@ -628,7 +628,7 @@ mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/ini
 rm -f /create-initrd
 rm -f /usr/bin/qemu-*
 EOF
-chmod +x ${basedir}/root/create-initrd
+chmod 755 ${basedir}/root/create-initrd
 LANG=C systemd-nspawn -M odroidc2 -D ${basedir}/root /create-initrd
 umount ${basedir}/root/boot
 

@@ -96,7 +96,7 @@ cat << EOF > kali-$architecture/third-stage
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
 
 apt-get update
 apt-get install --yes --allow-change-held-packages locales-all
@@ -121,7 +121,7 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/third-stage
+chmod 755 kali-$architecture/third-stage
 LANG=C systemd-nspawn -M luna -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
@@ -135,7 +135,7 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/cleanup
+chmod 755 kali-$architecture/cleanup
 LANG=C systemd-nspawn -M luna -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc

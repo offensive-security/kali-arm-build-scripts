@@ -3,6 +3,11 @@
 # This is the Raspberry Pi2 Kali ARM build script - http://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
+
 if [[ $# -eq 0 ]] ; then
     echo "Please pass version number, e.g. $0 2.0"
     exit 0
@@ -20,7 +25,7 @@ basedir=`pwd`/rpi2-$1
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 # XFCE desktop (Default)
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics xfce4-terminal"
 # GNOME desktop
@@ -94,12 +99,41 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/sbin/reboot
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
 
 apt-get update
 apt-get --yes --allow-change-held-packages install locales-all
@@ -110,7 +144,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -126,7 +159,13 @@ apt-get --yes --allow-change-held-packages autoremove
 
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-update-rc.d ssh enable
+
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
+
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
 
 # libinput seems to fail hard on RaspberryPi devices, so we make sure it's not
 # installed here (and we have xserver-xorg-input-evdev and
@@ -140,7 +179,7 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/third-stage
+chmod 755 kali-$architecture/third-stage
 LANG=C systemd-nspawn -M rpi2 -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
@@ -154,7 +193,7 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/cleanup
+chmod 755 kali-$architecture/cleanup
 LANG=C systemd-nspawn -M rpi2 -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
@@ -202,15 +241,14 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.4.y ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ../kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.4.patch
+git rev-parse HEAD > ${basedir}/usr/src/kernel-at-commit
+patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.9.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi2-4.4.config .config
-cp ${basedir}/../kernel-configs/rpi2-4.4.config ../rpi2-4.4.config
+make re4son_pi2_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/root
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
@@ -221,14 +259,9 @@ perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
 cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
 mkdir -p ${basedir}/bootp/overlays/
 cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/bootp/overlays/
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
-cd ${basedir}/root/usr/src/kernel
 make INSTALL_MOD_PATH=${basedir}/root firmware_install
 make mrproper
-cp ../rpi2-4.4.config .config
+make re4son_pi2_defconfig
 make modules_prepare
 cd ${basedir}
 
@@ -266,34 +299,34 @@ cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.bin ${basedir}/root/lib/firmware/b
 
 cd ${basedir}
 
+# rpi-wiggle
+mkdir -p ${basedir}/root/scripts
+wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-$architecture/root/rpi-wiggle.sh
+chmod 755 ${basedir}/kali-$architecture/root/rpi-wiggle.sh
+
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod +x ${basedir}/root/etc/init.d/zram
+chmod 755 ${basedir}/root/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
-umount $bootp
-umount $rootp
+sync
+umount -l $bootp
+umount -l $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
+
+
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing kali-linux-$1-rpi2.img"
+pixz ${basedir}/kali-linux-$1-rpi2.img ${basedir}/../kali-linux-$1-rpi2.img.xz
+rm ${basedir}/kali-linux-$1-rpi2.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-rpi2.img"
-sha256sum kali-linux-$1-rpi2.img > ${basedir}/kali-linux-$1-rpi2.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-rpi2.img"
-pixz ${basedir}/kali-linux-$1-rpi2.img ${basedir}/kali-linux-$1-rpi2.img.xz
-rm ${basedir}/kali-linux-$1-rpi2.img
-echo "Generating sha256sum for kali-linux-$1-rpi2.img.xz"
-sha256sum kali-linux-$1-rpi2.img.xz > ${basedir}/kali-linux-$1-rpi2.img.xz.sha256sum
-fi
+rm -rf ${basedir}

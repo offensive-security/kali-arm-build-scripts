@@ -152,7 +152,7 @@ if [ $? -eq 0 ]; then
   echo "started monitor interface on ${interface}"
 fi
 EOF
-chmod +x kali-$architecture/usr/bin/monstart
+chmod 755 kali-$architecture/usr/bin/monstart
 
 cat << 'EOF' > kali-$architecture/usr/bin/monstop
 #!/bin/bash
@@ -161,7 +161,7 @@ ifconfig ${interface} down
 sleep 1
 iw dev ${interface} del
 EOF
-chmod +x kali-$architecture/usr/bin/monstop
+chmod 755 kali-$architecture/usr/bin/monstop
 
 # Bluetooth enabling
 mkdir -p kali-$architecture/etc/udev/rules.d
@@ -171,14 +171,14 @@ cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-$architecture/lib/system
 mkdir -p kali-$architecture/usr/bin
 cp ${basedir}/../misc/pi-bluetooth/btuart kali-$architecture/usr/bin/btuart
 # Ensure btuart is executable
-chmod +x kali-$architecture/usr/bin/btuart
+chmod 755 kali-$architecture/usr/bin/btuart
 
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
 apt-get update
 apt-get --yes --allow-change-held-packages install locales-all
 debconf-set-selections /debconf.set
@@ -228,7 +228,7 @@ rm -f cleanup
 #rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/third-stage
+chmod 755 kali-$architecture/third-stage
 
 cat << 'EOF' > kali-$architecture/root/buildnexmon.sh
 #!/bin/bash
@@ -267,7 +267,7 @@ make
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
 EOF
-chmod +x kali-$architecture/root/buildnexmon.sh
+chmod 755 kali-$architecture/root/buildnexmon.sh
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts
@@ -413,13 +413,13 @@ cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/root/lib/firmware/b
 cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/root/lib/firmware/brcm/
 
 cp ${basedir}/../misc/rpi3/nexutil ${basedir}/root/usr/bin/nexutil
-chmod +x ${basedir}/root/usr/bin/nexutil
+chmod 755 ${basedir}/root/usr/bin/nexutil
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod +x ${basedir}/root/etc/init.d/zram
+chmod 755 ${basedir}/root/etc/init.d/zram
 
 LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod +x /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 

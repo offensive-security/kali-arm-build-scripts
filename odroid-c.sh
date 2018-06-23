@@ -106,7 +106,7 @@ cat << EOF > kali-$architecture/third-stage
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
 
 apt-get update
 apt-get --yes --allow-change-held-packages install locales-all
@@ -143,7 +143,7 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod +x kali-$architecture/third-stage
+chmod 755 kali-$architecture/third-stage
 LANG=C systemd-nspawn -M odroidc -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
@@ -157,7 +157,7 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod +x kali-$architecture/cleanup
+chmod 755 kali-$architecture/cleanup
 LANG=C systemd-nspawn -M odroidc -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
@@ -443,7 +443,7 @@ echo 7 > /sys/class/net/eth0/queues/tx-0/xps_cpus
 # Move IRQ's of ethernet to CPU1/2
 echo 1,2 > /proc/irq/40/smp_affinity_list
 EOF
-chmod +x ${basedir}/root/usr/bin/amlogic.sh
+chmod 755 ${basedir}/root/usr/bin/amlogic.sh
 
 cat << EOF > ${basedir}/root/etc/sysctl.d/99-c1-network.conf
 net.core.rmem_max = 26214400
@@ -468,7 +468,7 @@ rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod +x ${basedir}/root/etc/init.d/zram
+chmod 755 ${basedir}/root/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 

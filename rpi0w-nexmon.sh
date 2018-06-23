@@ -106,14 +106,14 @@ cat << EOF > kali-$architecture/usr/bin/monstart
 echo "Nexutil setting monitoring mode"
 /usr/bin/nexutil -m2
 EOF
-chmod +x kali-$architecture/usr/bin/monstart
+chmod 755 kali-$architecture/usr/bin/monstart
 
 cat << EOF > kali-$architecture/usr/bin/monstop
 #!/bin/bash
 /usr/bin/nexutil -m0
 echo "Monitor mode stopped"
 EOF
-chmod +x kali-$architecture/usr/bin/monstop
+chmod 755 kali-$architecture/usr/bin/monstop
 
 cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
@@ -152,14 +152,14 @@ cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-$architecture/lib/system
 mkdir -p kali-$architecture/usr/bin
 cp ${basedir}/../misc/pi-bluetooth/btuart kali-$architecture/usr/bin/btuart
 # Ensure btuart is executable
-chmod +x kali-$architecture/usr/bin/btuart
+chmod 755 kali-$architecture/usr/bin/btuart
 
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
+chmod 755 /usr/sbin/policy-rc.d
 
 apt-get update
 apt-get --yes --allow-change-held-packages install locales-all
@@ -216,7 +216,7 @@ rm -f /0
 rm -f /hs_err*
 EOF
 
-chmod +x kali-$architecture/third-stage
+chmod 755 kali-$architecture/third-stage
 LANG=C systemd-nspawn -M 0w -D kali-$architecture /third-stage
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
@@ -336,12 +336,12 @@ cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/b
 
 # Copy nexutil
 cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/root/usr/bin/nexutil
-chmod +x ${basedir}/root/usr/bin/nexutil
+chmod 755 ${basedir}/root/usr/bin/nexutil
 
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod +x ${basedir}/root/etc/init.d/zram
+chmod 755 ${basedir}/root/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
