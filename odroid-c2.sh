@@ -97,6 +97,19 @@ cat << EOF > kali-$architecture/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
+export MALLOC_CHECK_=0 # workaround for LP: #520465
+export LC_ALL=C
+export DEBIAN_FRONTEND=noninteractive
+
+#mount -t proc proc kali-$architecture/proc
+#mount -o bind /dev/ kali-$architecture/dev/
+#mount -o bind /dev/pts kali-$architecture/dev/pts
+
+cat << EOF > kali-$architecture/debconf.set
+console-common console-data/keymap/policy select Select keymap from full list
+console-common console-data/keymap/full select en-latin1-nodeadkeys
+EOF
+
 cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
@@ -112,19 +125,19 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 
-
-export MALLOC_CHECK_=0 # workaround for LP: #520465
-export LC_ALL=C
-export DEBIAN_FRONTEND=noninteractive
-
-#mount -t proc proc kali-$architecture/proc
-#mount -o bind /dev/ kali-$architecture/dev/
-#mount -o bind /dev/pts kali-$architecture/dev/pts
-
-cat << EOF > kali-$architecture/debconf.set
-console-common console-data/keymap/policy select Select keymap from full list
-console-common console-data/keymap/full select en-latin1-nodeadkeys
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/sbin/reboot
+[Install]
+WantedBy=multi-user.target
 EOF
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
@@ -157,10 +170,12 @@ apt-get --yes --allow-change-held-packages autoremove
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
+
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
-
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -168,8 +183,8 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 
 rm -f /third-stage
 EOF
-
 chmod 755 kali-$architecture/third-stage
+
 LANG=C systemd-nspawn -M odroidc2 -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
@@ -182,8 +197,8 @@ rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
-
 chmod 755 kali-$architecture/cleanup
+
 LANG=C systemd-nspawn -M odroidc2 -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
@@ -630,13 +645,21 @@ rm -f /usr/bin/qemu-*
 EOF
 chmod 755 ${basedir}/root/create-initrd
 LANG=C systemd-nspawn -M odroidc2 -D ${basedir}/root /create-initrd
+sync
 umount ${basedir}/root/boot
+
+# rpi-wiggle
+mkdir -p ${basedir}/root/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/root/root/scripts/rpi-wiggle.sh
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
-umount $bootp
-umount $rootp
+# Sync before unmounting to ensure everything is written
+sync
+umount -l $bootp
+umount -l $rootp
 kpartx -dv $loopdevice
 
 # Currently we use pre-built, because (again) Amlogic do some funky stuff.
@@ -663,13 +686,16 @@ cd ${basedir}
 
 losetup -d $loopdevice
 
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-odroidc2.img"
 pixz ${basedir}/kali-linux-$1-odroidc2.img ${basedir}/../kali-linux-$1-odroidc2.img.xz
-echo "Deleting kali-linux-$1-odroidc2.img"
 rm ${basedir}/kali-linux-$1-odroidc2.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
-echo "Clean up the build system"
+echo "Cleaning up the temporary build files..."
 rm -rf ${basedir}
