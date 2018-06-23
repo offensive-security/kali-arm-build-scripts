@@ -243,8 +243,7 @@ EOF
 # them in this section.
 git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ${basedir}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.9.patch
+git rev-parse HEAD > ${basedir}/root/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
