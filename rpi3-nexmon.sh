@@ -306,7 +306,7 @@ EOF
 chmod 755 kali-$architecture/root/buildnexmon.sh
 
 # rpi-wiggle
-mkdir -p ${basedir}/root/scripts
+mkdir -p ${basedir}/kali-$architecture/root/scripts
 wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-$architecture/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-$architecture/root/scripts/rpi-wiggle.sh
 
