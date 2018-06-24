@@ -127,7 +127,7 @@ Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
 [Service]
 Type=oneshot
-ExecStart=/root/rpi-wiggle.sh
+ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
 ExecStartPost=/sbin/reboot
 
@@ -307,8 +307,8 @@ chmod 755 kali-$architecture/root/buildnexmon.sh
 
 # rpi-wiggle
 mkdir -p ${basedir}/root/scripts
-wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-$architecture/root/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-$architecture/root/rpi-wiggle.sh
+wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-$architecture/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/kali-$architecture/root/scripts/rpi-wiggle.sh
 
 cat << 'EOF' > kali-$architecture/root/fakeuname.c
 #define _GNU_SOURCE
