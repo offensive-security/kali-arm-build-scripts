@@ -17,7 +17,7 @@ workfile=$1
 kaliname=kali
 
 if [ $2 ]; then
-    kalname=$2
+    kaliname=$2
 fi
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
@@ -134,8 +134,39 @@ ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
-
 chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+
+cat << EOF > kali-$architecture/lib/systemd/system/enable-ssh.service
+[Unit]
+Description=Turn on SSH if /boot/ssh is present
+ConditionPathExistsGlob=/boot/ssh{,.txt}
+After=regenerate_ssh_host_keys.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /boot/ssh ; rm -f /boot/ssh.txt"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/enable-ssh.service
+
+cat << EOF > kali-$architecture/lib/systemd/system/copy-user-wpasupplicant.service
+[Unit]
+Description=Copy user wpa_supplicant.conf
+ConditionPathExists=/boot/wpa_supplicant.conf
+Before=dhcpcd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/mv /boot/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
+ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/copy-user-wpasupplicant.service
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -204,14 +235,19 @@ apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 echo "Making the image insecure"
 rm -f /etc/ssh/ssh_host_*_key*
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
 systemctl enable rpiwiggle
 # Generate SSH host keys on first run
-
 systemctl enable regenerate_ssh_host_keys
+
 # Enable hciuart for bluetooth device
 systemctl enable hciuart
 
-systemctl enable ssh
+# Enable copying of user wpa_supplicant.conf file
+systemctl enable copy-user-wpasupplicant
+
+# Enable... enabling ssh by putting ssh or ssh.txt file in /boot
+systemctl enable enable-ssh
 
 cp  /etc/bash.bashrc /root/.bashrc
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
@@ -422,6 +458,9 @@ LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "cd /root && gcc 
 LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
+
+# Make sure to enable ssh on the device by default
+touch ${basedir}/bootp/ssh
 
 umount -l $bootp
 umount -l $rootp
