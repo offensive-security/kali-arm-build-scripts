@@ -45,7 +45,7 @@ base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils fir
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="fbset xfce4-terminal xfce4-goodies wpasupplicant"
+extras="fbset xfce4-terminal xfce4-goodies wpasupplicant libnss-systemd"
 #kali="build-essential debhelper devscripts dput lintian quilt git-buildpackage gitk dh-make sbuild"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras} ${kali}"
