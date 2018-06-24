@@ -36,7 +36,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
@@ -175,7 +175,7 @@ LANG=C systemd-nspawn -M nanopi2 -D kali-$architecture /cleanup
 echo "Creating image file for NanoPi2"
 dd if=/dev/zero of=${basedir}/kali-linux-$1-nanopi2.img bs=1M count=7000
 parted kali-linux-$1-nanopi2.img --script -- mklabel msdos
-parted kali-linux-$1-nanopi2.img --script -- mkpart primary ext4 3072s 264191s
+parted kali-linux-$1-nanopi2.img --script -- mkpart primary ext4 4096s 264191s
 parted kali-linux-$1-nanopi2.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
@@ -210,6 +210,9 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
+
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 ${basedir}/root/usr/src/kernel
@@ -217,7 +220,7 @@ cd ${basedir}/root/usr/src/kernel
 git rev-parse HEAD > ../kernel-at-commit
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 # Ugh, this patch is needed because the ethernet driver uses parts of netdev
 # from a newer kernel?
@@ -273,13 +276,9 @@ cd ..
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root INSTALL_MOD_PATH=${basedir}/root install
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root mrproper
 #cp ${basedir}/../kernel-configs/backports.config .config
-XCROSS=arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi2 -o ${basedir}/root
-cd ${basedir}
+XCROSS=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi2 -o ${basedir}/root
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
+cd ${basedir}
 mkdir -p ${basedir}/root/lib/firmware/ap6212/
 wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/root/lib/firmware/ap6212/nvram.txt
 wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/root/lib/firmware/ap6212/fw_bcm43438a0.bin
@@ -304,20 +303,31 @@ chmod 755 ${basedir}/root/etc/init.d/zram
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
-umount $bootp
-umount $rootp
-kpartx -dv $loopdevice
+umount -l $bootp
+umount -l $rootp
 
 # Samsung bootloaders must be signed.
 # These are the same steps that are done by
 # https://github.com/friendlyarm/sd-fuse_nanopi2/blob/master/fusing.sh
-dd if=${basedir}/../misc/nanopi2/2ndboot.bin of=$loopdevice bs=512 seek=1
-dd if=${basedir}/../misc/nanopi2/boot.TBI of=$loopdevice bs=512 seek=64 count=1
-dd if=${basedir}/../misc/nanopi2/bootloader of=$loopdevice bs=512 seek=65
+
+# Download the latest prebuilt from the above url.
+mkdir -p ${basedir}/bootloader
+cd ${basedir}/bootloader
+wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl1-mmcboot.bin
+wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl_mon.img
+wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bootloader.img # This is u-boot
+wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/loader-mmc.img
+
+dd if=bl1-mmcboot.bin of=$loopdevice bs=512 seek=1
+dd if=loader-mmc.img of=$loopdevice bs=512 seek=129
+dd if=bl_mon.img of=$loopdevice bs=512 seek=513
+dd if=bootloader.img of=$loopdevice bs=512 seek=3841
+
 sync
 
 cd ${basedir}
 
+kpartx -dv $loopdevice
 losetup -d $loopdevice
 
 # Clean up all the temporary build stuff and remove the directories.
