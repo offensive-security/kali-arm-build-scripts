@@ -36,7 +36,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
@@ -108,6 +108,35 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+ExecStartPost=/sbin/reboot
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -124,7 +153,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -139,7 +167,13 @@ apt-get --yes --allow-change-held-packages autoremove
 # image insecure and enable root login with a password.
 
 sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-update-rc.d ssh enable
+
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
+
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -179,7 +213,7 @@ EOF
 echo "Creating image file for NanoPi3"
 dd if=/dev/zero of=${basedir}/kali-linux-$1-nanopi3.img bs=1M count=7000
 parted kali-linux-$1-nanopi3.img --script -- mklabel msdos
-parted kali-linux-$1-nanopi3.img --script -- mkpart primary ext4 3072s 264191s
+parted kali-linux-$1-nanopi3.img --script -- mkpart primary ext4 4096s 264191s
 parted kali-linux-$1-nanopi3.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
@@ -214,14 +248,17 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# Clone a cross compiler to use instead of the Kali one due to kernel age.
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 ${basedir}/root/usr/src/kernel
 cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ../kernel-at-commit
+git rev-parse HEAD > ${basedir}/root/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 # Ugh, this patch is needed because the ethernet driver uses parts of netdev
 # from a newer kernel?
@@ -279,13 +316,13 @@ cd ..
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root INSTALL_MOD_PATH=${basedir}/root install
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root mrproper
 #cp ${basedir}/../kernel-configs/backports.config .config
-XCROSS=arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi3 -o ${basedir}/root
+XCROSS=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi3 -o ${basedir}/root
 cd ${basedir}
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
+
+# Copy over the firmware for the nanopi3 wifi.
+# At some point, nexmon could work for the device, but the support would need to
+# be added to nexmon.
 mkdir -p ${basedir}/root/lib/firmware/ap6212/
 wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/root/lib/firmware/ap6212/nvram.txt
 wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/root/lib/firmware/ap6212/fw_bcm43438a0.bin
@@ -309,6 +346,11 @@ chmod 755 ${basedir}/root/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
+# rpi-wiggle
+mkdir -p ${basedir}/root/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/root/root/scripts/rpi-wiggle.sh
+
 # Unmount partitions
 umount $bootp
 umount $rootp
@@ -329,30 +371,31 @@ dd if=${basedir}/bootloader/bl1-mmcboot.bin of=$loopdevice bs=512 seek=1
 dd if=${basedir}/bootloader/fip-loader.img of=$loopdevice bs=512 seek=129 count=1
 dd if=${basedir}/bootloader/fip-secure.img of=$loopdevice bs=512 seek=769
 dd if=${basedir}/bootloader/fip-nonsecure.img of=$loopdevice bs=512 seek=3841
+
+# It should be possible to build your own u-boot, as part of this, if you
+# prefer, it will only generate the fip-nonsecure.img however.
+#git clone https://github.com/friendlyarm/u-boot -b nanopi2-v2016.01
+#cd u-boot
+#make CROSS_COMPILE=aarch64-linux-gnu- s5p6818_nanopi3_defconfig
+#make CROSS_COMPILE=aarch64-linux-gnu-
+#dd if=fip-nonsecure.img of=$loopdevice bs=512 seek=3841
 sync
 
 cd ${basedir}
 
 losetup -d $loopdevice
 
-# Clean up all the temporary build stuff and remove the directories.
-# Comment this out to keep things around if you want to see what may have gone
-# wrong.
-echo "Clean up the build system"
-rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-nanopi3.img"
-sha256sum kali-linux-$1-nanopi3.img > ${basedir}/kali-linux-$1-nanopi3.img.sha256sum
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-nanopi3.img"
-pixz ${basedir}/kali-linux-$1-nanopi3.img ${basedir}/kali-linux-$1-nanopi3.img.xz
+pixz ${basedir}/kali-linux-$1-nanopi3.img ${basedir}/../kali-linux-$1-nanopi3.img.xz
 echo "Deleting kali-linux-$1-nanopi3.img"
 rm ${basedir}/kali-linux-$1-nanopi3.img
-echo "Generating sha256sum for kali-linux-$1-nanopi3.img"
-sha256sum kali-linux-$1-nanopi3.img.xz > ${basedir}/kali-linux-$1-nanopi3.img.xz.sha256sum
 fi
+
+# Clean up all the temporary build stuff and remove the directories.
+# Comment this out to keep things around if you want to see what may have gone
+# wrong.
+echo "Clean up the build system"
+rm -rf ${basedir}
