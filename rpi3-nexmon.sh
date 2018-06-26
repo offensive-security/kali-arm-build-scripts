@@ -451,6 +451,10 @@ cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/root/lib/firmw
 cp ${basedir}/../misc/rpi3/nexutil ${basedir}/root/usr/bin/nexutil
 chmod 755 ${basedir}/root/usr/bin/nexutil
 
+# Copy a default config, with everything commented out so people find it when
+# they go to add something when they are following instructions on a website.
+cp ${basedir}/../misc/config.txt ${basedir}/bootp/config.txt
+
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod 755 ${basedir}/root/etc/init.d/zram
 

@@ -303,6 +303,10 @@ mkdir -p ${basedir}/root/scripts
 wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-$architecture/root/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-$architecture/root/rpi-wiggle.sh
 
+# Copy a default config, with everything commented out so people find it when
+# they go to add something when they are following instructions on a website.
+cp ${basedir}/../misc/config.txt ${basedir}/bootp/config.txt
+
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
 chmod 755 ${basedir}/root/etc/init.d/zram
 

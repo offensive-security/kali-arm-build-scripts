@@ -349,7 +349,11 @@ rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
 
-cat << EOF > ${basedir}/bootp/config.txt
+# Copy a default config, with everything commented out so people find it when
+# they go to add something when they are following instructions on a website.
+cp ${basedir}/../misc/config.txt ${basedir}/bootp/config.txt
+
+cat << EOF >> ${basedir}/bootp/config.txt
 dtoverlay=dwc2
 EOF
 
