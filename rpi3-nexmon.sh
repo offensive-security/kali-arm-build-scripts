@@ -16,6 +16,9 @@ workfile=$1
 
 hostname=kali
 
+# Generate a random machine name to be used.
+machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+
 if [ $2 ]; then
     hostname=$2
 fi
@@ -62,7 +65,7 @@ fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-if LANG=C systemd-nspawn -M rpi3 -D kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
 then
   echo "[*] Secondary Boostrap Success"
 else
@@ -339,7 +342,7 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -o bind /dev/ kali-$architecture/dev/
 #mount -o bind /dev/pts kali-$architecture/dev/pts
 
-if LANG=C systemd-nspawn -M rpi3 -D kali-$architecture /third-stage
+if LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
 then
   echo "[*] Third Stage Boostrap Success"
 else
@@ -458,8 +461,8 @@ mount $bootp ${basedir}/root/boot
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
-LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+LANG=C systemd-nspawn -M $machine -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+LANG=C systemd-nspawn -M $machine -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
