@@ -340,7 +340,7 @@ losetup -d $loopdevice
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing kali-linux-$1-riot.img"
-pixz ${basedir}/kali-linux-$1-riot.img ${basedir}/kali-linux-$1-riot.img.xz
+pixz ${basedir}/kali-linux-$1-riot.img ${basedir}/../kali-linux-$1-riot.img.xz
 rm ${basedir}/kali-linux-$1-riot.img
 fi
 
