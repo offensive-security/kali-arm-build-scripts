@@ -15,6 +15,9 @@ fi
 
 basedir=`pwd`/odroidxu-$1
 
+# Generate a random machine name to be used.
+machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+
 # This is used for cross compiling the exynos5-hwcomposer.
 # If this isn't built/installed, there will be no framebuffer console.
 hosttuple=arm-linux-gnueabihf
@@ -64,7 +67,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -M odroidxu -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
@@ -163,7 +166,7 @@ rm -f /third-stage
 EOF
 
 chmod 755 kali-$architecture/third-stage
-LANG=C systemd-nspawn -M odroidxu -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -177,7 +180,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod 755 kali-$architecture/cleanup
-LANG=C systemd-nspawn -M odroidxu -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts

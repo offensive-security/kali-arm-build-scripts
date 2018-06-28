@@ -15,6 +15,9 @@ fi
 
 basedir=`pwd`/odroidxu3-$1
 
+# Generate a random machine name to be used.
+machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -60,7 +63,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -M odroidxu3 -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
 
 # Create sources.list
 cat << EOF > kali-$architecture/etc/apt/sources.list
@@ -159,7 +162,7 @@ rm -f /third-stage
 EOF
 
 chmod 755 kali-$architecture/third-stage
-LANG=C systemd-nspawn -M odroidxu3 -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -173,7 +176,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod 755 kali-$architecture/cleanup
-LANG=C systemd-nspawn -M odroidxu3 -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts

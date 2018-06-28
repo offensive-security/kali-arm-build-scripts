@@ -15,11 +15,14 @@ fi
 
 basedir=`pwd`/rpi-$1
 workfile=$1
-kaliname=kali
+hostname=kali
 
 if [ $2 ]; then
-    kalname=$2
+    hostname=$2
 fi
+
+# Generate a random machine name to be used.
+machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
@@ -67,7 +70,7 @@ fi
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-if LANG=C systemd-nspawn -M rpi -D kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
 then
   echo "[*] Secondary Boostrap Success"
 else
@@ -80,7 +83,7 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "${kaliname}" > kali-$architecture/etc/hostname
+echo "$hostname" > kali-$architecture/etc/hostname
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
 127.0.0.1       ${kaliname}    localhost
@@ -200,7 +203,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 chmod 755 kali-$architecture/third-stage
 
-if LANG=C systemd-nspawn -M rpi -D kali-$architecture /third-stage
+if LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
 then
   echo "[*] Boostrap Success"
 else
