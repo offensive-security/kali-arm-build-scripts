@@ -455,7 +455,10 @@ mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root/boot
+ls ${basedir} -lah
+echo "mounting root to ${basedir}/root"
 mount $rootp ${basedir}/root
+echo "mounting boot to ${basedir}/root/boot"
 mount $bootp ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
