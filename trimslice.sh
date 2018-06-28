@@ -36,11 +36,11 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek linux-image-armmp"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="iceweasel xfce4-terminal wpasupplicant gcc"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -96,6 +96,28 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -t proc proc kali-$architecture/proc
 #mount -o bind /dev/ kali-$architecture/dev/
 #mount -o bind /dev/pts kali-$architecture/dev/pts
+
+# Fake a uname response so that flash-kernel doesn't bomb out.
+cat << 'EOF' > kali-$architecture/root/fakeuname.c
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <stdio.h>
+#include <string.h>
+/* Fake uname -r because we are in a chroot:
+https://gist.github.com/DamnedFacts/5239593
+*/
+int uname(struct utsname *buf)
+{
+ int ret;
+ ret = syscall(SYS_uname, buf);
+ strcpy(buf->release, "4.16.0-kali2-armmp");
+ strcpy(buf->machine, "armv7l");
+ return ret;
+}
+EOF
 
 cat << EOF > kali-$architecture/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -156,6 +178,10 @@ then
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
+
+cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c
+LD_PRELOAD=/root/libfakeuname.so apt-get --yes --allow-change-held-packages install linux-image-armmp
+cd /
 
 # Resize FS on first run (hopefully)
 systemctl enable rpiwiggle

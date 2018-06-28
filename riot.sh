@@ -15,6 +15,8 @@ fi
 
 basedir=`pwd`/riot-$1
 
+machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
+
 # Make sure that the cross compiler can be found in the path before we do
 # anything else, that way the builds don't fail half way through.
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -35,12 +37,15 @@ unset CROSS_COMPILE
 # script will throw an error, but will still continue on, and create an unusable
 # image, keep that in mind.
 
+# Don't add the kernel here.  It depends on flash-kernel which in turn will fail
+# when building on amd64, instead we fake a uname/architecture further down and
+# actually install the kernel package after compiling it.
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils linux-image-armmp firmware-linux firmware-linux-free firmware-linux-nonfree"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="iceweasel xfce4-terminal wpasupplicant gcc"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -60,7 +65,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
-LANG=C systemd-nspawn -M riot -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -117,6 +122,28 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
 
+# Fake a uname response so that flash-kernel doesn't bomb out.
+cat << 'EOF' > kali-$architecture/root/fakeuname.c
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <stdio.h>
+#include <string.h>
+/* Fake uname -r because we are in a chroot:
+https://gist.github.com/DamnedFacts/5239593
+*/
+int uname(struct utsname *buf)
+{
+ int ret;
+ ret = syscall(SYS_uname, buf);
+ strcpy(buf->release, "4.16.0-kali2-armmp");
+ strcpy(buf->machine, "armv7l");
+ return ret;
+}
+EOF
+
 cat << EOF > kali-$architecture/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -144,6 +171,11 @@ fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
+cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c
+LD_PRELOAD=/root/libfakeuname.so apt-get --yes --allow-change-held-packages install linux-image-armmp
+rm /root/libfakeuname*
+cd /
+
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
@@ -158,7 +190,7 @@ rm -f /third-stage
 EOF
 
 chmod 755 kali-$architecture/third-stage
-LANG=C systemd-nspawn -M riot -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
 
 cat << EOF > kali-$architecture/cleanup
 #!/bin/bash
@@ -172,7 +204,7 @@ rm -f /usr/bin/qemu*
 EOF
 
 chmod 755 kali-$architecture/cleanup
-LANG=C systemd-nspawn -M riot -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
