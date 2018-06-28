@@ -14,10 +14,10 @@ fi
 basedir=`pwd`/rpi3-nexmon-$1
 workfile=$1
 
-kaliname=kali
+hostname=kali
 
 if [ $2 ]; then
-    kaliname=$2
+    hostname=$2
 fi
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
@@ -75,7 +75,7 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "${kaliname}" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-$architecture/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
@@ -353,6 +353,84 @@ rm -rf kali-$architecture/third-stage
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
+# Enable login over serial
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-$architecture/etc/inittab
+
+# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
+#unset http_proxy
+
+# Kernel section. If you want to use a custom kernel, or configuration, replace
+# them in this section.
+git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
+cp -rf rpi-firmware/boot/* ${basedir}/kali-$architecture/boot/
+rm -rf rpi-firmware
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-$architecture/usr/src/kernel
+cd ${basedir}/kali-$architecture/usr/src/kernel
+# ln -s /usr/include/asm-generic /usr/include/asm
+# Set default defconfig
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
+make re4son_pi2_defconfig
+
+# Build kernel
+make -j $(grep -c processor /proc/cpuinfo)
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
+
+
+# Copy kernel to boot
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-$architecture/boot/kernel7.img
+cp arch/arm/boot/dts/*.dtb ${basedir}/kali-$architecture/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-$architecture/boot/overlays/
+cp arch/arm/boot/dts/overlays/README ${basedir}/kali-$architecture/boot/overlays/
+
+# Make firmware and headers
+make firmware_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
+
+# Fix up the symlink for building external modules
+# kernver is used so we don't need to keep track of what the current compiled
+# version is
+kernver=$(ls ${basedir}/kali-$architecture/lib/modules/)
+cd ${basedir}/kali-$architecture/lib/modules/$kernver
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+
+# Create cmdline.txt file
+cd ${basedir}  
+
+cat << EOF > ${basedir}/kali-$architecture/boot/cmdline.txt
+dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
+EOF
+
+# systemd doesn't seem to be generating the fstab properly for some people, so
+# let's create one.
+cat << EOF > ${basedir}/kali-$architecture/etc/fstab
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+proc            /proc           proc    defaults          0       0
+/dev/mmcblk0p1  /boot           vfat    defaults          0       2
+/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
+EOF
+
+# Firmware needed for rpi3 wifi (copy nexmon firmware) 
+mkdir -p ${basedir}/kali-$architecture/lib/firmware/brcm/
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-$architecture/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
+
+# Firmware needed for rpi3 b+ wifi - we comment this out if building for nexmon
+cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.bin ${basedir}/kali-$architecture/lib/firmware/brcm/
+cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/kali-$architecture/lib/firmware/brcm/
+cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/kali-$architecture/lib/firmware/brcm/
+
+cp ${basedir}/../misc/rpi3/nexutil ${basedir}/kali-$architecture/usr/bin/nexutil
+chmod 755 ${basedir}/root/usr/bin/nexutil
+
+# Copy a default config, with everything commented out so people find it when
+# they go to add something when they are following instructions on a website.
+cp ${basedir}/../misc/config.txt ${basedir}/kali-$architecture/boot/config.txt
+
+cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
+chmod 755 ${basedir}/root/etc/init.d/zram
+
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi3 Nexmon"
 dd if=/dev/zero of=${basedir}/kali-linux-$workfile-rpi3-nexmon.img bs=1M count=$size
@@ -373,90 +451,12 @@ mkfs.vfat $bootp
 mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
+mkdir -p ${basedir}/boot ${basedir}/root
 mount $rootp ${basedir}/root
+mount $bootp ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
-
-# Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
-
-# Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
-#unset http_proxy
-
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/bootp/
-rm -rf rpi-firmware
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/root/usr/src/kernel
-cd ${basedir}/root/usr/src/kernel
-# ln -s /usr/include/asm-generic /usr/include/asm
-# Set default defconfig
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-make re4son_pi2_defconfig
-
-# Build kernel
-make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/root
-
-
-# Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel7.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/bootp/overlays/
-cp arch/arm/boot/dts/overlays/README ${basedir}/bootp/overlays/
-
-# Make firmware and headers
-make firmware_install INSTALL_MOD_PATH=${basedir}/root
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-
-# Create cmdline.txt file
-cd ${basedir}  
-
-cat << EOF > ${basedir}/bootp/cmdline.txt
-dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
-EOF
-
-# systemd doesn't seem to be generating the fstab properly for some people, so
-# let's create one.
-cat << EOF > ${basedir}/root/etc/fstab
-# <file system> <mount point>   <type>  <options>       <dump>  <pass>
-proc            /proc           proc    defaults          0       0
-/dev/mmcblk0p1  /boot           vfat    defaults          0       2
-/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
-EOF
-
-# Firmware needed for rpi3 wifi (copy nexmon firmware) 
-mkdir -p ${basedir}/root/lib/firmware/brcm/
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/root/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
-
-# Firmware needed for rpi3 b+ wifi - we comment this out if building for nexmon
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.bin ${basedir}/root/lib/firmware/brcm/
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/root/lib/firmware/brcm/
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/root/lib/firmware/brcm/
-
-cp ${basedir}/../misc/rpi3/nexutil ${basedir}/root/usr/bin/nexutil
-chmod 755 ${basedir}/root/usr/bin/nexutil
-
-# Copy a default config, with everything commented out so people find it when
-# they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/bootp/config.txt
-
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
 
 LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
 LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
@@ -464,17 +464,12 @@ LANG=C systemd-nspawn -M rpi3 -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
 # Make sure to enable ssh on the device by default
-touch ${basedir}/bootp/ssh
+touch ${basedir}/root/boot/ssh
 
 umount -l $bootp
 umount -l $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
-
-rm -rf ${basedir}/bootp
-rm -rf ${basedir}/root
-rm -rf ${basedir}/boot
-rm -rf ${basedir}/patches
 
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
