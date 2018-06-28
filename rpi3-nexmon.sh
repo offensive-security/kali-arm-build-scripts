@@ -432,7 +432,7 @@ chmod 755 ${basedir}/kali-$architecture/usr/bin/nexutil
 cp ${basedir}/../misc/config.txt ${basedir}/kali-$architecture/boot/config.txt
 
 cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
+chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi3 Nexmon"
