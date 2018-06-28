@@ -454,7 +454,7 @@ mkfs.vfat $bootp
 mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/boot ${basedir}/root
+mkdir -p ${basedir}/root/boot
 mount $rootp ${basedir}/root
 mount $bootp ${basedir}/root/boot
 
