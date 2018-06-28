@@ -425,7 +425,7 @@ cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/kali-$architecture/
 cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/kali-$architecture/lib/firmware/brcm/
 
 cp ${basedir}/../misc/rpi3/nexutil ${basedir}/kali-$architecture/usr/bin/nexutil
-chmod 755 ${basedir}/root/usr/bin/nexutil
+chmod 755 ${basedir}/kali-$architecture/usr/bin/nexutil
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
