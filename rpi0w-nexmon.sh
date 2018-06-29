@@ -17,10 +17,17 @@ fi
 basedir=`pwd`/rpi0w-nexmon-$1
 TOPDIR=`pwd`
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST include .img at the end.
+imagename=kali-linux-$1-rpi0w-nexmon.img
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -246,7 +253,6 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-
 cd ${TOPDIR}
 
 # RPI Firmware
@@ -305,7 +311,6 @@ proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
 EOF
 
-
 # rpi-wiggle
 mkdir -p ${basedir}/kali-$architecture/root/scripts
 wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-$architecture/root/scripts/rpi-wiggle.sh
@@ -333,13 +338,13 @@ sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-$architec
 
 # Create the disk and partition it
 echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-rpi0w-nexmon.img bs=1M count=$size
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mklabel msdos
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary ext4 64 -1
+dd if=/dev/zero of=${basedir}/$imagename bs=1M count=$size
+parted $imagename --script -- mklabel msdos
+parted $imagename --script -- mkpart primary fat32 0 64
+parted $imagename --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-rpi0w-nexmon.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -358,6 +363,7 @@ mount $bootp ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+sync
 
 # Unmount partitions
 umount -l $bootp
@@ -368,10 +374,11 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-rpi0w-nexmon.img"
-pixz ${basedir}/kali-linux-$1-rpi0w-nexmon.img ${basedir}/../kali-linux-$1-rpi0w-nexmon.img.xz
-rm ${basedir}/kali-linux-$1-rpi0w-nexmon.img
+echo "Compressing $imagename"
+pixz ${basedir}/$imagename ${basedir}/../$imagename.xz
+rm ${basedir}/$imagename
 fi
+
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
