@@ -13,9 +13,14 @@ fi
 basedir=`pwd`/exynos-$1
 
 hostname=kali
+imagename=kali-linux-$1-exynos
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+    imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -46,7 +51,7 @@ base="alsa-utils e2fsprogs initramfs-tools kali-defaults kali-menu laptop-mode-t
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas firmware-atheros"
+extras="iceweasel xfce4-terminal wpasupplicant firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -166,31 +171,9 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
-echo "Creating image file for Exynos-based Chromebooks"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-exynos.img bs=1M count=7000
-parted kali-linux-$1-exynos.img --script -- mklabel gpt
-cgpt create -z kali-linux-$1-exynos.img
-cgpt create kali-linux-$1-exynos.img
 
-cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 kali-linux-$1-exynos.img
-cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show kali-linux-$1-exynos.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root kali-linux-$1-exynos.img
 
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-exynos.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
-sleep 5
-device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
-
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
-
-mkdir -p ${basedir}/root
-mount $rootp ${basedir}/root
-
-echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
-
-cat << EOF > ${basedir}/root/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-$architecture/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main contrib non-free
 deb-src http://http.kali.org/kali kali-rolling main contrib non-free
 EOF
@@ -206,8 +189,8 @@ git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/root/usr/src/kernel
-cd ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/kali-$architecture/usr/src/kernel
+cd ${basedir}/kali-$architecture/usr/src/kernel
 cp ${basedir}/../kernel-configs/chromebook-3.8.config .config
 cp ${basedir}/../kernel-configs/chromebook-3.8.config ../exynos.config
 cp ${basedir}/../kernel-configs/chromebook-3.8_wireless-3.4.config exynos_wifi34.config
@@ -222,8 +205,8 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Commented-out-pr_
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-Fix-udl_connector-include.patch
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
-make modules_install INSTALL_MOD_PATH=${basedir}/root
-cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-exynos.its
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
+cat << __EOF__ > ${basedir}/kali-$architecture/usr/src/kernel/arch/arm/boot/kernel-exynos.its
 /dts-v1/;
  
 / {
@@ -427,7 +410,7 @@ cat << __EOF__ > ${basedir}/root/usr/src/kernel/arch/arm/boot/kernel-exynos.its
     };
 };
 __EOF__
-cd ${basedir}/root/usr/src/kernel/arch/arm/boot
+cd ${basedir}/kali-$architecture/usr/src/kernel/arch/arm/boot
 mkimage -D "-I dts -O dtb -p 2048" -f kernel-exynos.its exynos-kernel
 
 # microSD Card
@@ -439,7 +422,7 @@ dd if=/dev/zero of=bootloader.bin bs=512 count=1
 
 vbutil_kernel --arch arm --pack ${basedir}/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --bootloader bootloader.bin --vmlinuz exynos-kernel
 
-cd ${basedir}/root/usr/src/kernel/
+cd ${basedir}/kali-$architecture/usr/src/kernel/
 make mrproper
 cp ../exynos.config .config
 make modules_prepare
@@ -448,8 +431,8 @@ cd ${basedir}
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-$architecture/lib/modules/)
+cd ${basedir}/kali-$architecture/lib/modules/$kernver
 rm build
 rm source
 ln -s /usr/src/kernel build
@@ -457,16 +440,16 @@ ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Bit of a hack to hide eMMC partitions from XFCE
-cat << EOF > ${basedir}/root/etc/udev/rules.d/99-hide-emmc-partitions.rules
+cat << EOF > ${basedir}/kali-$architecture/etc/udev/rules.d/99-hide-emmc-partitions.rules
 KERNEL=="mmcblk0*", ENV{UDISKS_IGNORE}="1"
 EOF
 
 # Disable uap0 and p2p0 interfaces in NetworkManager
-printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> ${basedir}/root/etc/NetworkManager/NetworkManager.conf
+printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> ${basedir}/kali-$architecture/etc/NetworkManager/NetworkManager.conf
 
 # Touchpad configuration
-mkdir -p ${basedir}/root/etc/X11/xorg.conf.d
-cat << EOF > ${basedir}/root/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
+mkdir -p ${basedir}/kali-$architecture/etc/X11/xorg.conf.d
+cat << EOF > ${basedir}/kali-$architecture/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
 Section "InputClass"
 	Identifier		"touchpad"
 	MatchIsTouchpad		"on"
@@ -481,12 +464,12 @@ EndSection
 EOF
 
 # Mali GPU rules aka mali-rules package in ChromeOS
-cat << EOF > ${basedir}/root/etc/udev/rules.d/50-mali.rules
+cat << EOF > ${basedir}/kali-$architecture/etc/udev/rules.d/50-mali.rules
 KERNEL=="mali0", MODE="0660", GROUP="video"
 EOF
 
 # Video rules aka media-rules package in ChromeOS
-cat << EOF > ${basedir}/root/etc/udev/rules.d/50-media.rules
+cat << EOF > ${basedir}/kali-$architecture/etc/udev/rules.d/50-media.rules
 ATTR{name}=="s5p-mfc-dec", SYMLINK+="video-dec"
 ATTR{name}=="s5p-mfc-enc", SYMLINK+="video-enc"
 ATTR{name}=="s5p-jpeg-dec", SYMLINK+="jpeg-dec"
@@ -505,7 +488,7 @@ EOF
 
 # This is for Peach - kinda a hack, never really worked properly they say.
 # Ambient light sensor
-cat << EOF > ${basedir}/root/lib/udev/light-sensor-set-multiplier.sh
+cat << EOF > ${basedir}/kali-$architecture/lib/udev/light-sensor-set-multiplier.sh
 #!/bin/sh
 
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
@@ -515,66 +498,79 @@ cat << EOF > ${basedir}/root/lib/udev/light-sensor-set-multiplier.sh
 # In iio/devices, find device0 on 3.0.x kernels and iio:device0 on 3.2 kernels.
 for FILE in /sys/bus/iio/devices/*/in_illuminance0_calibscale; do
   # Set the light sensor calibration value.
-  echo 5.102040 > $FILE && break;
+  echo 5.102040 > \$FILE && break;
 done
 
 for FILE in /sys/bus/iio/devices/*/in_illuminance1_calibscale; do
   # Set the IR compensation calibration value.
-  echo 0.053425 > $FILE && break;
+  echo 0.053425 > \$FILE && break;
 done
 
 for FILE in /sys/bus/iio/devices/*/range; do
   # Set the light sensor range value (max lux)
-  echo 16000 > $FILE && break;
+  echo 16000 > \$FILE && break;
 done
 
 for FILE in /sys/bus/iio/devices/*/continuous; do
   # Change the measurement mode to the continuous mode
-  echo als > $FILE && break;
+  echo als > \$FILE && break;
 done
 EOF
 
-cat << EOF > ${basedir}/root/lib/udev/rules.d/99-light-sensor.rules
+cat << EOF > ${basedir}/kali-$architecture/lib/udev/rules.d/99-light-sensor.rules
 # Calibrate the light sensor when the isl29018 driver is installed.
 ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="isl29018", RUN+="light-sensor-set-multiplier.sh"
 EOF
 
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
+chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-$architecture/etc/ssh/sshd_config
 
 # Unmount partitions
 umount $rootp
+
+echo "Creating image file for Exynos-based Chromebooks"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
+parted kali-linux-$1-exynos.img --script -- mklabel gpt
+cgpt create -z $imagename.img
+cgpt create $imagename.img
+
+cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 $imagename.img
+cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show $imagename.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root $imagename.img
+
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
+device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+sleep 5
+device="/dev/mapper/${device}"
+bootp=${device}p1
+rootp=${device}p2
+
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
+
+mkdir -p ${basedir}/root
+mount $rootp ${basedir}/root
+
+echo "Rsyncing rootfs into image file"
+rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
 
 dd if=${basedir}/kernel.bin of=$bootp
 
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
+fi
+
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/kernel.bin ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/bootloader.bin
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-exynos.img"
-sha256sum kali-linux-$1-exynos.img > ${basedir}/kali-linux-$1-exynos.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-exynos.img"
-pixz ${basedir}/kali-linux-$1-exynos.img ${basedir}/kali-linux-$1-exynos.img.xz
-rm ${basedir}/kali-linux-$1-exynos.img
-echo "Generating sha256sum for kali-linux-$1-exynos.img.xz"
-sha256sum kali-linux-$1-exynos.img.xz > ${basedir}/kali-linux-$1-exynos.img.xz.sha256sum
-fi
+rm -rf ${basedir}
