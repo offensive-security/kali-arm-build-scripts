@@ -27,7 +27,7 @@ if [ $2 ]; then
 fi
 
 if [ $3 ]; then
-	imagename=$3
+    imagename=$3
 fi
 
 # Generate a random machine name to be used.
