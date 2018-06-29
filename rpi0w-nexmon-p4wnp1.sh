@@ -17,10 +17,17 @@ fi
 basedir=`pwd`/rpi0w-nexmon-p4wnp1-$1
 TOPDIR=`pwd`
 
+# Custom hostname variable
 hostname=kali
+# Custom image name variable - MUST include .img at the end.
+imagename=kali-linux-$1-rpi0w-nexmon-p4wnp1.img
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -70,6 +77,7 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
+
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
@@ -152,7 +160,6 @@ ExecStartPost=/sbin/reboot
 WantedBy=multi-user.target
 EOF
 chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
-
 
 # Bluetooth enabling
 mkdir -p kali-$architecture/etc/udev/rules.d
@@ -271,37 +278,10 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
-# Create the disk and partition it
-echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-rpi0w-nexmon.img bs=1M count=$size
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mklabel msdos
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-linux-$1-rpi0w-nexmon.img --script -- mkpart primary ext4 64 -1
-
-# Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-rpi0w-nexmon.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
-sleep 5
-device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
-
-# Create file systems
-mkfs.vfat $bootp
-mkfs.ext4 $rootp
-
-# Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
-
-echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
-
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-$architecture/etc/inittab
 
-cat << EOF > ${basedir}/root/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-$architecture/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -316,15 +296,13 @@ cd ${TOPDIR}
 
 # RPI Firmware
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/bootp/
+cp -rf rpi-firmware/boot/* ${basedir}/kali-$architecture/boot/
 rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.y-nexutil ${basedir}/root/usr/src/kernel
-cd ${basedir}/root/usr/src/kernel
-
-ln -s /usr/include/asm-generic /usr/include/asm
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.y-nexutil ${basedir}/kali-$architecture/usr/src/kernel
+cd ${basedir}/kali-$architecture/usr/src/kernel
 
 # Set default defconfig
 export ARCH=arm
@@ -337,22 +315,22 @@ make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 
 # Make kernel modules
-make modules_install INSTALL_MOD_PATH=${basedir}/root
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
 
 # Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/bootp/kernel.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/bootp/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/bootp/overlays/
-cp arch/arm/boot/dts/overlays/README ${basedir}/bootp/overlays/
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-$architecture/boot/kernel.img
+cp arch/arm/boot/dts/*.dtb ${basedir}/kali-$architecture/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-$architecture/boot/overlays/
+cp arch/arm/boot/dts/overlays/README ${basedir}/kali-$architecture/boot/overlays/
 
 # Make firmware and headers
-make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/root
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-$architecture/lib/modules/)
+cd ${basedir}/kali-$architecture/lib/modules/$kernver
 rm build
 rm source
 ln -s /usr/src/kernel build
@@ -360,20 +338,20 @@ ln -s /usr/src/kernel source
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/bootp/config.txt
+cp ${basedir}/../misc/config.txt ${basedir}/kali-$architecture/boot/config.txt
 
-cat << EOF >> ${basedir}/bootp/config.txt
+cat << EOF >> ${basedir}/kali-$architecture/boot/config.txt
 dtoverlay=dwc2
 EOF
 
 # Create cmdline.txt file
-cat << EOF > ${basedir}/bootp/cmdline.txt
+cat << EOF > ${basedir}/kali-$architecture/boot/cmdline.txt
 dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
-cat << EOF > ${basedir}/root/etc/fstab
+cat << EOF > ${basedir}/kali-$architecture/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
@@ -382,25 +360,54 @@ EOF
 
 
 # rpi-wiggle
-mkdir -p ${basedir}/root/root/scripts
-wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/root/scripts/rpi-wiggle.sh
+mkdir -p ${basedir}/kali-$architecture/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-$architecture/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/kali-$architecture/scripts/rpi-wiggle.sh
 
 # Firmware needed for rpi3 wifi (copy nexmon firmware)
-mkdir -p ${basedir}/root/lib/firmware/brcm/
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/root/lib/firmware/brcm/brcmfmac43430-sdio.bin
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/root/lib/firmware/brcm/
+mkdir -p ${basedir}/kali-$architecture/lib/firmware/brcm/
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-$architecture/lib/firmware/brcm/brcmfmac43430-sdio.bin
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-$architecture/lib/firmware/brcm/
 
 # Copy nexutil
-cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/root/usr/bin/nexutil
-chmod 755 ${basedir}/root/usr/bin/nexutil
+cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/kali-$architecture/usr/bin/nexutil
+chmod 755 ${basedir}/kali-$architecture/usr/bin/nexutil
 
 cd ${basedir}
 
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
+chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+
+# Create the disk and partition it
+echo "Creating image file for Raspberry Pi"
+dd if=/dev/zero of=${basedir}/$imagename bs=1M count=$size
+parted $imagename --script -- mklabel msdos
+parted $imagename --script -- mkpart primary fat32 0 64
+parted $imagename --script -- mkpart primary ext4 64 -1
+
+# Set the partition variables
+loopdevice=`losetup -f --show ${basedir}/$imagename`
+device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+sleep 5
+device="/dev/mapper/${device}"
+bootp=${device}p1
+rootp=${device}p2
+
+# Create file systems
+mkfs.vfat $bootp
+mkfs.ext4 $rootp
+
+# Create the dirs for the partitions and mount them
+mkdir -p ${basedir}/root
+mount $rootp ${basedir}/root
+mkdir -p ${basedir}/root/boot
+mount $bootp ${basedir}/root/boot
+
+echo "Rsyncing rootfs into image file"
+rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+sync
 
 # Unmount partitions
 umount $bootp
@@ -411,9 +418,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-rpi0w-nexmon.img"
-pixz ${basedir}/kali-linux-$1-rpi0w-nexmon.img ${basedir}/../kali-linux-$1-rpi0w-nexmon.img.xz
-rm ${basedir}/kali-linux-$1-rpi0w-nexmon.img
+echo "Compressing $imagename"
+pixz ${basedir}/$imagename ${basedir}/../$imagename.xz
+rm ${basedir}/$imagename
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
