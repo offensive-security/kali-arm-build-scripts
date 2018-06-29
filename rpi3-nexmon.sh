@@ -16,12 +16,12 @@ workfile=$1
 
 hostname=kali
 
-# Generate a random machine name to be used.
-machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
-
 if [ $2 ]; then
     hostname=$2
 fi
+
+# Generate a random machine name to be used.
+machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="e2fsprogs initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas net-tools iw wget"
@@ -78,11 +78,11 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "${hostname}" > kali-$architecture/etc/hostname
+echo "$hostname" > kali-$architecture/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       ${kaliname}    localhost
+127.0.0.1       $hostname    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix

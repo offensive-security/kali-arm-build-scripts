@@ -17,6 +17,12 @@ fi
 basedir=`pwd`/rpi0w-nexmon-$1
 TOPDIR=`pwd`
 
+hostname=kali
+
+if [ $2 ]; then
+    hostname=$2
+fi
+
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
@@ -69,11 +75,11 @@ deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "kali" > kali-$architecture/etc/hostname
+echo "$hostname" > kali-$architecture/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1       $hostname    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix

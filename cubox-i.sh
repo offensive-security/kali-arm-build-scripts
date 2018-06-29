@@ -14,6 +14,12 @@ fi
 
 basedir=`pwd`/cubox-i-$1
 
+hostname=kali
+
+if [ $2 ]; then
+    hostname=$2
+fi
+
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
@@ -66,9 +72,9 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
-echo "kali" > kali-$architecture/etc/hostname
+echo "$hostname" > kali-$architecture/etc/hostname
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       kali    localhost
+127.0.0.1       $hostname    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
