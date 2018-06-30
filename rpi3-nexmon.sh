@@ -12,12 +12,18 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 basedir=`pwd`/rpi3-nexmon-$1
-workfile=$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-rpi3-nexmon
 
 if [ $2 ]; then
-    hostname=$2
+  hostname=$2
+fi
+
+if [ $3 ]; then
+  imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -435,14 +441,14 @@ cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
 chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
 
 # Create the disk and partition it
-echo "Creating image file for Raspberry Pi3 Nexmon"
-dd if=/dev/zero of=${basedir}/kali-linux-$workfile-rpi3-nexmon.img bs=1M count=$size
-parted kali-linux-$workfile-rpi3-nexmon.img --script -- mklabel msdos
-parted kali-linux-$workfile-rpi3-nexmon.img --script -- mkpart primary fat32 0 64
-parted kali-linux-$workfile-rpi3-nexmon.img --script -- mkpart primary ext4 64 -1
+echo "Creating image file $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=$size
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 0 64
+parted $imagename.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$workfile-rpi3-nexmon.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -477,11 +483,11 @@ losetup -d $loopdevice
 
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$workfile-rpi3-nexmon.img"
-pixz ${basedir}/kali-linux-$workfile-rpi3-nexmon.img ${basedir}/kali-linux-$workfile-rpi3-nexmon.img.xz
-mv ${basedir}/kali-linux-$workfile-rpi3-nexmon.img.xz ${basedir}/../
-rm ${basedir}/kali-linux-$workfile-rpi3-nexmon.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
+
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.

@@ -14,11 +14,18 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 basedir=`pwd`/rpi-$1
-workfile=$1
+
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-rpi
 
 if [ $2 ]; then
-    hostname=$2
+  hostname=$2
+fi
+
+if [ $3 ]; then
+  imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -216,14 +223,14 @@ fi
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for Raspberry Pi"
-dd if=/dev/zero of=${basedir}/kali-linux-$workfile-rpi.img bs=1M count=$size
-parted kali-linux-$workfile-rpi.img --script -- mklabel msdos
-parted kali-linux-$workfile-rpi.img --script -- mkpart primary fat32 0 64
-parted kali-linux-$workfile-rpi.img --script -- mkpart primary ext4 64 -1
+echo "Creating image file $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=$size
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 0 64
+parted $imagename.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$workfile-rpi.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -336,10 +343,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$workfile-rpi.img"
-pixz ${basedir}/kali-linux-$workfile-rpi.img ${basedir}/kali-linux-$workfile-rpi.img.xz
-mv ${basedir}/kali-linux-$workfile-rpi.img.xz ${basedir}/../
-rm ${basedir}/kali-linux-$workfile-rpi.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.

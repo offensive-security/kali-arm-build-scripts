@@ -12,10 +12,17 @@ fi
 
 basedir=`pwd`/cubietruck-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-cubietruck
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -42,7 +49,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -123,7 +130,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -164,13 +170,13 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-dd if=/dev/zero of=${basedir}/kali-linux-$1-cubietruck.img bs=1M count=7000
-parted kali-linux-$1-cubietruck.img --script -- mklabel msdos
-parted kali-linux-$1-cubietruck.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-linux-$1-cubietruck.img --script -- mkpart primary ext4 264192s 100%
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 2048s 264191s
+parted $imagename.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-cubietruck.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -262,10 +268,6 @@ make -j $(grep -c processor /proc/cpuinfo)
 
 dd if=u-boot-sunxi-with-spl.bin of=$loopdevice bs=1024 seek=8
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
@@ -274,27 +276,21 @@ chmod 755 ${basedir}/root/etc/init.d/zram
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
 
 # Unmount partitions
+sync
 umount $bootp
 umount $rootp
 kpartx -dv $loopdevice
+
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/patches ${basedir}/*sunxi*
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum of kali-linux-$1-cubietruck.img"
-sha256sum kali-linux-$1-cubietruck.img > ${basedir}/kali-linux-$1-cubietruck.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-cubietruck.img"
-pixz ${basedir}/kali-linux-$1-cubietruck.img ${basedir}/kali-linux-$1-cubietruck.img.xz
-rm ${basedir}/kali-linux-$1-cubietruck.img
-echo "Generating sha256sum of kali-linux-$1-cubietruck.img.xz"
-sha256sum kali-linux-$1-cubietruck.img.xz > ${basedir}/kali-linux-$1-cubietruck.img.xz.sha256sum
-fi
+rm -rf ${basedir}

@@ -15,7 +15,9 @@ fi
 
 basedir=`pwd`/rpi2-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
 imagename=kali-linux-$1-rpi2
 
 if [ $2 ]; then

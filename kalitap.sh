@@ -12,10 +12,17 @@ fi
 
 basedir=`pwd`/kalitap-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-kalitap
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -31,7 +38,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools usbutils"
+base="kali-menu kali-defaults initramfs-tools usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="xfce4 network-manager network-manager-gnome ntpdate xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
@@ -118,7 +125,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -167,15 +173,15 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for kalitap"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-kalitap.img bs=1M count=7000
-parted kali-linux-$1-kalitap.img --script -- mklabel msdos
-parted kali-linux-$1-kalitap.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-linux-$1-kalitap.img --script -- mkpart primary ext4 264192s 100%
-parted kali-linux-$1-kalitap.img --script -- set 1 boot on
+echo "Creating image file $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 2048s 264191s
+parted $imagename.img --script -- mkpart primary ext4 264192s 100%
+parted $imagename.img --script -- set 1 boot on
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-kalitap.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -239,10 +245,6 @@ cat << EOF > ${basedir}/root/etc/fstab
 /dev/mmcblk0p1 /boot auto noauto 0 0
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 # Fix up the symlink for building external modules
@@ -304,23 +306,16 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/u-boot ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/kernel ${basedir}/utilities
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-kalitap.img"
-sha256sum kali-linux-$1-kalitap.img > ${basedir}/kali-linux-$1-kalitap.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-kalitap.img"
-pixz ${basedir}/kali-linux-$1-kalitap.img
-echo "Generating sha256sum for kali-linux-$1-kalitap.img.xz"
-sha256sum kali-linux-$1-kalitap.img.xz > ${basedir}/kali-linux-$1-kalitap.img.xz.sha256sum
-fi
+rm -rf ${basedir}

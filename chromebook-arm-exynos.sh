@@ -12,7 +12,9 @@ fi
 
 basedir=`pwd`/exynos-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
 imagename=kali-linux-$1-exynos
 
 if [ $2 ]; then

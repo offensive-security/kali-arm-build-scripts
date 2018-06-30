@@ -14,10 +14,17 @@ fi
 
 basedir=`pwd`/cubox-i-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-cubox-i
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -44,7 +51,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -69,10 +76,13 @@ debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http:
 cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
 
 LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
+
 cat << EOF > kali-$architecture/etc/apt/sources.list
 deb http://$mirror/kali kali-rolling main contrib non-free
 EOF
+
 echo "$hostname" > kali-$architecture/etc/hostname
+
 cat << EOF > kali-$architecture/etc/hosts
 127.0.0.1       $hostname    localhost
 ::1             localhost ip6-localhost ip6-loopback
@@ -181,13 +191,13 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
-echo "Creating image file for Cubox-i"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-cubox-i.img bs=1 count=0 seek=7G
-parted kali-linux-$1-cubox-i.img --script -- mklabel msdos
-parted kali-linux-$1-cubox-i.img --script -- mkpart primary ext4 2048 100%
+echo "Creating image file for $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1 count=0 seek=7G
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary ext4 2048 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-cubox-i.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -262,10 +272,6 @@ mmcargs=setenv bootargs root=/dev/mmcblk0p1 rootwait video=mxcfb0:dev=hdmi \
 consoleblank=0 console=ttymxc0,115200 net.ifnames=0 rw rootfstype=ext4
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
 # For some reason the brcm firmware doesn't work properly in linux-firmware git
@@ -306,9 +312,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-cubox-i.img"
-pixz ${basedir}/kali-linux-$1-cubox-i.img ${basedir}/../kali-linux-$1-cubox-i.img.xz
-rm ${basedir}/kali-linux-$1-cubox-i.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.

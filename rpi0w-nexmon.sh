@@ -19,8 +19,8 @@ TOPDIR=`pwd`
 
 # Custom hostname variable
 hostname=kali
-# Custom image file name variable - MUST include .img at the end.
-imagename=kali-linux-$1-rpi0w-nexmon.img
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-rpi0w-nexmon
 
 if [ $2 ]; then
     hostname=$2
@@ -337,14 +337,14 @@ chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-$architecture/etc/ssh/sshd_config
 
 # Create the disk and partition it
-echo "Creating image file for Raspberry Pi"
+echo "Creating image file $imagename.img"
 dd if=/dev/zero of=${basedir}/$imagename bs=1M count=$size
-parted $imagename --script -- mklabel msdos
-parted $imagename --script -- mkpart primary fat32 0 64
-parted $imagename --script -- mkpart primary ext4 64 -1
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 0 64
+parted $imagename.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/$imagename`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -374,9 +374,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing $imagename"
-pixz ${basedir}/$imagename ${basedir}/../$imagename.xz
-rm ${basedir}/$imagename
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.

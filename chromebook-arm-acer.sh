@@ -12,10 +12,17 @@ fi
 
 basedir=`pwd`/nyan-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-acer
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+    imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -42,11 +49,11 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="alsa-utils e2fsprogs initramfs-tools kali-defaults kali-menu laptop-mode-tools parted sudo usbutils"
+base="alsa-utils e2fsprogs initramfs-tools kali-defaults kali-menu laptop-mode-tools parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-goodies xfce4-terminal wpasupplicant firmware-linux firmware-linux-nonfree firmware-libertas firmware-atheros"
+extras="iceweasel xfce4-goodies xfce4-terminal wpasupplicant"
 
 packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
 architecture="armhf"
@@ -166,16 +173,16 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
-echo "Creating image file for Acer Chromebook"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-acer.img bs=1M count=7000
-parted kali-linux-$1-acer.img --script -- mklabel gpt
-cgpt create -z kali-linux-$1-acer.img
-cgpt create kali-linux-$1-acer.img
+echo "Creating image file for $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
+parted $imagename.img --script -- mklabel gpt
+cgpt create -z $imagename.img
+cgpt create $imagename.img
 
-cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 kali-linux-$1-acer.img
-cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show kali-linux-$1-acer.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root kali-linux-$1-acer.img
+cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 $imagename.img
+cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show $imagename.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root $imagename.img
 
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-acer.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -478,9 +485,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-acer.img"
-pixz ${basedir}/kali-linux-$1-acer.img ${basedir}/../kali-linux-$1-acer.img.xz
-rm ${basedir}/kali-linux-$1-acer.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.

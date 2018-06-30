@@ -12,7 +12,10 @@ fi
 
 basedir=`pwd`/mini-x-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-
 
 if [ $2 ]; then
     hostname=$2

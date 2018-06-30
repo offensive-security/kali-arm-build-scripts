@@ -14,10 +14,17 @@ echo "This script is now deprecated.  The kernel is too old to run systemd"
 
 basedir=`pwd`/efikamx-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-efikamx
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -44,7 +51,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils uboot-mkimage"
-base="kali-menu kali-defaults initramfs-tools usbutils"
+base="kali-menu kali-defaults initramfs-tools usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="xfce4 network-manager network-manager-gnome xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
@@ -171,14 +178,14 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for EfikaMX"
-dd if=/dev/zero of=${basedir}/kali-$1-efikamx.img bs=1M count=7000
-parted kali-$1-efikamx.img --script -- mklabel msdos
-parted kali-$1-efikamx.img --script -- mkpart primary ext2 4096s 266239s
-parted kali-$1-efikamx.img --script -- mkpart primary ext4 266240s 100%
+echo "Creating image file for $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary ext2 4096s 266239s
+parted $imagename.img --script -- mkpart primary ext4 266240s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-efikamx.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -258,36 +265,25 @@ EOF
 # Create u-boot boot script image
 mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.script ${basedir}/bootp/boot.scr
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-cd firmware
-rm -rf .git
 cd ${basedir}
 
 # Unmount partitions
-umount $bootp
-umount $rootp
+sync
+umount -l $bootp
+umount -l $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
+
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha1sum for kali-$1-efikamx.img"
-sha1sum kali-$1-efikamx.img > ${basedir}/kali-$1-efikamx.img.sha1sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-efikamx.img"
-pixz ${basedir}/kali-$1-efikamx.img ${basedir}/kali-$1-efikamx.img.xz
-rm ${basedir}/kali-$1-efikamx.img
-echo "Generating sha1sum for kali-$1-efikamx.img.xz"
-sha1sum kali-$1-efikamx.img.xz > ${basedir}/kali-$1-efikamx.img.xz.sha1sum
-fi
+rm -rf ${basedir}

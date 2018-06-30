@@ -15,10 +15,17 @@ fi
 
 basedir=`pwd`/rpi-tft-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-rpitft
 
 if [ $2 ]; then
-    hostname=$2
+  hostname=$2
+fi
+
+if [ $3 ]; then
+  imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -208,14 +215,14 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for Raspberry PiTFT"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-rpitft.img bs=1M count=$size
-parted kali-linux-$1-rpitft.img --script -- mklabel msdos
-parted kali-linux-$1-rpitft.img --script -- mkpart primary fat32 0 64
-parted kali-linux-$1-rpitft.img --script -- mkpart primary ext4 64 -1
+echo "Creating image file $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=$size
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 0 64
+parted $imagename.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-rpitft.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -363,9 +370,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-rpitft.img"
-pixz ${basedir}/kali-linux-$1-rpitft.img ${basedir}/../kali-linux-$1-rpitft.img.xz
-rm ${basedir}/kali-linux-$1-rpitft.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.

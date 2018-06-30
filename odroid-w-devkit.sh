@@ -15,10 +15,17 @@ fi
 
 basedir=`pwd`/odroid-w-devkit-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-owdk
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 # Generate a random machine name to be used.
@@ -34,7 +41,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
+base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -125,7 +132,6 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install $packages
@@ -169,14 +175,14 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for ODROID-W Dev Kit"
-dd if=/dev/zero of=${basedir}/kali-$1-owdk.img bs=1M count=$size
-parted kali-$1-owdk.img --script -- mklabel msdos
-parted kali-$1-owdk.img --script -- mkpart primary fat32 0 64
-parted kali-$1-owdk.img --script -- mkpart primary ext4 64 -1
+echo "Creating image file $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=$size
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 0 64
+parted $imagename.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-$1-owdk.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -333,23 +339,16 @@ umount $rootp
 kpartx -dv $loopdevice
 losetup -d $loopdevice
 
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
+fi
+
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/boot ${basedir}/tools ${basedir}/patches
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha1sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha1sum for kali-$1-owdk.img"
-sha1sum kali-$1-owdk.img > ${basedir}/kali-$1-owdk.img.sha1sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-$1-owdk.img"
-pixz ${basedir}/kali-$1-owdk.img ${basedir}/kali-$1-owdk.img.xz
-rm ${basedir}/kali-$1-owdk.img
-echo "Generating sha1sum for kali-$1-owdk.img.xz"
-sha1sum kali-$1-owdk.img.xz > ${basedir}/kali-$1-owdk.img.xz.sha1sum
-fi
+rm -rf ${basedir}

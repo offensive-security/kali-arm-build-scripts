@@ -15,10 +15,17 @@ fi
 
 basedir=`pwd`/riot-$1
 
+# Custom hostname variable
 hostname=kali
+# Custom image file name variable - MUST NOT include .img at the end.
+imagename=kali-linux-$1-riot
 
 if [ $2 ]; then
     hostname=$2
+fi
+
+if [ $3 ]; then
+	imagename=$3
 fi
 
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -218,14 +225,14 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 #umount kali-$architecture/proc
 
 # Create the disk and partition it
-echo "Creating image file for riot"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-riot.img bs=1M count=7000
-parted kali-linux-$1-riot.img --script -- mklabel msdos
-parted kali-linux-$1-riot.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-linux-$1-riot.img --script -- mkpart primary ext4 264192s 100%
+echo "Creating image file $imagename.img"
+dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
+parted $imagename.img --script -- mklabel msdos
+parted $imagename.img --script -- mkpart primary fat32 2048s 264191s
+parted $imagename.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-riot.img`
+loopdevice=`losetup -f --show ${basedir}/$imagename.img`
 device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -345,9 +352,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-riot.img"
-pixz ${basedir}/kali-linux-$1-riot.img ${basedir}/../kali-linux-$1-riot.img.xz
-rm ${basedir}/kali-linux-$1-riot.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
