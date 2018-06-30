@@ -2418,9 +2418,9 @@ losetup -d $loopdevice
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-veyron.img"
-pixz ${basedir}/kali-linux-$1-veyron.img ${basedir}/../kali-linux-$1-veyron.img.xz
-rm ${basedir}/kali-linux-$1-veyron.img
+echo "Compressing $imagename.img"
+pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
+rm ${basedir}/$imagename.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
