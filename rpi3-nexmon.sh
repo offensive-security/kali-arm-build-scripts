@@ -14,17 +14,9 @@ fi
 basedir=`pwd`/rpi3-nexmon-$1
 
 # Custom hostname variable
-hostname=kali
+hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=kali-linux-$1-rpi3-nexmon
-
-if [ $2 ]; then
-  hostname=$2
-fi
-
-if [ $3 ]; then
-  imagename=$3
-fi
+imagename=${3:-kali-linux-$1-rpi3-nexmon}
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -61,7 +53,7 @@ cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
 
-if debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+if debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
 then
   echo "[*] Boostrap Success"
 else
@@ -69,9 +61,9 @@ else
   #exit 1
 fi
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+cp /usr/bin/qemu-arm-static kali-${architecture}/usr/bin/
 
-if LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
+if LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 then
   echo "[*] Secondary Boostrap Success"
 else
@@ -79,16 +71,16 @@ else
   #exit 1
 fi
 
-cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+cat << EOF > kali-${architecture}/etc/apt/sources.list
+deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "$hostname" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-${architecture}/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
-cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       $hostname    localhost
+cat << EOF > kali-${architecture}/etc/hosts
+127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -96,13 +88,13 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/modprobe.d/ipv6.conf
+cat << EOF > kali-${architecture}/etc/modprobe.d/ipv6.conf
 # Don't load ipv6 by default
 alias net-pf-10 off
 #alias ipv6 off
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -110,11 +102,11 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
-cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -128,9 +120,9 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 WantedBy=multi-user.target
 EOF
 
-chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -143,9 +135,9 @@ ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > kali-$architecture/lib/systemd/system/enable-ssh.service
+cat << EOF > kali-${architecture}/lib/systemd/system/enable-ssh.service
 [Unit]
 Description=Turn on SSH if /boot/ssh is present
 ConditionPathExistsGlob=/boot/ssh{,.txt}
@@ -158,9 +150,9 @@ ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/enable-ssh.service
+chmod 644 kali-${architecture}/lib/systemd/system/enable-ssh.service
 
-cat << EOF > kali-$architecture/lib/systemd/system/copy-user-wpasupplicant.service
+cat << EOF > kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 [Unit]
 Description=Copy user wpa_supplicant.conf
 ConditionPathExists=/boot/wpa_supplicant.conf
@@ -175,14 +167,14 @@ ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/copy-user-wpasupplicant.service
+chmod 644 kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << 'EOF' > kali-$architecture/usr/bin/monstart
+cat << 'EOF' > kali-${architecture}/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
 echo "Bring up monitor mode interface ${interface}"
@@ -192,28 +184,28 @@ if [ $? -eq 0 ]; then
   echo "started monitor interface on ${interface}"
 fi
 EOF
-chmod 755 kali-$architecture/usr/bin/monstart
+chmod 755 kali-${architecture}/usr/bin/monstart
 
-cat << 'EOF' > kali-$architecture/usr/bin/monstop
+cat << 'EOF' > kali-${architecture}/usr/bin/monstop
 #!/bin/bash
 interface=wlan0mon
 ifconfig ${interface} down
 sleep 1
 iw dev ${interface} del
 EOF
-chmod 755 kali-$architecture/usr/bin/monstop
+chmod 755 kali-${architecture}/usr/bin/monstop
 
 # Bluetooth enabling
-mkdir -p kali-$architecture/etc/udev/rules.d
-cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-$architecture/etc/udev/rules.d/99-com.rules
-mkdir -p kali-$architecture/lib/systemd/system/
-cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-$architecture/lib/systemd/system/hciuart.service
-mkdir -p kali-$architecture/usr/bin
-cp ${basedir}/../misc/pi-bluetooth/btuart kali-$architecture/usr/bin/btuart
+mkdir -p kali-${architecture}/etc/udev/rules.d
+cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
+mkdir -p kali-${architecture}/lib/systemd/system/
+cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
+mkdir -p kali-${architecture}/usr/bin
+cp ${basedir}/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
 # Ensure btuart is executable
-chmod 755 kali-$architecture/usr/bin/btuart
+chmod 755 kali-${architecture}/usr/bin/btuart
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
@@ -226,11 +218,9 @@ rm -f /debconf.set
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-# sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
-# rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install $packages
-if [ $? > 0 ];
+apt-get --yes --allow-change-held-packages install ${packages}
+if [[ $? > 0 ]];
 then
     apt-get --yes --allow-change-held-packages --fix-broken install
 fi
@@ -241,8 +231,8 @@ apt-get --yes --allow-change-held-packages autoremove
 # installed here (and we have xserver-xorg-input-evdev and
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
+
 echo "Making the image insecure"
-rm -f /etc/ssh/ssh_host_*_key*
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 systemctl enable rpiwiggle
@@ -273,9 +263,9 @@ rm -f cleanup
 #rm -f /usr/bin/qemu*
 EOF
 
-chmod 755 kali-$architecture/third-stage
+chmod 755 kali-${architecture}/third-stage
 
-cat << 'EOF' > kali-$architecture/root/buildnexmon.sh
+cat << 'EOF' > kali-${architecture}/root/buildnexmon.sh
 #!/bin/bash
 kernel=$(uname -r) # Kernel is read from fakeuname.c
 git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
@@ -312,14 +302,14 @@ make
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
 EOF
-chmod 755 kali-$architecture/root/buildnexmon.sh
+chmod 755 kali-${architecture}/root/buildnexmon.sh
 
 # rpi-wiggle
-mkdir -p ${basedir}/kali-$architecture/root/scripts
-wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-$architecture/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-$architecture/root/scripts/rpi-wiggle.sh
+mkdir -p ${basedir}/kali-${architecture}/root/scripts
+wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-cat << 'EOF' > kali-$architecture/root/fakeuname.c
+cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -348,7 +338,7 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -o bind /dev/ kali-$architecture/dev/
 #mount -o bind /dev/pts kali-$architecture/dev/pts
 
-if LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
+if LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 then
   echo "[*] Third Stage Boostrap Success"
 else
@@ -356,14 +346,14 @@ else
   exit 1
 fi
 
-rm -rf kali-$architecture/third-stage
+rm -rf kali-${architecture}/third-stage
 
 #umount kali-$architecture/dev/pts
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-$architecture/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
@@ -371,35 +361,32 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-$ar
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/kali-$architecture/boot/
+cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
 rm -rf rpi-firmware
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-$architecture/usr/src/kernel
-cd ${basedir}/kali-$architecture/usr/src/kernel
-# ln -s /usr/include/asm-generic /usr/include/asm
-# Set default defconfig
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 make re4son_pi2_defconfig
 
 # Build kernel
 make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
-
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-$architecture/boot/kernel7.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/kali-$architecture/boot/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-$architecture/boot/overlays/
-cp arch/arm/boot/dts/overlays/README ${basedir}/kali-$architecture/boot/overlays/
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel7.img
+cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
 # Make firmware and headers
-make firmware_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
+make firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-$architecture/lib/modules/)
-cd ${basedir}/kali-$architecture/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/$kernver
 rm build
 rm source
 ln -s /usr/src/kernel build
@@ -408,13 +395,13 @@ ln -s /usr/src/kernel source
 # Create cmdline.txt file
 cd ${basedir}  
 
-cat << EOF > ${basedir}/kali-$architecture/boot/cmdline.txt
+cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
 dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
-cat << EOF > ${basedir}/kali-$architecture/etc/fstab
+cat << EOF > ${basedir}/kali-${architecture}/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
@@ -422,70 +409,70 @@ proc            /proc           proc    defaults          0       0
 EOF
 
 # Firmware needed for rpi3 wifi (copy nexmon firmware) 
-mkdir -p ${basedir}/kali-$architecture/lib/firmware/brcm/
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-$architecture/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
+mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
 
 # Firmware needed for rpi3 b+ wifi - we comment this out if building for nexmon
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.bin ${basedir}/kali-$architecture/lib/firmware/brcm/
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/kali-$architecture/lib/firmware/brcm/
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/kali-$architecture/lib/firmware/brcm/
+cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/
+cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
+cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/kali-${architecture}/lib/firmware/brcm/
 
-cp ${basedir}/../misc/rpi3/nexutil ${basedir}/kali-$architecture/usr/bin/nexutil
-chmod 755 ${basedir}/kali-$architecture/usr/bin/nexutil
+cp ${basedir}/../misc/rpi3/nexutil ${basedir}/kali-${architecture}/usr/bin/nexutil
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/kali-$architecture/boot/config.txt
+cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
 
-cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
-chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
+chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
 # Create the disk and partition it
-echo "Creating image file $imagename.img"
-dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=$size
-parted $imagename.img --script -- mklabel msdos
-parted $imagename.img --script -- mkpart primary fat32 0 64
-parted $imagename.img --script -- mkpart primary ext4 64 -1
+echo "Creating image file ${imagename}.img"
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+parted ${imagename}.img --script -- mklabel msdos
+parted ${imagename}.img --script -- mkpart primary fat32 0 64
+parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/$imagename.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
 # Create file systems
-mkfs.vfat $bootp
-mkfs.ext4 $rootp
+mkfs.vfat ${bootp}
+mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root/
-mount $rootp ${basedir}/root
+mount ${rootp} ${basedir}/root
 mkdir -p ${basedir}/root/boot
-mount $bootp ${basedir}/root/boot
+mount ${bootp} ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
-LANG=C systemd-nspawn -M $machine -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -M $machine -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
 # Make sure to enable ssh on the device by default
 touch ${basedir}/root/boot/ssh
 
-umount -l $bootp
-umount -l $rootp
-kpartx -dv $loopdevice
-losetup -d $loopdevice
+umount -l ${bootp}
+umount -l ${rootp}
+kpartx -dv ${loopdevice}
+losetup -d ${loopdevice}
 
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing $imagename.img"
-pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
-rm ${basedir}/$imagename.img
+echo "Compressing ${imagename}.img"
+pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
+rm ${basedir}/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
