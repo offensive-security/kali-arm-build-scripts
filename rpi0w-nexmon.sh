@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This is the Raspberry Pi Kali 0-W Nexmon ARM build script - http://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
@@ -21,6 +22,8 @@ TOPDIR=`pwd`
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi0w-nexmon}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -40,8 +43,6 @@ base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils fir
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap libnfc-bin mfoc nmap ethtool usbutils net-tools"
 services="openssh-server apache2"
 extras=" wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
-# kernel sauces take up space
-size=7000 # Size of image in megabytes
 
 packages="${arm} ${base} ${tools} ${services} ${extras}"
 architecture="armel"
@@ -329,7 +330,7 @@ sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${archite
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=$size
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 0 64
 parted ${imagename}.img --script -- mkpart primary ext4 64 -1
