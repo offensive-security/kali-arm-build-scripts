@@ -59,7 +59,7 @@ cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
 
-if debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
+if debootstrap --foreign --arch ${architecture} kali-last-snapshot kali-${architecture} http://${mirror}/kali
 then
   echo "[*] Boostrap Success"
 else
@@ -78,7 +78,7 @@ else
 fi
 
 cat << EOF > kali-${architecture}/etc/apt/sources.list
-deb http://${mirror}/kali kali-rolling main contrib non-free
+deb http://${mirror}/kali kali-last-snapshot main contrib non-free
 EOF
 
 # Set hostname
