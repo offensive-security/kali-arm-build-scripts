@@ -17,6 +17,8 @@ basedir=`pwd`/rpi3-nexmon-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi3-nexmon}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -28,9 +30,6 @@ tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlm
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
 nexmon="libgmp3-dev gawk qpdf bison flex make git"
-
-# kernel sauces take up space
-size=7000 # Size of image in megabytes
 
 # Git commit hash to check out for the kernel
 #kernel_commit=20fe468
