@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+
 # This is the Raspberry Pi Kali ARM build script - https://www.kali.org/downloads
 # A trusted Kali Linux image created by Offensive Security - https://www.offensive-security.com
 
@@ -19,6 +20,8 @@ basedir=`pwd`/rpi-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -38,8 +41,6 @@ desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-th
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
 extras="iceweasel xfce4-terminal wpasupplicant"
-# kernel sauces take up space
-size=7000 # Size of image in megabytes
 
 # Git commit hash to check out for the kernel
 #kernel_commit=20fe468
@@ -59,7 +60,7 @@ cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
 
-if debootstrap --foreign --arch ${architecture} kali-last-snapshot kali-${architecture} http://${mirror}/kali
+if debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
 then
   echo "[*] Boostrap Success"
 else
@@ -303,12 +304,12 @@ loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
 device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
-bootp="${device}p1"
-rootp="${device}p2"
+bootp=${device}p1
+rootp=${device}p2
 
 # Create file systems
-mkfs.vfat $bootp
-mkfs.ext4 $rootp
+mkfs.vfat ${bootp}
+mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root
