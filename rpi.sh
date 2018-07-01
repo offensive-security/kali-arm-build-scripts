@@ -307,8 +307,8 @@ bootp="${device}p1"
 rootp="${device}p2"
 
 # Create file systems
-mkfs.vfat ${bootp}
-mkfs.ext4 ${rootp}
+mkfs.vfat $bootp
+mkfs.ext4 $rootp
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root
