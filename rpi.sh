@@ -312,9 +312,9 @@ mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root
-mount ${bootp} ${basedir}/root
+mount ${rootp} ${basedir}/root
 mkdir -p ${basedir}/root/boot
-mount ${rootp} ${basedir}/root/boot
+mount ${bootp} ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
