@@ -303,8 +303,8 @@ loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
 device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
+bootp="${device}p1"
+rootp="${device}p2"
 
 # Create file systems
 mkfs.vfat ${bootp}
