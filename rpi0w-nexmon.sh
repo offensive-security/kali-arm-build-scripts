@@ -315,6 +315,7 @@ rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
+cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
@@ -368,7 +369,7 @@ cp brcmfmac_kernel49/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wirel
 cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
 EOF
-chmod 755 kali-${architecture}/root/buildnexmon.sh
+chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
 
 
 # Firmware needed for wifi (comment out when building the nexmon firmware)
@@ -379,8 +380,6 @@ cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-${architecture
 # Copy nexutil
 cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/kali-${architecture}/usr/bin/nexutil
 chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
-
-cd ${basedir}
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
