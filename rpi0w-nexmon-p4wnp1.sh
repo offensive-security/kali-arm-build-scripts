@@ -195,16 +195,7 @@ fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
-# Install P4wnP1 (kali version)
-git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
-chmod 755 /root/P4wnP1/install.sh
-cd /root/P4wnP1 
-git submodule init
-git submodule update --recursive --remote && 
-./install.sh
 
-echo "dwc2" | sudo tee -a /etc/modules
-echo "libcomposite" | sudo tee -a /etc/modules
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -219,7 +210,6 @@ systemctl enable rpiwiggle
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
-
 # Install and hold pi-bluetooth deb package from re4son
 dpkg --force-all -i /tmp/pi-bluetooth_0.1.4+re4son_all.deb
 apt-mark hold pi-bluetooth
@@ -231,6 +221,18 @@ sed -i 's/^RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6.*/Restric
 systemctl unmask bluetooth.service
 systemctl enable bluetooth
 systemctl enable hciuart
+
+# Install P4wnP1 (kali version)
+cd /root
+git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
+chmod 755 /root/P4wnP1/install.sh
+cd /root/P4wnP1 
+git submodule init
+git submodule update --recursive --remote && 
+./install.sh
+
+echo "dwc2" | sudo tee -a /etc/modules
+echo "libcomposite" | sudo tee -a /etc/modules
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
