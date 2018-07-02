@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This is the HardKernel ODROID C2 Kali ARM64 build script - http://hardkernel.com/main/main.php
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
@@ -16,13 +17,11 @@ fi
 basedir=`pwd`/odroidc2-$1
 
 # Custom hostname variable
-hostname=kali
+hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=kali-linux-$1-
-
-if [ $2 ]; then
-    hostname=$2
-fi
+imagename=${3:-kali-linux-$1-odroidc2}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -74,20 +73,20 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
 
-cp /usr/bin/qemu-aarch64-static kali-$architecture/usr/bin/
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+cp /usr/bin/qemu-aarch64-static kali-${architecture}/usr/bin/
+cp /usr/bin/qemu-arm-static kali-${architecture}/usr/bin/
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
+cat << EOF > kali-${architecture}/etc/apt/sources.list
+deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
 
-echo "$hostname" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-${architecture}/etc/hostname
 
-cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       $hostname    localhost
+cat << EOF > kali-${architecture}/etc/hosts
+127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -95,7 +94,7 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -103,7 +102,7 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
@@ -111,16 +110,16 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-#mount -t proc proc kali-$architecture/proc
-#mount -o bind /dev/ kali-$architecture/dev/
-#mount -o bind /dev/pts kali-$architecture/dev/pts
+#mount -t proc proc kali-${architecture}/proc
+#mount -o bind /dev/ kali-${architecture}/dev/
+#mount -o bind /dev/pts kali-${architecture}/dev/pts
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -133,9 +132,9 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -147,9 +146,9 @@ ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
@@ -167,10 +166,10 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install $packages
-if [ $? > 0 ];
+apt-get --yes --allow-change-held-packages install ${packages}
+if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install
+    apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -193,11 +192,11 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 
 rm -f /third-stage
 EOF
-chmod 755 kali-$architecture/third-stage
+chmod 755 kali-${architecture}/third-stage
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 
-cat << EOF > kali-$architecture/cleanup
+cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
@@ -207,62 +206,35 @@ rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
-chmod 755 kali-$architecture/cleanup
+chmod 755 kali-${architecture}/cleanup
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
-#umount kali-$architecture/proc/sys/fs/binfmt_misc
-#umount kali-$architecture/dev/pts
-#umount kali-$architecture/dev/
-#umount kali-$architecture/proc
+#umount kali-${architecture}/proc/sys/fs/binfmt_misc
+#umount kali-${architecture}/dev/pts
+#umount kali-${architecture}/dev/
+#umount kali-${architecture}/proc
 
-# Create the disk and partition it
-echo "Creating image file for ODROID-C2"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-odroidc2.img bs=1M count=7000
-parted kali-linux-$1-odroidc2.img --script -- mklabel msdos
-parted kali-linux-$1-odroidc2.img --script -- mkpart primary fat32 2048s 264191s
-parted kali-linux-$1-odroidc2.img --script -- mkpart primary ext4 264192s 100%
-
-# Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-odroidc2.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
-sleep 5
-device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
-
-# Create file systems
-mkfs.vfat -F 32 -n boot $bootp
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs $rootp
-
-# Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
-
-echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
-
-cat << EOF > ${basedir}/root/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
 # Display is... interesting, thanks Amlogic.
-mkdir -p /usr/share/lightdm/lightdm.conf.d
-cat << EOF > ${basedir}/root/usr/share/lightdm/lightdm.conf.d/10-odroidc2.conf
+mkdir -p ${basedir}/kali-${architecture}/usr/share/lightdm/lightdm.conf.d
+cat << EOF > ${basedir}/kali-${architecture}/usr/share/lightdm/lightdm.conf.d/10-odroidc2.conf
 [SeatDefaults]
 display-setup-script=/usr/bin/aml_fix_display
 EOF
 
-cat << EOF > ${basedir}/root/usr/bin/aml_fix_display
+cat << EOF > ${basedir}/kali-${architecture}/usr/bin/aml_fix_display
 #!/bin/bash
 exit 0
 EOF
-chmod 755 ${basedir}/root/usr/bin/aml_fix_display
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/aml_fix_display
 
 # Create systemd service to setup display.
-cat << EOF > ${basedir}/root/lib/systemd/system/amlogic.service
+cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/amlogic.service
 [Unit]
 Description=AMlogic HDMI Initialization
 
@@ -276,9 +248,9 @@ WantedBy=multi-user.target
 EOF
 
 # Create symlink to enable the service...
-ln -sf /lib/systemd/system/amlogic.service ${basedir}/root/etc/systemd/system/multi-user.target.wants/amlogic.service
+ln -sf /lib/systemd/system/amlogic.service ${basedir}/kali-${architecture}/etc/systemd/system/multi-user.target.wants/amlogic.service
 
-cat << EOF > ${basedir}/root/usr/bin/amlogic.sh
+cat << EOF > ${basedir}/kali-${architecture}/usr/bin/amlogic.sh
 #!/bin/sh
 
 for x in \$(cat /proc/cmdline); do
@@ -408,11 +380,11 @@ common_display_setup
 echo 0 > /sys/class/graphics/fb0/blank
 echo 0 > /sys/class/graphics/fb1/blank
 EOF
-chmod 755 ${basedir}/root/usr/bin/amlogic.sh
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/amlogic.sh
 
 # And because we need to run c2_init in the initramfs and it calls fbset,
 # create a hook for adding /bin/fbset to the initrd as well.
-cat << EOF > ${basedir}/root/usr/share/initramfs-tools/hooks/fbset
+cat << EOF > ${basedir}/kali-${architecture}/usr/share/initramfs-tools/hooks/fbset
 #!/bin/sh -e
 PREREQS=""
 case \$1 in
@@ -421,40 +393,36 @@ case \$1 in
         . /usr/share/initramfs-tools/hook-functions
         copy_exec /bin/fbset /bin
 EOF
-chmod 755 ${basedir}/root/usr/share/initramfs-tools/hooks/fbset
+chmod 755 ${basedir}/kali-${architecture}/usr/share/initramfs-tools/hooks/fbset
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-# For some reason, building the kernel in the image fails claiming it's run out
-# of space - for the moment, let's build the kernel outside of it, but still
-# keep the sources around for those who want/need to build external modules.
-git clone --depth 1 https://github.com/hardkernel/linux -b odroidc2-3.14.y ${basedir}/root/usr/src/kernel
-cd ${basedir}/root/usr/src/kernel
+git clone --depth 1 https://github.com/hardkernel/linux -b odroidc2-3.14.y ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
 touch .scmversion
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 cp ${basedir}/../kernel-configs/odroid-c2.config .config
-cp .config ../odroid-c2.config
-cp -a ${basedir}/root/usr/src/kernel ${basedir}/
-cd ${basedir}/kernel/
+cp .config ${basedir}/kali-${architecture}/usr/src/odroid-c2.config
+cd ${basedir}/kali-${architecture}/usr/src/kernel/
 make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/root
-cp arch/arm64/boot/Image ${basedir}/bootp/
-cp arch/arm64/boot/dts/meson64_odroidc2.dtb ${basedir}/bootp/
-cd ${basedir}/root/usr/src/kernel
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+cp arch/arm64/boot/Image ${basedir}/kali-${architecture}/boot/
+cp arch/arm64/boot/dts/meson64_odroidc2.dtb ${basedir}/kali-${architecture}/boot/
+cd ${basedir}/kali-${architecture}/usr/src/kernel
 make modules_prepare
 cd ${basedir}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
@@ -464,7 +432,7 @@ cd ${basedir}
 # Create a boot.ini file with possible options if people want to change them.
 # Currently on my only nearby 1080p, I get a display that's only 1024x768 in the
 # upper left corner, so default to 720p which seems to work great.
-cat << EOF > ${basedir}/bootp/boot.ini
+cat << EOF > ${basedir}/kali-${architecture}/boot/boot.ini
 ODROIDC2-UBOOT-CONFIG
 
 # Possible screen resolutions
@@ -588,8 +556,6 @@ setenv maxcpus "4"
 # setenv max_freq "1656"  # 1.656GHz
 setenv max_freq "1536"  # 1.536GHz
 
-
-
 ###########################################
 
 # Boot Arguments
@@ -620,7 +586,7 @@ if test "\${nographics}" = "1"; then fdt rm /deinterlace; fdt rm /codec_mm; fi
 booti \${loadaddr} - \${dtb_loadaddr}
 EOF
 
-cat << EOF > ${basedir}/bootp/mkuinitrd
+cat << EOF > ${basedir}/kali-${architecture}/boot/mkuinitrd
 #!/bin/bash
 if [ -a /boot/initrd.img-\$(uname -r) ] ; then
     update-initramfs -u -k \$(uname -r)
@@ -632,40 +598,71 @@ EOF
 
 cd ${basedir}
 
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
+chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
 # Now, to get display working properly, we need an initramfs, so we can run the
 # c2_init.sh file before we launch X.
 # Hack...
-mount --bind ${basedir}/bootp ${basedir}/root/boot
-cp /usr/bin/qemu-aarch64-static ${basedir}/root/usr/bin
-cp /usr/bin/qemu-arm*-static ${basedir}/root/usr/bin
-cat << EOF > ${basedir}/root/create-initrd
+cp /usr/bin/qemu-aarch64-static ${basedir}/kali-${architecture}/usr/bin
+cp /usr/bin/qemu-arm*-static ${basedir}/kali-${architecture}/usr/bin
+cat << EOF > ${basedir}/kali-${architecture}/create-initrd
 #!/bin/bash
 update-initramfs -c -k 3.14.79
 mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/initrd.img-3.14.79 /boot/uInitrd
 rm -f /create-initrd
 rm -f /usr/bin/qemu-*
 EOF
-chmod 755 ${basedir}/root/create-initrd
-LANG=C systemd-nspawn -M $machine -D ${basedir}/root /create-initrd
+chmod 755 ${basedir}/kali-${architecture}/create-initrd
+LANG=C systemd-nspawn -M ${machine} -D ${basedir}/kali-${architecture} /create-initrd
 sync
-umount ${basedir}/root/boot
 
 # rpi-wiggle
-mkdir -p ${basedir}/root/root/scripts
-wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/root/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/root/root/scripts/rpi-wiggle.sh
+mkdir -p ${basedir}/kali-${architecture}/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+
+# Create the disk and partition it
+echo "Creating image file ${imagename}.img"
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+parted ${imagename}.img --script -- mklabel msdos
+parted ${imagename}.img --script -- mkpart primary fat32 2048s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
+
+# Set the partition variables
+loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+sleep 5
+device="/dev/mapper/${device}"
+bootp=${device}p1
+rootp=${device}p2
+
+# Create file systems
+mkfs.vfat -F 32 -n boot ${bootp}
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
+
+# Create the dirs for the partitions and mount them
+mkdir -p ${basedir}/root
+mount ${rootp} ${basedir}/root
+mkdir -p ${basedir}/root/boot
+mount ${bootp} ${basedir}/root/boot
+
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
+
+echo "Rsyncing rootfs into image file"
+rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
 # Unmount partitions
 # Sync before unmounting to ensure everything is written
 sync
-umount -l $bootp
-umount -l $rootp
-kpartx -dv $loopdevice
+umount -l ${bootp}
+umount -l ${rootp}
+kpartx -dv ${loopdevice}
 
 # Currently we use pre-built, because (again) Amlogic do some funky stuff.
 # The steps for building yourself can be found at:
@@ -686,17 +683,17 @@ mkdir -p ${basedir}/u-boot
 cd ${basedir}/u-boot
 git clone https://github.com/mdrjr/c2_uboot_binaries
 cd c2_uboot_binaries
-sh sd_fusing.sh $loopdevice
+sh sd_fusing.sh ${loopdevice}
 cd ${basedir}
 
-losetup -d $loopdevice
+losetup -d ${loopdevice}
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-odroidc2.img"
-pixz ${basedir}/kali-linux-$1-odroidc2.img ${basedir}/../kali-linux-$1-odroidc2.img.xz
-rm ${basedir}/kali-linux-$1-odroidc2.img
+echo "Compressing ${imagename}.img"
+pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
+rm ${basedir}/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
