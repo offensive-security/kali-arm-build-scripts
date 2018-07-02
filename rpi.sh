@@ -51,6 +51,13 @@ architecture="armel"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
+# Check to ensure that the architecture is set to ARMEL since the RPi is the
+# only board that is armel.
+if [[ ${architecture} != "armel" ]] ; then
+    echo "The Raspberry Pi cannot run Debian armhf binaries"
+    exit 0
+fi
+
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
 #export http_proxy="http://localhost:3142/"
