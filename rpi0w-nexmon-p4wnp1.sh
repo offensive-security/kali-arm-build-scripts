@@ -165,7 +165,7 @@ mkdir -p kali-${architecture}/lib/udev/rules.d/
 cp ${basedir}/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
 mkdir -p kali-${architecture}/usr/bin
 cp ${basedir}/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
-cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/tmp/pi-bluetooth_0.1.4+re4son_all.deb
+cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
@@ -211,7 +211,7 @@ systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
 # Install and hold pi-bluetooth deb package from re4son
-dpkg --force-all -i /tmp/pi-bluetooth_0.1.4+re4son_all.deb
+dpkg --force-all -i /root/pi-bluetooth_0.1.4+re4son_all.deb
 apt-mark hold pi-bluetooth
 
 # systemd version 232 and above breaks execution of above bluetooth rule, let's fix that
