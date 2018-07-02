@@ -173,7 +173,7 @@ chmod 755 kali-${architecture}/usr/bin/btuart
 # they go to add something when they are following instructions on a website.
 cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
 
-cat << EOF > kali-${architecture}/third-stage
+cat << 'EOF' > kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
