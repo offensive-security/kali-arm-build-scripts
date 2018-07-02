@@ -335,10 +335,7 @@ mkdir -p ${basedir}/kali-${architecture}/root/scripts
 wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-# This is hacky and hard to read but an easy way to make a multiline comment in bash.
-# Need to look into cross compiling the module and firmware properly for armv6 but this
-# is the script file we use with the rpi3
-:'
+# Currently doesn't work, to cross compile for the rpi0w but lets leave it in the root directory for users.
 cat << EOF > kali-${architecture}/root/buildnexmon.sh
 #!/bin/bash
 kernel=$(uname -r) # Kernel is read from fakeuname.c
@@ -372,7 +369,7 @@ cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
 EOF
 chmod 755 kali-${architecture}/root/buildnexmon.sh
-'
+
 
 # Firmware needed for wifi (comment out when building the nexmon firmware)
 mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
