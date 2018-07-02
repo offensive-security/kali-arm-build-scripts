@@ -160,6 +160,7 @@ mkdir -p kali-${architecture}/lib/systemd/system/
 cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
 mkdir -p kali-${architecture}/usr/bin
 cp ${basedir}/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
+cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
@@ -201,6 +202,10 @@ systemctl enable rpiwiggle
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
+
+# Install and hold pi-bluetooth deb package from re4son
+dpkg --force-all -i /root/pi-bluetooth_0.1.4+re4son_all.deb
+apt-mark hold pi-bluetooth
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
