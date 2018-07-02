@@ -357,7 +357,7 @@ EOF
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
 wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-${architecture}/scripts/rpi-wiggle.sh
+chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Firmware needed for rpi3 wifi (copy nexmon firmware)
 mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
