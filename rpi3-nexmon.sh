@@ -462,6 +462,7 @@ rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 # Make sure to enable ssh on the device by default
 touch ${basedir}/root/boot/ssh
 
+sync
 umount -l ${bootp}
 umount -l ${rootp}
 kpartx -dv ${loopdevice}
