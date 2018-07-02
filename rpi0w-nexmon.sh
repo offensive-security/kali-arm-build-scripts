@@ -336,7 +336,7 @@ wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Currently doesn't work, to cross compile for the rpi0w but lets leave it in the root directory for users.
-cat << EOF > kali-${architecture}/root/buildnexmon.sh
+cat << 'EOF' > kali-${architecture}/root/buildnexmon.sh
 #!/bin/bash
 kernel=$(uname -r) # Kernel is read from fakeuname.c
 git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
