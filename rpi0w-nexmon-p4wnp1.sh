@@ -228,7 +228,7 @@ git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
 chmod 755 /root/P4wnP1/install.sh
 cd /root/P4wnP1 
 git submodule init
-git submodule update --recursive --remote && 
+git submodule update --recursive --remote
 ./install.sh
 
 echo "dwc2" | tee -a /etc/modules
