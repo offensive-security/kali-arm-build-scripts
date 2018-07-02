@@ -385,7 +385,7 @@ make firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
 kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/$kernver
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
@@ -408,16 +408,16 @@ proc            /proc           proc    defaults          0       0
 EOF
 
 # Firmware needed for rpi3 wifi (copy nexmon firmware) 
-mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
+#mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
+#cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin # We build this now in buildnexmon.sh
 
 # Firmware needed for rpi3 b+ wifi - we comment this out if building for nexmon
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
-cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/kali-${architecture}/lib/firmware/brcm/
+#cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/
+#cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
+#cp ${basedir}/../misc/brcm/brcmfmac43455-sdio.clm_blob ${basedir}/kali-${architecture}/lib/firmware/brcm/
 
-cp ${basedir}/../misc/rpi3/nexutil ${basedir}/kali-${architecture}/usr/bin/nexutil
-chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
+#cp ${basedir}/../misc/rpi3/nexutil ${basedir}/kali-${architecture}/usr/bin/nexutil
+#chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
