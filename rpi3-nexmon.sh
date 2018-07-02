@@ -121,7 +121,7 @@ EOF
 
 chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -134,9 +134,9 @@ ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/enable-ssh.service
+cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/enable-ssh.service
 [Unit]
 Description=Turn on SSH if /boot/ssh is present
 ConditionPathExistsGlob=/boot/ssh{,.txt}
@@ -149,9 +149,9 @@ ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/enable-ssh.service
+chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/enable-ssh.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 [Unit]
 Description=Copy user wpa_supplicant.conf
 ConditionPathExists=/boot/wpa_supplicant.conf
@@ -166,14 +166,14 @@ ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
-cat << EOF > kali-${architecture}/debconf.set
+cat << EOF > ${basedir}/kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << 'EOF' > kali-${architecture}/usr/bin/monstart
+cat << 'EOF' > ${basedir}/kali-${architecture}/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
 echo "Bring up monitor mode interface ${interface}"
@@ -183,28 +183,28 @@ if [ $? -eq 0 ]; then
   echo "started monitor interface on ${interface}"
 fi
 EOF
-chmod 755 kali-${architecture}/usr/bin/monstart
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/monstart
 
-cat << 'EOF' > kali-${architecture}/usr/bin/monstop
+cat << 'EOF' > ${basedir}/kali-${architecture}/usr/bin/monstop
 #!/bin/bash
 interface=wlan0mon
 ifconfig ${interface} down
 sleep 1
 iw dev ${interface} del
 EOF
-chmod 755 kali-${architecture}/usr/bin/monstop
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/monstop
 
 # Bluetooth enabling
-mkdir -p kali-${architecture}/etc/udev/rules.d
-cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
-mkdir -p kali-${architecture}/lib/systemd/system/
-cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
-mkdir -p kali-${architecture}/usr/bin
-cp ${basedir}/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
+mkdir -p ${basedir}/kali-${architecture}/etc/udev/rules.d
+cp ${basedir}/../misc/pi-bluetooth/99-com.rules ${basedir}/kali-${architecture}/etc/udev/rules.d/99-com.rules
+mkdir -p ${basedir}/kali-${architecture}/lib/systemd/system/
+cp ${basedir}/../misc/pi-bluetooth/hciuart.service ${basedir}/kali-${architecture}/lib/systemd/system/hciuart.service
+mkdir -p ${basedir}/kali-${architecture}/usr/bin
+cp ${basedir}/../misc/pi-bluetooth/btuart ${basedir}/kali-${architecture}/usr/bin/btuart
 # Ensure btuart is executable
-chmod 755 kali-${architecture}/usr/bin/btuart
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/btuart
 
-cat << EOF > kali-${architecture}/third-stage
+cat << EOF > ${basedir}/kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
@@ -262,9 +262,9 @@ rm -f cleanup
 #rm -f /usr/bin/qemu*
 EOF
 
-chmod 755 kali-${architecture}/third-stage
+chmod 755 ${basedir}/kali-${architecture}/third-stage
 
-cat << 'EOF' > kali-${architecture}/root/buildnexmon.sh
+cat << 'EOF' > ${basedir}/kali-${architecture}/root/buildnexmon.sh
 #!/bin/bash
 kernel=$(uname -r) # Kernel is read from fakeuname.c
 git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
@@ -303,7 +303,7 @@ make
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
 EOF
-chmod 755 kali-${architecture}/root/buildnexmon.sh
+chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
@@ -392,6 +392,7 @@ rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
+cd ${basedir}
 
 # Create cmdline.txt file
 cd ${basedir}  
