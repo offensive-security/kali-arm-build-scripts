@@ -266,7 +266,7 @@ cd ${basedir}/kali-${architecture}/usr/src/kernel
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 
-# Set default defconfig
+# Create config from defconfig
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
 
 # Build kernel
@@ -275,13 +275,13 @@ make -j $(grep -c processor /proc/cpuinfo)
 # Install kernel modules
 make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
-# Copy kernel to boot
+# Copy kernel and dtb/dtbo to boot
 perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
 cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
 cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
-# Make firmware and headers
+# Install firmware
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Fix up the symlink for building external modules
