@@ -133,7 +133,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install
+    apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -544,6 +544,11 @@ mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
 
 mkdir -p ${basedir}/root
 mount ${rootp} ${basedir}/root
+
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
