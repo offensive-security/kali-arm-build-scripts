@@ -164,6 +164,28 @@ cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${arch
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
+# Fake a uname response so that flash-kernel doesn't bomb out.
+cat << 'EOF' > kali-${architecture}/root/fakeuname.c
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/utsname.h>
+#include <stdio.h>
+#include <string.h>
+/* Fake uname -r because we are in a chroot:
+https://gist.github.com/DamnedFacts/5239593
+*/
+int uname(struct utsname *buf)
+{
+ int ret;
+ ret = syscall(SYS_uname, buf);
+ strcpy(buf->release, "4.16.0-kali2-armmp");
+ strcpy(buf->machine, "armv7l");
+ return ret;
+}
+EOF
+
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -313,7 +335,46 @@ mkdir -p ${basedir}/kali-${architecture}/root/scripts
 wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-# Firmware needed for rpi3 wifi (copy nexmon firmware)
+# This is hacky and hard to read but an easy way to make a multiline comment in bash.
+# Need to look into cross compiling the module and firmware properly for armv6 but this
+# is the script file we use with the rpi3
+:'
+cat << EOF > kali-${architecture}/root/buildnexmon.sh
+#!/bin/bash
+kernel=$(uname -r) # Kernel is read from fakeuname.c
+git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
+unset CROSS_COMPILE
+export CROSS_COMPILE=/opt/nexmon/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-armv7l/bin/arm-none-eabi-
+cd /opt/nexmon/
+source setup_env.sh
+make
+cd buildtools/isl-0.10
+CC=$CCgcc
+./configure
+make
+make install
+ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
+ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
+# make scripts do not work if we cross crompile. Needs libisl.so before we can compile in scripts
+cd /usr/src/kernel
+make ARCH=arm scripts
+cd /opt/nexmon/
+source setup_env.sh
+# Build nexmon for pi 3
+cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
+make clean
+make
+# Make sure the firmware directory exists before we copy the firmware to it.
+mkdir -p /lib/firmware/brcm
+# Copy the ko file twice. Unsure if changes across both devices break compatibility
+cp brcmfmac_kernel49/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
+cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
+EOF
+chmod 755 kali-${architecture}/root/buildnexmon.sh
+'
+
+# Firmware needed for wifi (comment out when building the nexmon firmware)
 mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
 cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
 cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
@@ -360,6 +421,10 @@ mount ${bootp} ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+
+# Build nexmon
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 # Unmount partitions
 sync
