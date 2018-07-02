@@ -360,9 +360,9 @@ mount ${bootp} ${basedir}/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
-sync
 
 # Unmount partitions
+sync
 umount -l ${bootp}
 umount -l ${rootp}
 kpartx -dv ${loopdevice}
