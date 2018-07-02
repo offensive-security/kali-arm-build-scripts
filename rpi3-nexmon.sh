@@ -433,6 +433,10 @@ cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
 #program_usb_boot_mode=1
 EOF
 
+# Because we use debian's firmware package and they install it to /boot/firmware instead of /boot directly
+# we have to mv it to /boot so the thing will boot.
+mv ${basedir}/kali-${architecture}/boot/firmware/* ${basedir}/kali-${architecture}/boot/
+
 cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
 chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
