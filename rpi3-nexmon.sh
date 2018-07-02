@@ -289,6 +289,8 @@ source setup_env.sh
 cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
 make clean
 make
+# Make sure the firmware directory exists before we copy anything.
+mkdir -p /lib/firmware/brcm
 # Copy the ko file twice. Unsure if changes across both devices break compatibility
 cp brcmfmac_kernel49/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
