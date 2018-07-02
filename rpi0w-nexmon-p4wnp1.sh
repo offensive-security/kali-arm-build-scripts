@@ -169,6 +169,10 @@ cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${arch
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
+# Copy a default config, with everything commented out so people find it when
+# they go to add something when they are following instructions on a website.
+cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
+
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
