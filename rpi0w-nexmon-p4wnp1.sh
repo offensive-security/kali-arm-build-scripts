@@ -194,7 +194,8 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
+	echo "Packages failed to install properly, attempting to run --fix-broken"
+    apt-get --yes --allow-change-held-packages --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
