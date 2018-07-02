@@ -374,6 +374,7 @@ make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 # Copy kernel to boot
 perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel7.img
 cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
+mkdir -p ${basedir}/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
