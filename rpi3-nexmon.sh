@@ -470,7 +470,7 @@ LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "chmod 755 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
-cat << EOF > kali-${architecture}/etc/resolv.conf
+cat << EOF > ${basedir}/root/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 

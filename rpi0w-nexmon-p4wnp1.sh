@@ -404,8 +404,17 @@ mount ${rootp} ${basedir}/root
 mkdir -p ${basedir}/root/boot
 mount ${bootp} ${basedir}/root/boot
 
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
+
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+
+# Build nexmon
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 # Unmount partitions
 sync
