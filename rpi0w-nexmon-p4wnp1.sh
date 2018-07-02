@@ -231,8 +231,8 @@ git submodule init
 git submodule update --recursive --remote && 
 ./install.sh
 
-echo "dwc2" | sudo tee -a /etc/modules
-echo "libcomposite" | sudo tee -a /etc/modules
+echo "dwc2" | tee -a /etc/modules
+echo "libcomposite" | tee -a /etc/modules
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
