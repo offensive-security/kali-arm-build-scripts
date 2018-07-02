@@ -330,6 +330,7 @@ rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
+cd ${basedir}
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
