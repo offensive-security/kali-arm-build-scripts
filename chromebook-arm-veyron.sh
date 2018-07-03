@@ -44,13 +44,13 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="alsa-utils e2fsprogs initramfs-tools kali-defaults kali-menu parted pulseaudio sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="kali-menu kali-defaults alsa-utils e2fsprogs initramfs-tools kali-defaults kali-menu parted pulseaudio sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="florence iceweasel xfce4-goodies xfce4-terminal xinput wpasupplicant"
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -129,6 +129,7 @@ echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
     apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
@@ -2387,7 +2388,7 @@ cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 ${imagename}.
 cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show ${imagename}.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root ${imagename}.img
 
 loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
-device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
