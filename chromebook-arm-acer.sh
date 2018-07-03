@@ -131,10 +131,14 @@ echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
+if [[ $? > 0 ]];
+then
+    apt-get --yes --allow-change-held-packages --fix-broken install
+fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
+    apt-get --yes --allow-change-held-packages --fix-broken install
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
