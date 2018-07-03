@@ -450,7 +450,7 @@ parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
 loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
-device=`kpartx -va ${loopdevice} | sed -r 's/.*(loop[0-9]+)p.*/\1/g' | head -1`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
