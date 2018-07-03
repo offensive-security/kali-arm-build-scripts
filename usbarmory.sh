@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [[ $EUID -ne 0 ]]; then
    echo "This script must be run as root"
@@ -12,17 +13,11 @@ fi
 
 basedir=`pwd`/usbarmory-$1
 
-hostname=kali
+hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=kali-linux-$1-usbarmory
-
-if [ $2 ]; then
-    hostname=$2
-fi
-
-if [ $3 ]; then
-    imagename=$3
-fi
+imagename=${3:-kali-linux-$1-usbarmory}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -48,13 +43,13 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="dosfstools e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="kali-menu kali-defaults dosfstools e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
 extras="cryptsetup isc-dhcp-server lvm2 wpasupplicant"
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -68,23 +63,23 @@ mkdir -p ${basedir}
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+cp /usr/bin/qemu-arm-static kali-${architecture}/usr/bin/
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
 # Create sources.list
-cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+cat << EOF > kali-${architecture}/etc/apt/sources.list
+deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "$hostname" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-${architecture}/etc/hostname
 
 # So X doesn't complain, we add kali to hosts
-cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       $hostname    localhost
+cat << EOF > kali-${architecture}/etc/hosts
+127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -92,7 +87,7 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -100,7 +95,7 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
@@ -112,12 +107,12 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -o bind /dev/ kali-$architecture/dev/
 #mount -o bind /dev/pts kali-$architecture/dev/pts
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
@@ -135,10 +130,11 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install $packages
-if [ $? > 0 ];
+apt-get --yes --allow-change-held-packages install ${packages}
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
+if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install
+    apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -157,11 +153,11 @@ rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
-chmod 755 kali-$architecture/third-stage
+chmod 755 kali-${architecture}/third-stage
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 
-cat << EOF > kali-$architecture/cleanup
+cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
@@ -173,9 +169,9 @@ rm -f /hs_err*
 rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
-chmod 755 kali-$architecture/cleanup
+chmod 755 kali-${architecture}/cleanup
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
@@ -184,9 +180,9 @@ LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
 
 echo "Setting up modules.conf"
 # rm the symlink if it exists, and the original files if they exist
-rm ${basedir}/kali-$architecture/etc/modules
-rm ${basedir}/kali-$architecture/etc/modules-load.d/modules.conf
-cat << EOF > ${basedir}/kali-$architecture/etc/modules-load.d/modules.conf
+rm ${basedir}/kali-${architecture}/etc/modules
+rm ${basedir}/kali-${architecture}/etc/modules-load.d/modules.conf
+cat << EOF > ${basedir}/kali-${architecture}/etc/modules-load.d/modules.conf
 ledtrig_heartbeat
 ci_hdrc_imx
 g_ether
@@ -195,7 +191,7 @@ g_ether
 EOF
 
 echo "Setting up modprobe.d"
-cat << EOF > ${basedir}/kali-$architecture/etc/modprobe.d/usbarmory.conf
+cat << EOF > ${basedir}/kali-${architecture}/etc/modprobe.d/usbarmory.conf
 options g_ether use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42
 # To use either of the following, you should create the file /disk.img via dd
 # "dd if=/dev/zero of=/disk.img bs=1M count=2048" would create a 2GB disk.img file.
@@ -203,7 +199,7 @@ options g_ether use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42
 #options g_multi use_eem=0 dev_addr=1a:55:89:a2:69:41 host_addr=1a:55:89:a2:69:42 file=disk.img
 EOF
 
-cat << EOF > ${basedir}/kali-$architecture/etc/network/interfaces
+cat << EOF > ${basedir}/kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -214,13 +210,13 @@ netmask 255.255.255.0
 gateway 10.0.0.2
 EOF
 
-cat << EOF > ${basedir}/kai-$architecture/etc/apt/sources.list
+cat << EOF > ${basedir}/kai-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
 # Debian reads the config from inside /etc/dhcp.
-cat << EOF > ${basedir}/kali-$architecture/etc/dhcp/dhcpd.conf
+cat << EOF > ${basedir}/kali-${architecture}/etc/dhcp/dhcpd.conf
 #
 # Sample configuration file for ISC dhcpd for Debian
 #
@@ -337,16 +333,16 @@ subnet 10.0.0.0 netmask 255.255.255.0 {
 EOF
 
 # Only listen on usb0
-sed -i 's/INTERFACES.*/INTERFACES="usb0"/g' ${basedir}/kali-$architecture/etc/default/isc-dhcp-server
+sed -i 's/INTERFACES.*/INTERFACES="usb0"/g' ${basedir}/kali-${architecture}/etc/default/isc-dhcp-server
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone -b linux-4.14.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/kali-$architecture/usr/src/kernel
-cd ${basedir}/kali-$architecture/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-$architecture/usr/src/kernel-at-commit
+git clone -b linux-4.14.y --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
@@ -359,9 +355,9 @@ wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/ker
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/imx53-usbarmory-scc2.dts -O arch/arm/boot/dts/imx53-usbarmory-scc2.dts
 make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory-i2c.dtb imx53-usbarmory-spi.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb imx53-usbarmory-scc2.dtb
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-$architecture
-cp arch/arm/boot/zImage ${basedir}/kali-$architecture/boot/
-cp arch/arm/boot/dts/imx53-usbarmory*.dtb ${basedir}/kali-$architecture/boot/
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/
+cp arch/arm/boot/dts/imx53-usbarmory*.dtb ${basedir}/kali-${architecture}/boot/
 make mrproper
 # Since these aren't integrated into the kernel yet, mrproper removes them.
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/usbarmory_linux-4.14.config -O .config
@@ -376,43 +372,52 @@ cd ${basedir}
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-$architecture/lib/modules/)
-cd ${basedir}/kali-$architecture/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
 cd ${basedir}
 
-cp ${basedir}/../misc/zram ${basedir}/kali-$architecture/etc/init.d/zram
-chmod 755 ${basedir}/kali-$architecture/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
+chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' ${basedir}/kali-$architecture/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
 
 cd ${basedir}
 # Create the disk and partition it
-echo "Creating image file $imagename.img"
-dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=14500
-parted $imagename.img --script -- mklabel msdos
-parted $imagename.img --script -- mkpart primary ext2 5M 100%
+echo "Creating image file ${imagename}.img"
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+parted ${imagename}.img --script -- mklabel msdos
+parted ${imagename}.img --script -- mkpart primary ext2 5M 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/$imagename.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 rootp=${device}p1
 
 # Create file systems
-mkfs.ext2 $rootp
+mkfs.ext2 ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p ${basedir}/root
-mount $rootp ${basedir}/root
+mount ${rootp} ${basedir}/root
+
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+
+# Unmount partitions
 sync
+umount ${rootp}
+kpartx -dv ${loopdevice}
 
 cd ${basedir}
 wget ftp://ftp.denx.de/pub/u-boot/u-boot-2018.05.tar.bz2
@@ -420,20 +425,17 @@ tar xvf u-boot-2018.05.tar.bz2 && cd u-boot-2018.05
 make distclean
 make usbarmory_config
 make ARCH=arm
-dd if=u-boot.imx of=$loopdevice bs=512 seek=2 conv=fsync
+dd if=u-boot.imx of=${loopdevice} bs=512 seek=2 conv=fsync
 cd ${basedir}
 
-# Unmount partitions
-umount $rootp
-kpartx -dv $loopdevice
-losetup -d $loopdevice
+losetup -d ${loopdevice}
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing $imagename.img"
-pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
-rm ${basedir}/$imagename.img
+echo "Compressing ${imagename}.img"
+pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
+rm ${basedir}/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
