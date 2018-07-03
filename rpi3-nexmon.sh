@@ -307,6 +307,9 @@ make clean
 make
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
+
+# And now remove the nexmon sources because that's 2.5GB of space we don't want to give up.
+rm -rf /opt/nexmon
 EOF
 chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
 
