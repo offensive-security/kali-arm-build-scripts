@@ -45,7 +45,7 @@ extras="iceweasel xfce4-terminal wpasupplicant"
 # Git commit hash to check out for the kernel
 #kernel_commit=20fe468
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -165,6 +165,7 @@ echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
     apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
@@ -308,7 +309,7 @@ parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
 loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
-device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1

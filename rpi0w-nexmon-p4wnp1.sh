@@ -46,7 +46,7 @@ extras=" wpasupplicant python-smbus i2c-tools python-requests python-configobj p
 # kernel sauces take up space
 size=7000 # Size of image in megabytes
 
-packages="${arm} ${base} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -192,9 +192,9 @@ echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-	echo "Packages failed to install properly, attempting to run --fix-broken"
     apt-get --yes --allow-change-held-packages --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
@@ -389,7 +389,7 @@ parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
 loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
-device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1

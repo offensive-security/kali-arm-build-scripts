@@ -36,7 +36,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas"
+base="kali-menu kali-defaults e2fsprogs initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas"
 desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -44,7 +44,7 @@ extras="iceweasel xfce4-terminal wpasupplicant"
 # kernel sauces take up space yo.
 size=7000 # Size of image in megabytes
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armel"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -160,6 +160,7 @@ echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
     apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
@@ -333,7 +334,7 @@ parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
 loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
-device=`kpartx -va ${loopdevice}| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
 bootp=${device}p1
