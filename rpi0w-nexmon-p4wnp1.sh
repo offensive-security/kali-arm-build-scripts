@@ -199,7 +199,7 @@ fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install || exit 1
+    apt-get --yes --allow-change-held-packages --fix-broken install
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove

@@ -226,7 +226,7 @@ fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --allow-change-held-packages --fix-broken install || die "Packages failed to install"
+    apt-get --yes --allow-change-held-packages --fix-broken install
 fi
 apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
