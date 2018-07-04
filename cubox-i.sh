@@ -135,7 +135,7 @@ echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
 chmod 755 /usr/sbin/policy-rc.d
 
 apt-get update
-apt-get --yes --allow-changes-held-packages install locales-all
+apt-get --yes --allow-change-held-packages install locales-all
 
 debconf-set-selections /debconf.set
 rm -f /debconf.set
@@ -155,8 +155,8 @@ if [[ $? > 0 ]];
 then
     apt-get --yes --fix-broken install
 fi
-apt-get --yes --allow-changes-held-packages dist-upgrade
-apt-get --yes --allow-changes-held-packages  autoremove
+apt-get --yes --allow-change-held-packages dist-upgrade
+apt-get --yes --allow-change-held-packages  autoremove
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
