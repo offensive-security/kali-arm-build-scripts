@@ -268,7 +268,7 @@ chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
 
 echo "Creating image file for ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1 count=${size}
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary ext4 2048s 100%
 
