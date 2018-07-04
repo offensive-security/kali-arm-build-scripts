@@ -43,9 +43,9 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="kali-menu kali-defaults dosfstools e2fsprogs initramfs-tools parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="dosfstools e2fsprogs initramfs-tools parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+tools="kali-menu kali-defaults aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
 extras="cryptsetup isc-dhcp-server lvm2 wpasupplicant"
 

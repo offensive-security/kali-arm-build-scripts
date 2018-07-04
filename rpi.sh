@@ -36,8 +36,8 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-menu kali-defaults initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+base="initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas"
+desktop="kali-menu kali-defaults fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali kali-desktop-xfce kali-root-login gtk3-engines-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc nmap ethtool usbutils"
 services="openssh-server apache2"
 extras="iceweasel xfce4-terminal wpasupplicant"
