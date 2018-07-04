@@ -221,12 +221,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install
+    apt-get --yes --fix-broken install || systemctl exit 1
 fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install
+    apt-get --yes --fix-broken install || systemctl exit 1
 fi
 apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
@@ -347,14 +347,11 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -o bind /dev/ kali-$architecture/dev/
 #mount -o bind /dev/pts kali-$architecture/dev/pts
 
-if LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
-then
-  echo "[*] Third Stage Boostrap Success"
-else
-  echo "[*] Third Stage Boostrap Failure"
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
+if [[ $? > 0 ]]; then
+  echo "Third stage failed"
   exit 1
 fi
-
 rm -rf kali-${architecture}/third-stage
 
 #umount kali-$architecture/dev/pts

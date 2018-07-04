@@ -167,12 +167,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install
+    apt-get --yes --fix-broken install || systemctl exit 1
 fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install
+    apt-get --yes --fix-broken install || systemctl exit 1
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -215,13 +215,12 @@ export DEBIAN_FRONTEND=noninteractive
 
 chmod 755 kali-${architecture}/third-stage
 
-if LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
-then
-  echo "[*] Boostrap Success"
-else
-  echo "[*] Boostrap Failure"
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
+if [[ $? > 0 ]]; then
+  echo "Third stage failed"
   exit 1
 fi
+
 
 #umount kali-$architecture/dev/pts
 #umount kali-$architecture/dev/

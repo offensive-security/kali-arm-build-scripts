@@ -190,17 +190,13 @@ rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 
 rm -f /third-stage
-if [[ $? = 0 ]]; then
-  echo "causing the container to die on purpose"
-  systemctl exit 1
-fi
 EOF
 
 chmod 755 kali-${architecture}/third-stage
 LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 if [[ $? > 0 ]]; then
-  echo "Third stage setup failed"
-  exit
+  echo "Third stage failed"
+  exit 1
 fi
 
 cat << EOF > kali-${architecture}/cleanup

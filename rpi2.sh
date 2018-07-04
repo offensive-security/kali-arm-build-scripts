@@ -158,12 +158,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install
+    apt-get --yes --fix-broken install || systemctl exit 1
 fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install
+    apt-get --yes --fix-broken install || systemctl exit 1
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -195,6 +195,10 @@ EOF
 
 chmod 755 kali-${architecture}/third-stage
 LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
+if [[ $? > 0 ]]; then
+  echo "Third stage failed"
+  exit 1
+fi
 
 cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
