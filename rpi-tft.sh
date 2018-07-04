@@ -190,6 +190,10 @@ rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 
 rm -f /third-stage
+if [[ $? = 1 ]]; then
+  echo "causing the container to die on purpose"
+  systemctl exit 1
+fi
 EOF
 
 chmod 755 kali-${architecture}/third-stage
