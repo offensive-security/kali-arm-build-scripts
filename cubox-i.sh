@@ -145,7 +145,7 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-changes-held-packages install ${packages}
+apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
     apt-get --yes --fix-broken install
