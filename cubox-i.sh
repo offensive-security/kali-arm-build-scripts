@@ -270,7 +270,7 @@ sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${archite
 echo "Creating image file for ${imagename}.img"
 dd if=/dev/zero of=${basedir}/${imagename}.img bs=1 count=${size}
 parted ${imagename}.img --script -- mklabel msdos
-parted ${imagename}.img --script -- mkpart primary ext4 2048 100%
+parted ${imagename}.img --script -- mkpart primary ext4 2048s 100%
 
 # Set the partition variables
 loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
