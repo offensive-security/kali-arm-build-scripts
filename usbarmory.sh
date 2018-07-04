@@ -214,7 +214,7 @@ netmask 255.255.255.0
 gateway 10.0.0.2
 EOF
 
-cat << EOF > ${basedir}/kai-${architecture}/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
