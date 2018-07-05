@@ -284,9 +284,8 @@ EOF
 
 # Firmware needed for rpi3 wifi/bt
 mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
-cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/
-
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O /lib/firmware/brcm/brcmfmac43430-sdio.bin
 cd ${basedir}
 
 # rpi-wiggle
