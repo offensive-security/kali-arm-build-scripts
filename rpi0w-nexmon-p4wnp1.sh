@@ -74,7 +74,7 @@ cp /usr/bin/qemu-arm-static kali-${architecture}/usr/bin/
 LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
 cat << EOF > kali-${architecture}/etc/apt/sources.list
-deb http://${mirror}/kali kali-last-snapshot main contrib non-free
+deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
