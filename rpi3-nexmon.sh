@@ -237,6 +237,9 @@ fi
 
 # Install the kernel packages
 dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+# Show what kernel version it is.
+ls -lah /lib/modules/
+
 
 apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
