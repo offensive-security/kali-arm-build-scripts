@@ -86,7 +86,7 @@ else
 fi
 
 cat << EOF > kali-${architecture}/etc/apt/sources.list
-deb http://${mirror}/kali kali-last-snapshot main contrib non-free
+deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
