@@ -227,12 +227,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install || systemctl exit 1
+    apt-get --yes --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install || systemctl exit 1
+    apt-get --yes --fix-broken install || exit 1
 fi
 
 # Install the kernel packages
