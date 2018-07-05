@@ -323,7 +323,7 @@ cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/fi
 # But wait! there's more!
 # Create libfakeioctl.so so that we can LD_PRELOAD it for apps that need it.
 cd /opt/nexmon/utilities/libnexio/
-GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+GIT_VERSION=$(git describe --abbrev=4 --dirty --always --tags)
 gcc -c libnexio.c -o libnexio.o -DBUILD_ON_RPI -DVERSION=\"$GIT_VERSION\" -I../../patches/include
 ar rcs libnexio.a libnexio.o
 cd /root
