@@ -11,12 +11,12 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpi3-nexmon-$1
+basedir=`pwd`/rpi3-nexmon-hyperpixel-$1
 
 # Custom hostname variable
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=${3:-kali-linux-$1-rpi3-nexmon}
+imagename=${3:-kali-linux-$1-rpi3-nexmon-hyperpixel}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
 
