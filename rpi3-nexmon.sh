@@ -301,7 +301,7 @@ make install
 ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
 ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
 # make scripts doesn't work if we cross crompile. Needs libisl.so before we can compile in scripts
-cd /usr/src/kernel
+cd /usr/src/linux-headers-$(uname -r)/
 make ARCH=arm scripts
 cd /opt/nexmon/
 source setup_env.sh
