@@ -388,36 +388,36 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${a
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-make re4son_pi2_defconfig
+#git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-${architecture}/usr/src/kernel
+#cd ${basedir}/kali-${architecture}/usr/src/kernel
+#export ARCH=arm
+#export CROSS_COMPILE=arm-linux-gnueabihf-
+#make re4son_pi2_defconfig
 
 # Build kernel
-make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+#make -j $(grep -c processor /proc/cpuinfo)
+#make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel7.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
-mkdir -p ${basedir}/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
+#perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel7.img
+#cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
+#mkdir -p ${basedir}/kali-${architecture}/boot/overlays/
+#cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
+#cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
 # Make firmware and headers
-make firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+#make firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd ${basedir}
+#kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+#cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+#rm build
+#rm source
+#ln -s /usr/src/kernel build
+#ln -s /usr/src/kernel source
+#cd ${basedir}
 
 # Create cmdline.txt file
 cd ${basedir}
