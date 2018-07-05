@@ -279,6 +279,8 @@ git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
 unset CROSS_COMPILE
 export CROSS_COMPILE=/opt/nexmon/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-armv7l/bin/arm-none-eabi-
 cd /opt/nexmon/
+# Disable statistics - see https://github.com/seemoo-lab/nexmon/blob/master/STATISTICS.md
+touch DISABLE_STATISTICS
 source setup_env.sh
 make
 cd buildtools/isl-0.10
