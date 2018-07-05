@@ -204,6 +204,9 @@ cp ${basedir}/../misc/pi-bluetooth/btuart ${basedir}/kali-${architecture}/usr/bi
 # Ensure btuart is executable
 chmod 755 ${basedir}/kali-${architecture}/usr/bin/btuart
 
+# Let's try out binky's package for the rpi kernel and headers.
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
 # Mister-X's libfakeioctl fixes
 cp ${basedir}/../misc/fakeioctl.c ${basedir}/kali-${architecture}/root/fakeioctl.c
 
@@ -231,6 +234,10 @@ if [[ $? > 0 ]];
 then
     apt-get --yes --fix-broken install || systemctl exit 1
 fi
+
+# Install the kernel packages
+dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+
 apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -348,7 +355,7 @@ int uname(struct utsname *buf)
 {
  int ret;
  ret = syscall(SYS_uname, buf);
- strcpy(buf->release, "4.9.80-Re4son-v7+");
+ strcpy(buf->release, "4.14.30-Re4son-v7+");
  strcpy(buf->machine, "armv7l");
  return ret;
 }
