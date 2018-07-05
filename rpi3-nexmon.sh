@@ -358,7 +358,7 @@ int uname(struct utsname *buf)
 {
  int ret;
  ret = syscall(SYS_uname, buf);
- strcpy(buf->release, "4.14.30-kali+");
+ strcpy(buf->release, "4.14.30-kali-v7+");
  strcpy(buf->machine, "armv7l");
  return ret;
 }
