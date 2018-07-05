@@ -204,6 +204,9 @@ cp ${basedir}/../misc/pi-bluetooth/btuart ${basedir}/kali-${architecture}/usr/bi
 # Ensure btuart is executable
 chmod 755 ${basedir}/kali-${architecture}/usr/bin/btuart
 
+# Mister-X's libfakeioctl fixes
+cp ${basedir}/../misc/fakeioctl.c ${basedir}/kali-${architecture}/root/fakeioctl.c
+
 cat << EOF > ${basedir}/kali-${architecture}/third-stage
 #!/bin/bash
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -307,6 +310,16 @@ make clean
 make
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac_4.9.y-nexmon/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
 cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/
+
+# But wait! there's more!
+# Create libfakeioctl.so so that we can LD_PRELOAD it for apps that need it.
+cd /opt/nexmon/utilities/libnexio/
+GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always --tags)
+gcc -c libnexio.c -o libnexio.o -DBUILD_ON_RPI -DVERSION=\"$GIT_VERSION\" -I../../patches/include
+ar rcs libnexio.a libnexio.o
+cd /root
+gcc -shared -o libfakeioctl.so fakeioctl.c -I/opt/nexmon/patches/include -I/opt/nexmon/utilities/libnexio -L/opt/nexmon/utilities/libnexio -L/opt/nexmon/utilities/libnexio -lnexio -I/opt/nexmon/utilities/libargp -ldl
+mv libfakeioctl.so /usr/local/lib
 
 # And now remove the nexmon sources because that's 2.5GB of space we don't want to give up.
 rm -rf /opt/nexmon
