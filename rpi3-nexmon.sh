@@ -52,7 +52,7 @@ cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
 
-if debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
+if debootstrap --foreign --variant minbase --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
 then
   echo "[*] Boostrap Success"
 else
