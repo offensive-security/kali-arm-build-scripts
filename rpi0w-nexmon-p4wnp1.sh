@@ -194,12 +194,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install || systemctl exit 1
+    apt-get --yes --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install || systemctl exit 1
+    apt-get --yes --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -251,6 +251,9 @@ cp  /etc/bash.bashrc /root/.bashrc
 # installed here (and we have xserver-xorg-input-evdev and
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
+
+# Fix startup time from 5 minutes to 15 secs on raise interface wlan0
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d

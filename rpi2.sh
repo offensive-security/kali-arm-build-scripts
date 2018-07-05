@@ -186,6 +186,9 @@ systemctl enable ssh
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 
+# Fix startup time from 5 minutes to 15 secs on raise interface wlan0
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
+
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
