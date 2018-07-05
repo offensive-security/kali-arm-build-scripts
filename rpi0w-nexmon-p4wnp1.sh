@@ -78,11 +78,11 @@ deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
 
 # Set hostname
-echo "${hostname}" > kali-${architecture}/etc/hostname
+echo "${machine}" > kali-${architecture}/etc/hostname
 
 # So X doesn't complain, we add $hostname to hosts
 cat << EOF > kali-${architecture}/etc/hosts
-127.0.0.1       ${hostname}    localhost
+127.0.0.1       ${machine}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -229,6 +229,10 @@ systemctl unmask bluetooth.service
 systemctl enable bluetooth
 systemctl enable hciuart
 
+# Create cmdline.txt file
+mkdir -p /boot
+echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait" > /boot/cmdline.txt
+
 # Install P4wnP1 (kali version)
 cd /root
 git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
@@ -355,11 +359,6 @@ cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
 dtoverlay=dwc2
 EOF
 
-# Create cmdline.txt file
-cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
-dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait
-EOF
-
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
 cat << EOF > ${basedir}/kali-${architecture}/etc/fstab
@@ -419,6 +418,20 @@ mount ${bootp} ${basedir}/root/boot
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
+EOF
+
+# Because of the p4wnp1 script, we set the hostname down here, instead of using the machine name.
+# Set hostname
+echo "${hostname}" > ${basedir}/kali-${architecture}/etc/hostname
+
+# So X doesn't complain, we add $hostname to hosts
+cat << EOF > ${basedir}/kali-${architecture}/etc/hosts
+127.0.0.1       ${hostname}    localhost
+::1             localhost ip6-localhost ip6-loopback
+fe00::0         ip6-localnet
+ff00::0         ip6-mcastprefix
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters
 EOF
 
 echo "Rsyncing rootfs into image file"
