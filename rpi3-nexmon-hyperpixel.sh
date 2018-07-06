@@ -215,6 +215,7 @@ cp ${basedir}/../misc/fakeioctl.c ${basedir}/kali-${architecture}/root/fakeioctl
 
 cat << EOF > ${basedir}/kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
@@ -230,12 +231,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get --yes --allow-change-held-packages install ${packages}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install || systemctl exit 1
+    apt-get --yes --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
 if [[ $? > 0 ]];
 then
-    apt-get --yes --fix-broken install || systemctl exit 1
+    apt-get --yes --fix-broken install || exit 1
 fi
 apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the

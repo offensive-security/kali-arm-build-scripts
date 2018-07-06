@@ -164,7 +164,6 @@ cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${arch
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
-# Fake a uname response so that flash-kernel doesn't bomb out.
 cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
@@ -180,14 +179,15 @@ int uname(struct utsname *buf)
 {
  int ret;
  ret = syscall(SYS_uname, buf);
- strcpy(buf->release, "4.16.0-kali2-armmp");
- strcpy(buf->machine, "armv7l");
+ strcpy(buf->release, "4.14.30-kali-v7+");
+ strcpy(buf->machine, "armv6j");
  return ret;
 }
 EOF
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
