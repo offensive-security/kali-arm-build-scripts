@@ -114,6 +114,7 @@ EOF
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
