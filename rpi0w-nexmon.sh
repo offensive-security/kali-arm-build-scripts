@@ -38,7 +38,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-defaults initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-realtek firmware-libertas firmware-atheros firmware-brcm80211"
+base="kali-defaults initramfs-tools sudo parted e2fsprogs usbutils firmware-linux firmware-realtek firmware-libertas firmware-atheros"
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="kali-menu passing-the-hash winexe aircrack-ng hydra john sqlmap libnfc-bin mfoc nmap ethtool usbutils net-tools"
 services="openssh-server apache2"
@@ -164,10 +164,6 @@ cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${arch
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
-# Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
-
 cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
@@ -183,7 +179,7 @@ int uname(struct utsname *buf)
 {
  int ret;
  ret = syscall(SYS_uname, buf);
- strcpy(buf->release, "4.14.30-kali+");
+ strcpy(buf->release, "4.14.30-kali-v7+");
  strcpy(buf->machine, "armv6j");
  return ret;
 }
@@ -208,13 +204,18 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
-apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${packages}
+if [[ $? > 0 ]];
+then
+    apt-get --yes --fix-broken install || systemctl exit 1
+fi
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
+if [[ $? > 0 ]];
+then
+    apt-get --yes --fix-broken install || systemctl exit 1
+fi
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
-
-# I have no idea if this is going to work or not, since the debs are "armhf" will find out in a bit.
-dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -292,41 +293,41 @@ rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-#git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.4.y-nexutil ${basedir}/kali-${architecture}/usr/src/kernel
-#cd ${basedir}/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.4.y-nexutil ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
-#export ARCH=arm
-#export CROSS_COMPILE=arm-linux-gnueabihf-
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
 
 # Create config from defconfig
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
 
 # Build kernel
-#make -j $(grep -c processor /proc/cpuinfo)
+make -j $(grep -c processor /proc/cpuinfo)
 
 # Install kernel modules
-#make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Copy kernel and dtb/dtbo to boot
-#perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
-#cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
-#cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
-#cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
+cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
 # Install firmware
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-#kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-#cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
-#rm build
-#rm source
-#ln -s /usr/src/kernel build
-#ln -s /usr/src/kernel source
-#cd ${basedir}
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
+cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
@@ -348,32 +349,49 @@ wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Currently doesn't work, to cross compile for the rpi0w but lets leave it in the root directory for users.
-cat << 'EOF' > ${basedir}/kali-${architecture}/root/buildnexmonfirmware.sh
+cat << 'EOF' > ${basedir}/kali-${architecture}/root/buildnexmon.sh
 #!/bin/bash
+kernel=$(uname -r) # Kernel is read from fakeuname.c
 git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
-cd /opt/nexmon/buildtools/flash_patch_extractor
+unset CROSS_COMPILE
+export CROSS_COMPILE=/opt/nexmon/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-armv7l/bin/arm-none-eabi-
+cd /opt/nexmon/
+source setup_env.sh
 make
-cd /opt/nexmon/buildtools/ucode_extractor
+cd buildtools/isl-0.10
+CC=$CCgcc
+./configure
 make
-cd /opt/nexmon/firmwares
-NEXMON_ROOT=/opt/nexmon make
-cp /lib/firmware/brcm/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.original.bin
-cp /opt/nexmon/firmwares/bcm43430a1/71_45_41_46/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
-cp /opt/nexmon/firmwares/bcm43430a1/71_45_41_46/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+make install
+ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
+ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
+# make scripts do not work if we cross crompile. Needs libisl.so before we can compile in scripts
+cd /usr/src/kernel
+make ARCH=arm scripts
+cd /opt/nexmon/
+source setup_env.sh
+# Build nexmon for pi 3
+cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
+make clean
+make
+# Make sure the firmware directory exists before we copy the firmware to it.
+mkdir -p /lib/firmware/brcm
+# Copy the ko file twice. Unsure if changes across both devices break compatibility
+cp brcmfmac_kernel49/brcmfmac.ko /lib/modules/${kernel}/kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko
+cp brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
-rm -rf /opt/nexmon
 EOF
-chmod 755 ${basedir}/kali-${architecture}/root/buildnexmonfirmware.sh
+chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
 
 
 # Firmware needed for wifi (comment out when building the nexmon firmware)
-#mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
-#cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
-#cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
+mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
 
 # Copy nexutil
-#cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/kali-${architecture}/usr/bin/nexutil
-#chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
+cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/kali-${architecture}/usr/bin/nexutil
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
@@ -418,8 +436,8 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
 # Build nexmon
-LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmonfirmware.sh"
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 # Unmount partitions
 sync
