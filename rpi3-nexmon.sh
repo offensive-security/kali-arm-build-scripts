@@ -225,28 +225,20 @@ apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tool
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install ${packages}
-if [[ $? > 0 ]];
-then
-    apt-get --yes --fix-broken install || exit 1
-fi
-apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
-if [[ $? > 0 ]];
-then
-    apt-get --yes --fix-broken install || exit 1
-fi
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 
 # Install the kernel packages
 dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
 
 apt-get --yes --allow-change-held-packages autoremove
-# Because copying in authorized_keys is hard for people to do, let's make the
-# image insecure and enable root login with a password.
 # libinput seems to fail hard on RaspberryPi devices, so we make sure it's not
 # installed here (and we have xserver-xorg-input-evdev and
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 
+# Because copying in authorized_keys is hard for people to do, let's make the
+# image insecure and enable root login with a password.
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
