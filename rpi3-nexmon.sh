@@ -52,7 +52,7 @@ cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe the hostname.
 
-if debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
+if debootstrap --foreign --variant minbase --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
 then
   echo "[*] Boostrap Success"
 else
@@ -70,6 +70,7 @@ else
   #exit 1
 fi
 
+mkdir -p kali-${architecture}/etc/apt/
 cat << EOF > kali-${architecture}/etc/apt/sources.list
 deb http://${mirror}/kali kali-rolling main contrib non-free
 EOF
@@ -87,12 +88,14 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
+mkdir -p kali-${architecture}/etc/modprobe.d/
 cat << EOF > kali-${architecture}/etc/modprobe.d/ipv6.conf
 # Don't load ipv6 by default
 alias net-pf-10 off
 #alias ipv6 off
 EOF
 
+mkdir -p kali-${architecture}/etc/network/
 cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
@@ -105,6 +108,7 @@ cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
+mkdir -p kali-${architecture}/lib/systemd/system/
 cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
@@ -173,6 +177,7 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+mkdir -p ${basedir}/kali-${architecture}/usr/bin/
 cat << 'EOF' > ${basedir}/kali-${architecture}/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
