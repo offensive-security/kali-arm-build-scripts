@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This is the FriendlyARM NanoPi2 Kali ARM build script - http://nanopi.io/
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
@@ -16,13 +17,17 @@ fi
 basedir=`pwd`/nanopi2-$1
 
 # Custom hostname variable
-hostname=kali
+hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=kali-linux-$1-
-
-if [ $2 ]; then
-    hostname=$2
-fi
+imagename=${3:-kali-linux-$1-nanopi2}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
+# Suite to use.  
+# Valid options are:
+# kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
+# A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
+# kali-rolling.
+suite=kali-rolling
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -48,13 +53,13 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+base="kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 haveged openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant"
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -67,20 +72,20 @@ mirror=http.kali.org
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+# create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
+debootstrap --foreign --variant minbase --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+mkdir -p kali-${architecture}/etc/apt/
+cat << EOF > kali-${architecture}/etc/apt/sources.list
+deb http://${mirror}/kali ${suite} main contrib non-free
 EOF
 
-echo "$hostname" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-${architecture}/etc/hostname
 
-cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       $hostname    localhost
+cat << EOF > kali-${architecture}/etc/hosts
+127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -88,7 +93,8 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+mkdir -p kali-${architecture}/etc/network/
+cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -103,7 +109,7 @@ hwaddress 76:92:d4:85:f3:0f
 iface p2p0 inet manual
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
@@ -111,17 +117,18 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-#mount -t proc proc kali-$architecture/proc
-#mount -o bind /dev/ kali-$architecture/dev/
-#mount -o bind /dev/pts kali-$architecture/dev/pts
+#mount -t proc proc kali-${architecture}/proc
+#mount -o bind /dev/ kali-${architecture}/dev/
+#mount -o bind /dev/pts kali-${architecture}/dev/pts
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
@@ -136,14 +143,10 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install $packages
-if [ $? > 0 ];
-then
-    apt-get --yes --allow-change-held-packages --fix-broken install
-fi
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
@@ -160,10 +163,10 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod 755 kali-$architecture/third-stage
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
+chmod 755 kali-${architecture}/third-stage
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 
-cat << EOF > kali-$architecture/cleanup
+cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
@@ -174,47 +177,19 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod 755 kali-$architecture/cleanup
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
+chmod 755 kali-${architecture}/cleanup
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
-#umount kali-$architecture/proc/sys/fs/binfmt_misc
-#umount kali-$architecture/dev/pts
-#umount kali-$architecture/dev/
-#umount kali-$architecture/proc
-
-# Create the disk and partition it
-# We start out at around 3MB so there is room to write u-boot without issues.
-echo "Creating image file for NanoPi2"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-nanopi2.img bs=1M count=7000
-parted kali-linux-$1-nanopi2.img --script -- mklabel msdos
-parted kali-linux-$1-nanopi2.img --script -- mkpart primary ext4 4096s 264191s
-parted kali-linux-$1-nanopi2.img --script -- mkpart primary ext4 264192s 100%
-
-# Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-nanopi2.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
-sleep 5
-device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
-
-# Create file systems
-mkfs.ext4 $bootp
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
-
-# Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
-
-echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+#umount kali-${architecture}/proc/sys/fs/binfmt_misc
+#umount kali-${architecture}/dev/pts
+#umount kali-${architecture}/dev/
+#umount kali-${architecture}/proc
 
 # Serial console settings.
 # (No auto login)
-echo 'T1:12345:respawn:/sbin/agetty 115200 ttyAMA0 vt100' >> ${basedir}/root/etc/inittab
+echo 'T1:12345:respawn:/sbin/agetty 115200 ttyAMA0 vt100' >> ${basedir}/kali-${architecture}/etc/inittab
 
-cat << EOF > ${basedir}/root/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -224,12 +199,11 @@ EOF
 
 git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
-
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 ${basedir}/root/usr/src/kernel
-cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ../kernel-at-commit
+git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
@@ -237,16 +211,16 @@ patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
 # Ugh, this patch is needed because the ethernet driver uses parts of netdev
 # from a newer kernel?
 patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Remove-define.patch
-cp ${basedir}/../kernel-configs/nanopi2* ..
+cp ${basedir}/../kernel-configs/nanopi2* ${basedir}/kali-${architecture}/usr/src/
 cp ../nanopi2-vendor.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make uImage
-make modules_install INSTALL_MOD_PATH=${basedir}/root
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 # We copy this twice because you can't do symlinks on fat partitions.
 # Also, the uImage known as uImage.hdmi is used by uboot if hdmi output is
 # detected.
-cp arch/arm/boot/uImage ${basedir}/bootp/uImage-720p
-cp arch/arm/boot/uImage ${basedir}/bootp/uImage.hdmi
+cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/uImage-720p
+cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/uImage.hdmi
 # Friendlyarm suggests staying at 720p for now.
 #cp ../nanopi2-1080p.config .config
 #make -j $(grep -c processor /proc/cpuinfo)
@@ -275,7 +249,7 @@ cd ${basedir}
 
 # FriendlyARM suggest using backports for wifi with their devices, and the
 # recommended version is the 4.4.2.
-cd ${basedir}/root/usr/src/
+cd ${basedir}/kali-${architecture}/usr/src/
 #wget https://www.kernel.org/pub/linux/kernel/projects/backports/stable/v4.4.2/backports-4.4.2-1.tar.xz
 #tar -xf backports-4.4.2-1.tar.xz
 git clone https://github.com/friendlyarm/wireless
@@ -288,35 +262,70 @@ cd ..
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root INSTALL_MOD_PATH=${basedir}/root install
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root mrproper
 #cp ${basedir}/../kernel-configs/backports.config .config
-XCROSS=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/root/usr/src/kernel -c nanopi2 -o ${basedir}/root
+XCROSS=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/kali-${architecture}/usr/src/kernel -c nanopi2 -o ${basedir}/kali-${architecture}
 
 cd ${basedir}
-mkdir -p ${basedir}/root/lib/firmware/ap6212/
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/root/lib/firmware/ap6212/nvram.txt
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/root/lib/firmware/ap6212/fw_bcm43438a0.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O ${basedir}/root/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O ${basedir}/root/lib/firmware/ap6212/bcm43438a0.hcd
+mkdir -p ${basedir}/kali-${architecture}/lib/firmware/ap6212/
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/nvram.txt
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
 cd ${basedir}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
 cd ${basedir}
 
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
+chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+
+# Create the disk and partition it
+# We start out at around 4MB so there is room to write u-boot without issues.
+echo "Creating image file for NanoPi2"
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+parted ${imagename}.img --script -- mklabel msdos
+parted ${imagename}.img --script -- mkpart primary ext4 4096s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
+
+# Set the partition variables
+loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
+sleep 5
+device="/dev/mapper/${device}"
+bootp=${device}p1
+rootp=${device}p2
+
+# Create file systems
+mkfs.ext4 ${bootp}
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
+
+# Create the dirs for the partitions and mount them
+mkdir -p ${basedir}/root
+mount ${rootp} ${basedir}/root
+mkdir -p ${basedir}/root/boot
+mount ${bootp} ${basedir}/root/boot
+
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
+
+echo "Rsyncing rootfs into image file"
+rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
 # Unmount partitions
-umount -l $bootp
-umount -l $rootp
+sync
+umount -l ${bootp}
+umount -l ${rootp}
 
 # Samsung bootloaders must be signed.
 # These are the same steps that are done by
@@ -330,36 +339,28 @@ wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebui
 wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bootloader.img # This is u-boot
 wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/loader-mmc.img
 
-dd if=bl1-mmcboot.bin of=$loopdevice bs=512 seek=1
-dd if=loader-mmc.img of=$loopdevice bs=512 seek=129
-dd if=bl_mon.img of=$loopdevice bs=512 seek=513
-dd if=bootloader.img of=$loopdevice bs=512 seek=3841
+dd if=bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
+dd if=loader-mmc.img of=${loopdevice} bs=512 seek=129
+dd if=bl_mon.img of=${loopdevice} bs=512 seek=513
+dd if=bootloader.img of=${loopdevice} bs=512 seek=3841
 
 sync
 
 cd ${basedir}
 
-kpartx -dv $loopdevice
-losetup -d $loopdevice
+kpartx -dv ${loopdevice}
+losetup -d ${loopdevice}
+
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing ${imagename}.img"
+pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
+rm ${basedir}/${imagename}.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Clean up the build system"
-rm -rf ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/wireless
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-nanopi2.img"
-sha256sum kali-linux-$1-nanopi2.img > ${basedir}/kali-linux-$1-nanopi2.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-nanopi2.img"
-pixz ${basedir}/kali-linux-$1-nanopi2.img ${basedir}/kali-linux-$1-nanopi2.img.xz
-echo "Deleting kali-linux-$1-nanopi2.img"
-rm ${basedir}/kali-linux-$1-nanopi2.img
-echo "Generating sha256sum for kali-linux-$1-nanopi2.img"
-sha256sum kali-linux-$1-nanopi2.img.xz > ${basedir}/kali-linux-$1-nanopi2.img.xz.sha256sum
-fi
+rm -rf ${basedir}

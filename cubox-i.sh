@@ -21,6 +21,12 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-cubox-i}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
+# Suite to use.  
+# Valid options are:
+# kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
+# A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
+# kali-rolling.
+suite=kali-rolling
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -46,8 +52,8 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
-desktop="kali-menu kali-defaults fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+base="e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant"
@@ -65,15 +71,14 @@ mirror=http.kali.org
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
-
-cp /usr/bin/qemu-arm-static kali-${architecture}/usr/bin/
+# create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
+debootstrap --foreign --variant minbase --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
 
 LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
+mkdir -p kali-${architecture}/etc/apt/
 cat << EOF > kali-${architecture}/etc/apt/sources.list
-deb http://${mirror}/kali kali-rolling main contrib non-free
+deb http://${mirror}/kali ${suite} main contrib non-free
 EOF
 
 echo "${hostname}" > kali-${architecture}/etc/hostname
@@ -87,6 +92,7 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
+mkdir -p kali-${architecture}/etc/network/
 cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
@@ -112,6 +118,7 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+mkdir -p kali-${architecture}/lib/systemd/system/
 cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
@@ -146,16 +153,8 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install ${packages}
-if [[ $? > 0 ]];
-then
-    apt-get --yes --fix-broken install
-fi
-apt-get --yes --allow-change-held-packages install ${desktop} ${tools}
-if [[ $? > 0 ]];
-then
-    apt-get --yes --fix-broken install
-fi
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages  autoremove
 

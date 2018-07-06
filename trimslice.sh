@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This is the Trimslice Kali ARM build script - http://utilite-computer.com/web/home
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
@@ -16,17 +17,17 @@ fi
 basedir=`pwd`/trimslice-$1
 
 # Custom hostname variable
-hostname=kali
+hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=kali-linux-$1-trimslice
-
-if [ $2 ]; then
-  hostname=$2
-fi
-
-if [ $3 ]; then
-  imagename=$3
-fi
+imagename=${3:-kali-linux-$1-trimslice}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
+# Suite to use.  
+# Valid options are:
+# kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
+# A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
+# kali-rolling.
+suite=kali-rolling
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -52,13 +53,13 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+base="kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant gcc"
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -71,21 +72,21 @@ mirror=http.kali.org
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+# create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
+debootstrap --foreign --variant minbase --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+mkdir -p kali-${architecture}/etc/apt/
+cat << EOF > kali-${architecture}/etc/apt/sources.list
+deb http://${mirror}/kali ${suite} main contrib non-free
 EOF
 
 # Set hostname
-echo "$hostname" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-${architecture}/etc/hostname
 
 cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       $hostname    localhost
+127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -93,7 +94,8 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+mkdir -p kali-${architecture}/etc/network/
+cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -101,7 +103,7 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
@@ -114,7 +116,7 @@ export DEBIAN_FRONTEND=noninteractive
 #mount -o bind /dev/pts kali-$architecture/dev/pts
 
 # Fake a uname response so that flash-kernel doesn't bomb out.
-cat << 'EOF' > kali-$architecture/root/fakeuname.c
+cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -135,12 +137,13 @@ int uname(struct utsname *buf)
 }
 EOF
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << 'EOF' > kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -153,9 +156,9 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-$architecture/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -167,10 +170,11 @@ ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-$architecture/lib/systemd/system/rpiwiggle.service
+chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
@@ -187,17 +191,14 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install $packages
-if [ $? > 0 ];
-then
-    apt-get --yes --allow-change-held-packages --fix-broken install
-fi
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 # Install the kernel here.  This is due to needing to fake being an arm device for flash-kernel to work properly.
 cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c
-LD_PRELOAD=/root/libfakeuname.so apt-get --yes --allow-change-held-packages install linux-image-armmp
+LD_PRELOAD=/root/libfakeuname.so apt-get --yes --allow-change-held-packages install linux-image-armmp u-boot-tegra
 cd /
 
 # Resize FS on first run (hopefully)
@@ -214,10 +215,10 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod 755 kali-$architecture/third-stage
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
+chmod 755 kali-${architecture}/third-stage
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 
-cat << EOF > kali-$architecture/cleanup
+cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
@@ -228,53 +229,26 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod 755 kali-$architecture/cleanup
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
+chmod 755 kali-${architecture}/cleanup
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
 #umount kali-$architecture/proc/sys/fs/binfmt_misc
 #umount kali-$architecture/dev/pts
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
-# Create the disk and partition it
-echo "Creating image file $imagename"
-dd if=/dev/zero of=${basedir}/$imagename.img bs=1M count=7000
-parted $imagename.img --script -- mklabel msdos
-parted $imagename.img --script -- mkpart primary ext2 2048s 264191s
-parted $imagename.img --script -- mkpart primary ext4 264192s 100%
-
-# Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/$imagename.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
-sleep 5
-device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
-
-# Create file systems
-mkfs.ext2 $bootp
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
-
-# Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
-
-echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
-
 # Enable serial console access
-echo "T1:23:respawn:/sbin/agetty -L ttys0 115200 vt100" >> ${basedir}/root/etc/inittab
+echo "T1:23:respawn:/sbin/agetty -L ttys0 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
 
-cat << EOF >> ${basedir}/root/etc/udev/links.conf
+cat << EOF >> ${basedir}/kali-${architecture}/etc/udev/links.conf
 M   ttyS0 c   5 1
 EOF
 
-cat << EOF >> ${basedir}/root/etc/securetty
+cat << EOF >> ${basedir}/kali-${architecture}/etc/securetty
 ttyS0
 EOF
 
-cat << EOF > ${basedir}/root/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -282,136 +256,57 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-#git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git -b linux-4.1.y ${basedir}/root/usr/src/kernel
-#cd ${basedir}/root/usr/src/kernel
-#git rev-parse HEAD > ../kernel-at-commit
-#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
-#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
-#touch .scmversion
-#export ARCH=arm
-#export CROSS_COMPILE=arm-linux-gnueabihf-
-#cp ${basedir}/../kernel-configs/trimslice.config .config
-#cp ${basedir}/../kernel-configs/trimslice.config ../trimslice.config
-#make -j $(grep -c processor /proc/cpuinfo) zImage modules dtbs
-#make modules_install INSTALL_MOD_PATH=${basedir}/root
-#cp arch/arm/boot/zImage ${basedir}/bootp/
-#cp arch/arm/boot/dts/tegra20-trimslice.dtb ${basedir}/bootp/
-#make mrproper
-#cp ../trimslice.config .config
-#make modules_prepare
-#cd ${basedir}
+cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
+chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-#kernver=$(ls ${basedir}/root/lib/modules/)
-#cd ${basedir}/root/lib/modules/$kernver
-#rm build
-#rm source
-#ln -s /usr/src/kernel build
-#ln -s /usr/src/kernel source
-cd ${basedir}
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
 
-#rm -rf ${basedir}/root/lib/firmware
-#cd ${basedir}/root/lib
-#git clone --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-#rm -rf ${basedir}/root/lib/firmware/.git
-#cd ${basedir}
+# Create the disk and partition it
+echo "Creating image file ${imagename}.img"
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+parted ${imagename}.img --script -- mklabel msdos
+parted ${imagename}.img --script -- mkpart primary ext2 2048s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
-#echo << EOF > ${basedir}/bootp/boot.txt
-#setenv bootargs root=/dev/mmcblk0p2 nohdparm rootwait console=ttyS0,115200n8 earlyprintk net.ifnames=0
-#ext2load usb 0:1 4080000 zImage
-#ext2load usb 0:1 4000000 tegra20-trimslice.dtb
-#bootz 4080000 - 4000000
-#EOF
+# Set the partition variables
+loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
+sleep 5
+device="/dev/mapper/${device}"
+bootp=${device}p1
+rootp=${device}p2
 
-cat << EOF > ${basedir}/bootp/boot.txt
-# Bootscript using the new unified bootcmd handling
-# introduced with u-boot v2014.10
-#
-# Expects to be called with the following environment variables set:
-#
-#  devtype              e.g. mmc/scsi etc
-#  devnum               The device number of the given type
-#  bootpart             The partition containing the boot files
-#  distro_bootpart      The partition containing the boot files
-#                       (introduced in u-boot mainline 2016.01)
-#  prefix               Prefix within the boot partiion to the boot files
-#  kernel_addr_r        Address to load the kernel to
-#  fdt_addr_r           Address to load the FDT to
-#  ramdisk_addr_r       Address to load the initrd to.
-#
-# The uboot must support the bootz and generic filesystem load commands.
+# Create file systems
+mkfs.ext2 ${bootp}
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
-# Workaround lack of baudrate included with console on various iMX
-# systems (e.g. wandboard, cubox-i, hummingboard)
-if test "\${console}" = "ttymxc0" && test -n "\${baudrate}"; then
-  setenv console "\${console},\${baudrate}"
-fi
+# Create the dirs for the partitions and mount them
+mkdir -p ${basedir}/bootp ${basedir}/root
+mount ${rootp} ${basedir}/root
+mkdir -p ${basedir}/root/boot
+mount ${bootp} ${basedir}/root/boot
 
-if test -n "\${console}"; then
-  setenv bootargs "\${bootargs} console=\${console}"
-fi
-
-setenv bootargs @@LINUX_KERNEL_CMDLINE_DEFAULTS@@ \${bootargs} @@LINUX_KERNEL_CMDLINE@@
-@@UBOOT_ENV_EXTRA@@
-
-if test -z "\${fk_kvers}"; then
-   setenv fk_kvers '@@KERNEL_VERSION@@'
-fi
-
-# These two blocks should be the same apart from the use of
-# \${fk_kvers} in the first, the syntax supported by u-boot does not
-# lend itself to removing this duplication.
-
-if test -n "\${fdtfile}"; then
-   setenv fdtpath dtbs/\${fk_kvers}/\${fdtfile}
-else
-   setenv fdtpath dtb-\${fk_kvers}
-fi
-
-if test -z "\${distro_bootpart}"; then
-  setenv partition \${bootpart}
-else
-  setenv partition \${distro_bootpart}
-fi
-
-load \${devtype} \${devnum}:\${partition} \${kernel_addr_r} \${prefix}vmlinuz-\${fk_kvers} \
-&& load \${devtype} \${devnum}:\${partition} \${fdt_addr_r} \${prefix}\${fdtpath} \
-&& load \${devtype} \${devnum}:\${partition} \${ramdisk_addr_r} \${prefix}initrd.img-\${fk_kvers} \
-&& echo "Booting Kali \${fk_kvers} from \${devtype} \${devnum}:\${partition}..." \
-&& bootz \${kernel_addr_r} \${ramdisk_addr_r}:\${filesize} \${fdt_addr_r}
-
-load \${devtype} \${devnum}:\${partition} \${kernel_addr_r} \${prefix}vmlinuz \
-&& load \${devtype} \${devnum}:\${partition} \${fdt_addr_r} \${prefix}dtb \
-&& load \${devtype} \${devnum}:\${partition} \${ramdisk_addr_r} \${prefix}initrd.img \
-&& echo "Booting Kali from \${devtype} \${devnum}:\${partition}..." \
-&& bootz \${kernel_addr_r} \${ramdisk_addr_r}:\${filesize} \${fdt_addr_r}
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
 EOF
 
-# Create u-boot boot script image
-mkimage -A arm -T script -C none -d ${basedir}/bootp/boot.txt ${basedir}/bootp/boot.scr
-
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
-
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+echo "Rsyncing rootfs into image file"
+rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
 # Unmount partitions
 sync
-umount -l $bootp
-umount -l $rootp
-kpartx -dv $loopdevice
-losetup -d $loopdevice
+umount -l ${bootp}
+umount -l ${rootp}
+kpartx -dv ${loopdevice}
+losetup -d ${loopdevice}
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing $imagename.img"
-pixz ${basedir}/$imagename.img ${basedir}/../$imagename.img.xz
-rm ${basedir}/$imagename.img
+echo "Compressing ${imagename}.img"
+pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
+rm ${basedir}/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.

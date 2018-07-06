@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This is the HardKernel ODROID C Kali ARM build script - http://hardkernel.com/main/main.php
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
@@ -16,13 +17,17 @@ fi
 basedir=`pwd`/odroidc-$1
 
 # Custom hostname variable
-hostname=kali
+hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=kali-linux-$1-
-
-if [ $2 ]; then
-    hostname=$2
-fi
+imagename=${3:-kali-linux-$1-odroidc}
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
+# Suite to use.  
+# Valid options are:
+# kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
+# A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
+# kali-rolling.
+suite=kali-rolling
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -48,13 +53,13 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs initramfs-tools kali-defaults kali-menu parted sudo usbutils"
-desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
+base="kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
 extras="fbset iceweasel xfce4-terminal wpasupplicant"
 
-packages="${arm} ${base} ${desktop} ${tools} ${services} ${extras}"
+packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
@@ -67,20 +72,20 @@ mirror=http.kali.org
 mkdir -p ${basedir}
 cd ${basedir}
 
-# create the rootfs - not much to modify here, except maybe the hostname.
-debootstrap --foreign --arch $architecture kali-rolling kali-$architecture http://$mirror/kali
+# create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
+debootstrap --foreign --variant minbase --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
 
-cp /usr/bin/qemu-arm-static kali-$architecture/usr/bin/
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /debootstrap/debootstrap --second-stage
-cat << EOF > kali-$architecture/etc/apt/sources.list
-deb http://$mirror/kali kali-rolling main contrib non-free
+mkdir -p kali-${architecture}/etc/apt/
+cat << EOF > kali-${architecture}/etc/apt/sources.list
+deb http://${mirror}/kali ${suite} main contrib non-free
 EOF
 
-echo "$hostname" > kali-$architecture/etc/hostname
+echo "${hostname}" > kali-${architecture}/etc/hostname
 
-cat << EOF > kali-$architecture/etc/hosts
-127.0.0.1       $hostname    localhost
+cat << EOF > kali-${architecture}/etc/hosts
+127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
 ff00::0         ip6-mcastprefix
@@ -88,7 +93,8 @@ ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 EOF
 
-cat << EOF > kali-$architecture/etc/network/interfaces
+mkdir -p kali-${architecture}/etc/network/
+cat << EOF > kali-${architecture}/etc/network/interfaces
 auto lo
 iface lo inet loopback
 
@@ -96,7 +102,7 @@ auto eth0
 iface eth0 inet dhcp
 EOF
 
-cat << EOF > kali-$architecture/etc/resolv.conf
+cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
@@ -104,17 +110,18 @@ export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
 export DEBIAN_FRONTEND=noninteractive
 
-#mount -t proc proc kali-$architecture/proc
-#mount -o bind /dev/ kali-$architecture/dev/
-#mount -o bind /dev/pts kali-$architecture/dev/pts
+#mount -t proc proc kali-${architecture}/proc
+#mount -o bind /dev/ kali-${architecture}/dev/
+#mount -o bind /dev/pts kali-${architecture}/dev/pts
 
-cat << EOF > kali-$architecture/debconf.set
+cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-cat << EOF > kali-$architecture/third-stage
+cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
@@ -129,21 +136,16 @@ apt-get update
 apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
-sed -i -e 's/KERNEL\!=\"eth\*|/KERNEL\!=\"/' /lib/udev/rules.d/75-persistent-net-generator.rules
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
-apt-get --yes --allow-change-held-packages install $packages
-if [ $? > 0 ];
-then
-    apt-get --yes --allow-change-held-packages --fix-broken install
-fi
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
-echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 update-rc.d ssh enable
@@ -155,10 +157,10 @@ dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
 rm -f /third-stage
 EOF
 
-chmod 755 kali-$architecture/third-stage
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /third-stage
+chmod 755 kali-${architecture}/third-stage
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /third-stage
 
-cat << EOF > kali-$architecture/cleanup
+cat << EOF > kali-${architecture}/cleanup
 #!/bin/bash
 rm -rf /root/.bash_history
 apt-get update
@@ -169,46 +171,19 @@ rm -f cleanup
 rm -f /usr/bin/qemu*
 EOF
 
-chmod 755 kali-$architecture/cleanup
-LANG=C systemd-nspawn -M $machine -D kali-$architecture /cleanup
+chmod 755 kali-${architecture}/cleanup
+LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
-#umount kali-$architecture/proc/sys/fs/binfmt_misc
-#umount kali-$architecture/dev/pts
-#umount kali-$architecture/dev/
-#umount kali-$architecture/proc
-
-# Create the disk and partition it
-echo "Creating image file for ODROID-C1"
-dd if=/dev/zero of=${basedir}/kali-linux-$1-odroidc.img bs=1M count=7000
-parted kali-linux-$1-odroidc.img --script -- mklabel msdos
-parted kali-linux-$1-odroidc.img --script -- mkpart primary fat32 3072s 264191s
-parted kali-linux-$1-odroidc.img --script -- mkpart primary ext4 264192s 100%
-
-# Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/kali-linux-$1-odroidc.img`
-device=`kpartx -va $loopdevice| sed -E 's/.*(loop[0-9])p.*/\1/g' | head -1`
-sleep 5
-device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
-
-# Create file systems
-mkfs.vfat $bootp
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum $rootp
-
-# Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/bootp ${basedir}/root
-mount $bootp ${basedir}/bootp
-mount $rootp ${basedir}/root
-
-echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-$architecture/ ${basedir}/root/
+#umount kali-${architecture}/proc/sys/fs/binfmt_misc
+#umount kali-${architecture}/dev/pts
+#umount kali-${architecture}/dev/
+#umount kali-${architecture}/proc
 
 # Serial console settings.
 # (No auto login)
-echo 'T1:12345:respawn:/sbin/agetty 115200 ttyS0 vt100' >> ${basedir}/root/etc/inittab
+echo 'T1:12345:respawn:/sbin/agetty 115200 ttyS0 vt100' >> ${basedir}/kali-${architecture}/etc/inittab
 
-cat << EOF > ${basedir}/root/etc/apt/sources.list
+cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -218,9 +193,9 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux -b odroidc-3.10.y ${basedir}/root/usr/src/kernel
-cd ${basedir}/root/usr/src/kernel
-git rev-parse HEAD > ../kernel-at-commit
+git clone --depth 1 https://github.com/hardkernel/linux -b odroidc-3.10.y ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
 # NOTE: 3.8 now works with a 4.8 compiler, 3.4 does not!
@@ -231,9 +206,9 @@ make odroidc_defconfig
 cp .config ../odroidc.config
 make -j $(grep -c processor /proc/cpuinfo)
 make uImage
-make modules_install INSTALL_MOD_PATH=${basedir}/root
-cp arch/arm/boot/uImage ${basedir}/bootp
-cp arch/arm/boot/dts/meson8b_odroidc.dtb ${basedir}/bootp/
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/
+cp arch/arm/boot/dts/meson8b_odroidc.dtb ${basedir}/kali-${architecture}/boot/
 make mrproper
 cp ../odroidc.config .config
 make modules_prepare
@@ -242,8 +217,8 @@ cd ${basedir}
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/root/lib/modules/)
-cd ${basedir}/root/lib/modules/$kernver
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
@@ -251,7 +226,7 @@ ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Create a boot.ini file with possible options if people want to change them.
-cat << EOF > ${basedir}/bootp/boot.ini
+cat << EOF > ${basedir}/kali-${architecture}/boot/boot.ini
 ODROIDC-UBOOT-CONFIG
 
 # Possible screen resolutions
@@ -350,7 +325,7 @@ bootm 0x21000000 - 0x21800000"
 EOF
 
 # Create systemd service to setup display.
-cat << EOF > ${basedir}/root/lib/systemd/system/amlogic.service
+cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/amlogic.service
 [Unit]
 Description=AMlogic HDMI Initialization
 
@@ -364,9 +339,9 @@ WantedBy=multi-user.target
 EOF
 
 # Create symlink to enable the service...
-ln -sf /lib/systemd/system/amlogic.service ${basedir}/root/etc/systemd/system/multi-user.target.wants/amlogic.service
+ln -sf /lib/systemd/system/amlogic.service ${basedir}/kali-${architecture}/etc/systemd/system/multi-user.target.wants/amlogic.service
 
-cat << EOF > ${basedir}/root/usr/bin/amlogic.sh
+cat << EOF > ${basedir}/kali-${architecture}/usr/bin/amlogic.sh
 #!/bin/sh
 
 for x in \$(cat /proc/cmdline); do
@@ -455,9 +430,9 @@ echo 7 > /sys/class/net/eth0/queues/tx-0/xps_cpus
 # Move IRQ's of ethernet to CPU1/2
 echo 1,2 > /proc/irq/40/smp_affinity_list
 EOF
-chmod 755 ${basedir}/root/usr/bin/amlogic.sh
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/amlogic.sh
 
-cat << EOF > ${basedir}/root/etc/sysctl.d/99-c1-network.conf
+cat << EOF > ${basedir}/kali-${architecture}/etc/sysctl.d/99-c1-network.conf
 net.core.rmem_max = 26214400
 net.core.wmem_max = 26214400
 net.core.rmem_default = 514400
@@ -473,21 +448,51 @@ net.core.optmem_max = 65535
 net.core.netdev_max_backlog = 5000
 EOF
 
-rm -rf ${basedir}/root/lib/firmware
-cd ${basedir}/root/lib
-git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git firmware
-rm -rf ${basedir}/root/lib/firmware/.git
 cd ${basedir}
 
-cp ${basedir}/../misc/zram ${basedir}/root/etc/init.d/zram
-chmod 755 ${basedir}/root/etc/init.d/zram
+cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
+chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/root/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+
+# Create the disk and partition it
+echo "Creating image file for ODROID-C1"
+dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+parted ${imagename}.img --script -- mklabel msdos
+parted ${imagename}.img --script -- mkpart primary fat32 3072s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
+
+# Set the partition variables
+loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
+sleep 5
+device="/dev/mapper/${device}"
+bootp=${device}p1
+rootp=${device}p2
+
+# Create file systems
+mkfs.vfat ${bootp}
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
+
+# Create the dirs for the partitions and mount them
+mkdir -p ${basedir}/root
+mount ${rootp} ${basedir}/root
+mkdir -p ${basedir}/root/boot
+mount ${bootp} ${basedir}/root/boot
+
+# We do this down here to get rid of the build system's resolv.conf after running through the build.
+cat << EOF > kali-${architecture}/etc/resolv.conf
+nameserver 8.8.8.8
+EOF
+
+echo "Rsyncing rootfs into image file"
+rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
 # Unmount partitions
-umount $bootp
-umount $rootp
-kpartx -dv $loopdevice
+sync
+umount ${bootp}
+umount ${rootp}
+kpartx -dv ${loopdevice}
 
 # Build the latest u-boot bootloader, and then use the Hardkernel script to fuse
 # it to the image.  This is required because of a requirement that the
@@ -501,30 +506,22 @@ make CROSS_COMPILE=arm-linux-gnueabihf- odroidc_config
 make CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo)
 
 cd sd_fuse
-sh sd_fusing.sh $loopdevice
+sh sd_fusing.sh ${loopdevice}
 
 cd ${basedir}
 
-losetup -d $loopdevice
+losetup -d ${loopdevice}
+
+# Don't pixz on 32bit, there isn't enough memory to compress the images.
+MACHINE_TYPE=`uname -m`
+if [ ${MACHINE_TYPE} == 'x86_64' ]; then
+echo "Compressing ${imagename}.img"
+pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
+rm ${basedir}/${imagename}.img
+fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Clean up the build system"
-rm -rf ${basedir}/kernel ${basedir}/bootp ${basedir}/root ${basedir}/kali-$architecture ${basedir}/patches ${basedir}/u-boot
-
-# If you're building an image for yourself, comment all of this out, as you
-# don't need the sha256sum or to compress the image, since you will be testing it
-# soon.
-echo "Generating sha256sum for kali-linux-$1-odroidc.img"
-sha256sum kali-linux-$1-odroidc.img > ${basedir}/kali-linux-$1-odroidc.img.sha256sum
-# Don't pixz on 32bit, there isn't enough memory to compress the images.
-MACHINE_TYPE=`uname -m`
-if [ ${MACHINE_TYPE} == 'x86_64' ]; then
-echo "Compressing kali-linux-$1-odroidc.img"
-pixz ${basedir}/kali-linux-$1-odroidc.img ${basedir}/kali-linux-$1-odroidc.img.xz
-echo "Deleting kali-linux-$1-odroidc.img"
-rm ${basedir}/kali-linux-$1-odroidc.img
-echo "Generating sha256sum for kali-linux-$1-odroidc.img"
-sha256sum kali-linux-$1-odroidc.img.xz > ${basedir}/kali-linux-$1-odroidc.img.xz.sha256sum
-fi
+rm -rf ${basedir}
