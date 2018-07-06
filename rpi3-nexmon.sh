@@ -212,6 +212,7 @@ cp ${basedir}/../misc/fakeioctl.c ${basedir}/kali-${architecture}/root/fakeioctl
 
 cat << EOF > ${basedir}/kali-${architecture}/third-stage
 #!/bin/bash
+set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
 cp /bin/true /usr/sbin/invoke-rc.d
 echo -e "#!/bin/sh\nexit 101" > /usr/sbin/policy-rc.d
@@ -237,9 +238,6 @@ fi
 
 # Install the kernel packages
 dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
-# Show what kernel version it is.
-ls -lah /lib/modules/
-
 
 apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
