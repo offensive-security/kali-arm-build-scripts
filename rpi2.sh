@@ -139,11 +139,14 @@ Before=regenerate_ssh_host_keys.service
 Type=oneshot
 ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
-ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+
+# Let's try out binky's package for the rpi kernel and headers.
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -169,9 +172,11 @@ apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-ge
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
+# Install the kernel packages
+dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
-
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
@@ -234,42 +239,6 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-make re4son_pi2_defconfig
-make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
-rm -rf rpi-firmware
-# ARGH.  Device tree support requires we run this *sigh*
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel7.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
-mkdir -p ${basedir}/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
-make INSTALL_MOD_PATH=${basedir}/kali-${architecture} firmware_install
-make mrproper
-make re4son_pi2_defconfig
-make modules_prepare
-cd ${basedir}
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd ${basedir}
-
 # Create cmdline.txt file
 cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
 dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
@@ -287,14 +256,16 @@ proc /proc proc nodev,noexec,nosuid 0  0
 EOF
 
 # Firmware needed for rpi3 wifi/bt
-#mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
-#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
+# Without these text files, the firmware doesn't seem to load properly, and they aren't distributed in the firmware packages.
+mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.txt
 #wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
-#cd ${basedir}
+cd ${basedir}
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/rpi-wiggle.sh
+wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/rpi-wiggle.sh
 
 # Copy a default config, with everything commented out so people find it when
@@ -304,6 +275,7 @@ cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
 cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
 chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
+# We do this again down here, because for some reason it seems to reset during third-stage?
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
