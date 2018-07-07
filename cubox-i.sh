@@ -294,8 +294,8 @@ EOF
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
-dd conv=fsync,notrunc if=/usr/lib/u-boot/mx6cuboxi/SPL of=${loopdevice} bs=1k seek=1
-dd conv=fsync,notrunc if=/usr/lib/u-boot/mx6cuboxi/u-boot.img of=${loopdevice} bs=1k seek=69
+dd conv=fsync,notrunc if=${basedir}/root/usr/lib/u-boot/mx6cuboxi/SPL of=${loopdevice} bs=1k seek=1
+dd conv=fsync,notrunc if=${basedir}/root/usr/lib/u-boot/mx6cuboxi/u-boot.img of=${loopdevice} bs=1k seek=69
 
 # Unmount partitions
 sync
