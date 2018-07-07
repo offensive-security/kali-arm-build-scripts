@@ -52,7 +52,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek u-boot-imx linux-image-armmp"
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -206,49 +206,49 @@ EOF
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 #git clone --depth 1 -b linux-linaro-lsk-3.10.42-mx6 https://github.com/SolidRun/linux-linaro-stable-mx6.git ${basedir}/root/usr/src/kernel
-git clone --depth 1 https://github.com/SolidRun/linux-fslc.git --branch 3.14-1.0.x-mx6-sr ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/cubox-i.config .config
-cp ${basedir}/../kernel-configs/cubox-i.config ${basedir}/kali-${architecture}/usr/src/cubox-i.config
-make -j $(grep -c processor /proc/cpuinfo) zImage imx6q-cubox-i.dtb imx6dl-cubox-i.dtb imx6q-hummingboard.dtb imx6dl-hummingboard.dtb modules
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+#git clone --depth 1 https://github.com/SolidRun/linux-fslc.git --branch 3.14-1.0.x-mx6-sr ${basedir}/kali-${architecture}/usr/src/kernel
+#cd ${basedir}/kali-${architecture}/usr/src/kernel
+#git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
+#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.14.patch
+#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
+#touch .scmversion
+#export ARCH=arm
+#export CROSS_COMPILE=arm-linux-gnueabihf-
+#cp ${basedir}/../kernel-configs/cubox-i.config .config
+#cp ${basedir}/../kernel-configs/cubox-i.config ${basedir}/kali-${architecture}/usr/src/cubox-i.config
+#make -j $(grep -c processor /proc/cpuinfo) zImage imx6q-cubox-i.dtb imx6dl-cubox-i.dtb imx6q-hummingboard.dtb imx6dl-hummingboard.dtb modules
+#make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 # This is kinda hacky, but since we're using 1 single partition
 # and their u-boot is kinda wonky, we put zImage and the dtbs in / because
 # otherwise there's no autodetection of the dtb and we'd have to release an
 # image for each version of the cubox-i.
-cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/
-cp arch/arm/boot/dts/imx6q-cubox-i.dtb ${basedir}/kali-${architecture}/
-cp arch/arm/boot/dts/imx6dl-cubox-i.dtb ${basedir}/kali-${architecture}/
-cp arch/arm/boot/dts/imx6dl-hummingboard.dtb ${basedir}/kali-${architecture}/
-cp arch/arm/boot/dts/imx6q-hummingboard.dtb ${basedir}/kali-${architecture}/
-make mrproper
-cp ../cubox-i.config .config
-make modules_prepare
-cd ${basedir}
+#cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/
+#cp arch/arm/boot/dts/imx6q-cubox-i.dtb ${basedir}/kali-${architecture}/
+#cp arch/arm/boot/dts/imx6dl-cubox-i.dtb ${basedir}/kali-${architecture}/
+#cp arch/arm/boot/dts/imx6dl-hummingboard.dtb ${basedir}/kali-${architecture}/
+#cp arch/arm/boot/dts/imx6q-hummingboard.dtb ${basedir}/kali-${architecture}/
+#make mrproper
+#cp ../cubox-i.config .config
+#make modules_prepare
+#cd ${basedir}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd ${basedir}
+#kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+#cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+#rm build
+#rm source
+#ln -s /usr/src/kernel build
+#ln -s /usr/src/kernel source
+#cd ${basedir}
 
 # Create boot.txt file
-cat << EOF > ${basedir}/kali-${architecture}/boot/uEnv.txt
-bootfile=zImage
-mmcargs=setenv bootargs root=/dev/mmcblk0p1 rootwait video=mxcfb0:dev=hdmi \
-consoleblank=0 console=ttymxc0,115200 net.ifnames=0 rw rootfstype=ext4
-EOF
+#cat << EOF > ${basedir}/kali-${architecture}/boot/uEnv.txt
+#bootfile=zImage
+#mmcargs=setenv bootargs root=/dev/mmcblk0p1 rootwait video=mxcfb0:dev=hdmi \
+#consoleblank=0 console=ttymxc0,115200 net.ifnames=0 rw rootfstype=ext4
+#EOF
 
 cd ${basedir}
 
@@ -294,21 +294,24 @@ EOF
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
+dd conv=fsync,notrunc if=/usr/lib/u-boot/mx6cuboxi/SPL of=${loopdevice} bs=1k seek=1
+dd conv=fsync,notrunc if=/usr/lib/u-boot/mx6cuboxi/u-boot.img of=${loopdevice} bs=1k seek=69
+
 # Unmount partitions
 sync
 umount ${rootp}
 
 # We need an older cross compiler for compiling u-boot so check out the 4.7
 # cross compiler.
-git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+#git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
-git clone https://github.com/SolidRun/u-boot-imx6.git
-cd ${basedir}/u-boot-imx6
-make CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- mx6_cubox-i_config
-make CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+#git clone https://github.com/SolidRun/u-boot-imx6.git
+#cd ${basedir}/u-boot-imx6
+#make CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- mx6_cubox-i_config
+#make CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 
-dd if=SPL of=${loopdevice} bs=1K seek=1
-dd if=u-boot.img of=${loopdevice} bs=1K seek=42
+#dd if=SPL of=${loopdevice} bs=1K seek=1
+#dd if=u-boot.img of=${loopdevice} bs=1K seek=42
 
 kpartx -dv ${loopdevice}
 losetup -d ${loopdevice}
