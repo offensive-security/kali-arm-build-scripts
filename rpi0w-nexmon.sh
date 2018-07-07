@@ -161,10 +161,6 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
-# Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
-
 # Bluetooth enabling
 mkdir -p kali-${architecture}/etc/udev/rules.d
 cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
@@ -220,14 +216,9 @@ apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-ge
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
-# NOTE: NEVER EVER DO THIS IF YOU DON'T KNOW EXACTLY WHAT YOU'RE DOING
-# I know that the files are correct, just that the packages are built for "armhf"
-# and apt refuses to install an armhf package on armel (rightly so)
-dpkg --extract /root/raspberrypi-kernel_20180704-223830_armhf.deb /
-dpkg --extract /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb /
-
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
+
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
@@ -300,41 +291,41 @@ cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
 rm -rf rpi-firmware
 
 # Setup build
-#cd ${TOPDIR}
-#git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.4.y-nexutil ${basedir}/kali-${architecture}/usr/src/kernel
-#cd ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${TOPDIR}
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.4.y-nexutil ${basedir}/kali-${architecture}/usr/src/kernel
+cd ${basedir}/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
-#export ARCH=arm
-#export CROSS_COMPILE=arm-linux-gnueabihf-
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabihf-
 
 # Create config from defconfig
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- bcmrpi_defconfig
 
 # Build kernel
-#make -j $(grep -c processor /proc/cpuinfo)
+make -j $(grep -c processor /proc/cpuinfo)
 
 # Install kernel modules
-#make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Copy kernel and dtb/dtbo to boot
-#perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
-#cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
-#cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
-#cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
+cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
 # Install firmware
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-#kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-#cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
-#rm build
-#rm source
-#ln -s /usr/src/kernel build
-#ln -s /usr/src/kernel source
+kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
+cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+rm build
+rm source
+ln -s /usr/src/kernel build
+ln -s /usr/src/kernel source
 cd ${basedir}
 
 # Create cmdline.txt file
@@ -398,8 +389,8 @@ cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio-nexmon.bin ${basedir}/kali-${archi
 cp ${basedir}/../misc/rpi3/brcmfmac43430-sdio.txt ${basedir}/kali-${architecture}/lib/firmware/brcm/
 
 # Copy nexutil
-#cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/kali-${architecture}/usr/bin/nexutil
-#chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
+cp ${basedir}/../misc/rpi3/nexutil-pi0 ${basedir}/kali-${architecture}/usr/bin/nexutil
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/nexutil
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
