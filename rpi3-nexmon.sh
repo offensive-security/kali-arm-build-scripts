@@ -495,6 +495,8 @@ mv ${basedir}/kali-${architecture}/boot/firmware/* ${basedir}/kali-${architectur
 cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
 chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
+sed -i -e 's/REGDOM.*/REGDOMAIN=00/g' ${basedir}/kali-${architecture}/etc/default/crda
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
