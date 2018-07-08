@@ -265,7 +265,7 @@ cd ${basedir}
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/rpi-wiggle.sh
+wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/rpi-wiggle.sh
 
 # Copy a default config, with everything commented out so people find it when
