@@ -245,8 +245,6 @@ cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
 cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
 
-# Make firmware and headers
-make firmware_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 make mrproper
 make re4son_pi1_defconfig
 make modules_prepare
