@@ -484,6 +484,7 @@ cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
 # Boot from microsd card with it, then reboot.
 # Don't forget to comment this back out after using, especially if you plan to use
 # sdcard with multiple machines!
+# NOTE: This ONLY works with the Raspberry Pi 3+
 #program_usb_boot_mode=1
 EOF
 
