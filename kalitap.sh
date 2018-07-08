@@ -39,7 +39,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate vboot-utils vboot-kernel-utils u-boot-tools"
-base="kali-defaults ifupdown initramfs-tools usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="apt-utils kali-defaults ifupdown initramfs-tools usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
 desktop="kali-menu xfce4 network-manager network-manager-gnome ntpdate xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
