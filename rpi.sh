@@ -229,7 +229,7 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${a
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
 rm -rf rpi-firmware
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.9.80-re4son ${basedir}/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son ${basedir}/kali-${architecture}/usr/src/kernel
 cd ${basedir}/kali-${architecture}/usr/src/kernel
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabi-
@@ -281,7 +281,7 @@ EOF
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 cd ${basedir}
