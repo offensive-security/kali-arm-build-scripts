@@ -298,6 +298,8 @@ cp ${NEXMON_ROOT}/firmwares/bcm43430a1/7_45_41_46/brcmfmac43430-sdio.bin /lib/fi
 cp ${NEXMON_ROOT}/firmwares/bcm43455c0/7_45_154/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
 cp ${NEXMON_ROOT}/firmwares/bcm43455c0/7_45_154/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.bin
 EOF
+# And now remove the nexmon sources because that's 2.5GB of space we don't want to give up.
+rm -rf /opt/nexmon
 chmod 755 ${basedir}/kali-${architecture}/root/buildnexmonfirmware.sh
 
 
