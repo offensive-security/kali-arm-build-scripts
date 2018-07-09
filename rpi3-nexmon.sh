@@ -297,10 +297,14 @@ source setup_env.sh
 # Build nexmon for pi 3
 cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
 make clean
+# NOTE: We don't set -e in this bash script because of this make command erroring.
+# We only want to build the firmware, and the nexmon firmware is... tightly integrated, so for now
+# We let the module error because we already have the module built in the kernel and that error occurs
+# after we patch up the firmware, so we get the firmware we want.  This is ugly, but it works.
 make
 # We don't want the module, just the firmware. The module is already patched into the kernel.
-cp /opt/nexmon/patches/bcm43430a1/7_45_41_56/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
-cp /opt/nexmon/patches/bcm43430a1/7_45_41_56/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+cp /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
+cp /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
 
 # Build nexmon for pi 3 b+
