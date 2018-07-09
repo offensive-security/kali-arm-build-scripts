@@ -295,8 +295,8 @@ ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf
 cd /opt/nexmon/
 source setup_env.sh
 # We sed the Makefile for the 2 modules we want the firmware for, and tell it to only build them.
-sed -i -e 's/all:.*/all: $(ROM_FILE)/g' /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
-sed -i -e 's/all:.*/all: $(ROM_FILE)/g' /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/Makefile
+sed -i -e 's/all:.*/all: $(RAM_FILE)/g' /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
+sed -i -e 's/all:.*/all: $(RAM_FILE)/g' /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/Makefile
 # Build nexmon for pi 3
 cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
 make clean
