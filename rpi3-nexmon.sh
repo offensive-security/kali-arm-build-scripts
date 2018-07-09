@@ -286,17 +286,19 @@ make
 cd ${NEXMON_ROOT}/firmwares/
 make
 
-# Make a backup copy of the stock firmware in case people don't want to use the nexmon firmware.
-cp /lib/firmware/brcm/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.stock.bin
-cp /lib/firmware/brcm/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.stock.bin
+# Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O /lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O /lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
 
 # RPI0W->RPI3B are bcm43430a1 (version 7.45.41.46)
 # Make 2 copies of it, one as a backup, and one to replace the stock firmware.
 cp ${NEXMON_ROOT}/firmwares/bcm43430a1/7_45_41_46/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
 cp ${NEXMON_ROOT}/firmwares/bcm43430a1/7_45_41_46/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
 # RPI3B+ is bcm43455c0 (version 7.45.154)
 cp ${NEXMON_ROOT}/firmwares/bcm43455c0/7_45_154/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
 cp ${NEXMON_ROOT}/firmwares/bcm43455c0/7_45_154/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O /lib/firmware/brcm/brcmfmac43455-sdio.txt
 
 # And now remove the nexmon sources because that's 2.5GB of space we don't want to give up.
 rm -rf /opt/nexmon
