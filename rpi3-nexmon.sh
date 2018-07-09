@@ -271,73 +271,73 @@ EOF
 
 chmod 755 ${basedir}/kali-${architecture}/third-stage
 
-cat << 'EOF' > ${basedir}/kali-${architecture}/root/buildnexmon.sh
+#cat << 'EOF' > ${basedir}/kali-${architecture}/root/buildnexmon.sh
 #!/bin/bash
-kernel=$(uname -r) # Kernel is read from fakeuname.c
-git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
-unset CROSS_COMPILE
-export CROSS_COMPILE=/opt/nexmon/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-armv7l/bin/arm-none-eabi-
-cd /opt/nexmon/
+#kernel=$(uname -r) # Kernel is read from fakeuname.c
+#git clone https://github.com/seemoo-lab/nexmon.git /opt/nexmon --depth 1
+#unset CROSS_COMPILE
+#export CROSS_COMPILE=/opt/nexmon/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-armv7l/bin/arm-none-eabi-
+#cd /opt/nexmon/
 # Disable statistics - see https://github.com/seemoo-lab/nexmon/blob/master/STATISTICS.md
-touch DISABLE_STATISTICS
-source setup_env.sh
-make
-cd buildtools/isl-0.10
-CC=$CCgcc
-./configure
-make
-make install
-ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
-ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
+#touch DISABLE_STATISTICS
+#source setup_env.sh
+#make
+#cd buildtools/isl-0.10
+#CC=$CCgcc
+#./configure
+#make
+#make install
+#ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
+#ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
 # make scripts doesn't work if we cross crompile. Needs libisl.so before we can compile in scripts
 #cd /usr/src/linux-headers-$(uname -r)/
 #make ARCH=arm scripts
-cd /opt/nexmon/
-source setup_env.sh
+#cd /opt/nexmon/
+#source setup_env.sh
 # We sed the Makefile for the 2 modules we want the firmware for, and tell it to only build them.
-sed -i -e 's/all:.*/all: $(RAM_FILE)/g' /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
-sed -i -e 's/all:.*/all: $(RAM_FILE)/g' /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/Makefile
+#sed -i -e 's/all:.*/all: $(RAM_FILE)/g' /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
+#sed -i -e 's/all:.*/all: $(RAM_FILE)/g' /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/Makefile
 # Build nexmon for pi 3
-cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
-make clean
+#cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
+#make clean
 # NOTE: We don't set -e in this bash script because of this make command erroring.
 # We only want to build the firmware, and the nexmon firmware is... tightly integrated, so for now
 # We let the module error because we already have the module built in the kernel and that error occurs
 # after we patch up the firmware, so we get the firmware we want.  This is ugly, but it works.
-make
+#make
 # We don't want the module, just the firmware. The module is already patched into the kernel.
-cp /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
-cp /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
+#cp /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
+#cp /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin /lib/firmware/brcm/brcmfmac43430-sdio.bin
+#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O /lib/firmware/brcm/brcmfmac43430-sdio.txt
 
 # Build nexmon for pi 3 b+
-cd /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon
-make clean
-make
+#cd /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon
+#make clean
+#make
 # We don't want the module, just the firmware. The module is already patched into the kernel.
-cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
-cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O /lib/firmware/brcm/brcmfmac43455-sdio.txt
+#cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
+#cp /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin /lib/firmware/brcm/brcmfmac43455-sdio.bin
+#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O /lib/firmware/brcm/brcmfmac43455-sdio.txt
 
 # Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O /lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O /lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
+#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O /lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
+#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O /lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
 
 # This is required for any wifi to work on the RPi 3B+
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O /lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
+#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O /lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
 # And now remove the nexmon sources because that's 2.5GB of space we don't want to give up.
-rm -rf /opt/nexmon
-EOF
-chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
+#rm -rf /opt/nexmon
+#EOF
+#chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
 wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-cat << 'EOF' > kali-${architecture}/root/fakeuname.c
+#cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -345,18 +345,18 @@ cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #include <sys/utsname.h>
 #include <stdio.h>
 #include <string.h>
-/* Fake uname -r because we are in a chroot:
-https://gist.github.com/DamnedFacts/5239593
-*/
-int uname(struct utsname *buf)
-{
- int ret;
- ret = syscall(SYS_uname, buf);
- strcpy(buf->release, "4.14.30-kali-v7+");
- strcpy(buf->machine, "armv7l");
- return ret;
-}
-EOF
+#/* Fake uname -r because we are in a chroot:
+#https://gist.github.com/DamnedFacts/5239593
+#*/
+#int uname(struct utsname *buf)
+#{
+# int ret;
+# ret = syscall(SYS_uname, buf);
+# strcpy(buf->release, "4.14.30-kali-v7+");
+# strcpy(buf->machine, "armv7l");
+# return ret;
+#}
+#EOF
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
@@ -423,6 +423,45 @@ chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 # Set a REGDOMAIN.  This needs to be done or wireless doesn't work correctly on the RPi 3B+
 sed -i -e 's/REGDOM.*/REGDOMAIN=00/g' ${basedir}/kali-${architecture}/etc/default/crda
 
+# Build nexmon firmware outside the build system, if we can.
+cd ${basedir}
+git clone https://github.com/seemoo-lab/nexmon.git ${basedir}/nexmon --depth 1
+cd ${basedir}/nexmon
+# Disable statistics
+touch DISABLE_STATISTICS
+source setup_env.sh
+make
+cd buildtools/isl-0.10
+CC=$CCgcc
+./configure
+make
+# We're not cross compiling, so lets make sure we unset it.
+unset CROSS_COMPILE
+sed -i -e 's/all:.*/all: $(RAM_FILE)/g' ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
+sed -i -e 's/all:.*/all: $(RAM_FILE)/g' ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/Makefile
+cd ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon
+make clean
+# We do this so we don't have to install the ancient isl version into /usr/local/lib on systems.
+LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make
+cd ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon
+make clean
+LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make
+# RPi0w->3B firmware
+cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
+cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
+# RPi3B+ firmware
+cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
+cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.txt
+# Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
+# The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
+# This is required for any wifi to work on the RPi 3B+
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
+
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
@@ -451,8 +490,8 @@ mount ${bootp} ${basedir}/root/boot
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
 
-LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so}
 
