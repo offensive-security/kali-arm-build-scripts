@@ -290,10 +290,13 @@ make install
 ln -s /usr/local/lib/libisl.so /usr/lib/arm-linux-gnueabihf/libisl.so.10
 ln -s /usr/lib/arm-linux-gnueabihf/libmpfr.so.6.0.1 /usr/lib/arm-linux-gnueabihf/libmpfr.so.4
 # make scripts doesn't work if we cross crompile. Needs libisl.so before we can compile in scripts
-cd /usr/src/linux-headers-$(uname -r)/
-make ARCH=arm scripts
+#cd /usr/src/linux-headers-$(uname -r)/
+#make ARCH=arm scripts
 cd /opt/nexmon/
 source setup_env.sh
+# We sed the Makefile for the 2 modules we want the firmware for, and tell it to only build them.
+sed -i -e 's/all:.*/all: $(ROM_FILE)/g' /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
+sed -i -e 's/all:.*/all: $(ROM_FILE)/g' /opt/nexmon/patches/bcm43455c0/7_45_154/nexmon/Makefile
 # Build nexmon for pi 3
 cd /opt/nexmon/patches/bcm43430a1/7_45_41_46/nexmon/
 make clean
