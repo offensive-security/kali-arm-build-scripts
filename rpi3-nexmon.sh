@@ -283,14 +283,17 @@ make
 # Build ucodeext
 cd ${NEXMON_ROOT}/buildtools/ucode_extractor
 make
-cd ${NEXMON_ROOT}/firmwares/
+# Firmware for the 0w->3B
+cd ${NEXMON_ROOT}/firmwares/bcm43430a1/7_45_41_46/
+make
+# Firmware for the 3B+
+cd ${NEXMON_ROOT}/firmwares/bcm43455c0/7_45_154/
 make
 
 # Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O /lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O /lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O /lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
-
 
 # RPI0W->RPI3B are bcm43430a1 (version 7.45.41.46)
 # Make 2 copies of it, one as a backup, and one to replace the stock firmware.
