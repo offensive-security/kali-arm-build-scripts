@@ -124,7 +124,6 @@ Before=regenerate_ssh_host_keys.service
 Type=oneshot
 ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
-ExecStartPost=/sbin/reboot
 
 [Install]
 WantedBy=multi-user.target
@@ -337,7 +336,7 @@ chmod 755 ${basedir}/kali-${architecture}/root/buildnexmon.sh
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.githubusercontent.com/offensive-security/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/scripts/rpi-wiggle.sh
+wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 cat << 'EOF' > kali-${architecture}/root/fakeuname.c
