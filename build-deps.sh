@@ -22,7 +22,7 @@ parted kpartx debootstrap pixz qemu-user-static abootimg cgpt vboot-kernel-utils
 vboot-utils u-boot-tools bc lzma lzop automake autoconf m4 dosfstools rsync \
 schedtool git dosfstools e2fsprogs device-tree-compiler libssl-dev qemu-user-static \
 crossbuild-essential-armhf crossbuild-essential-armel crossbuild-essential-arm64 \
-systemd-container libgmp3-dev gawk qpdf bison flex make git
+systemd-container libgmp3-dev gawk qpdf bison flex make git libfl-dev
 
 
 echo "Waiting for other software manager to finish..."
