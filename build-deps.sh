@@ -37,7 +37,7 @@ if [ ${MACHINE_TYPE} == 'x86_64' ]; then
     while fuser /var/lib/dpkg/lock >/dev/null ; do
         sleep 5
     done
-    apt-get install -y libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
+    apt-get install -y libstdc++6:i386 libc6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
 else
     while fuser /var/lib/dpkg/lock >/dev/null ; do
         sleep 5
