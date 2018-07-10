@@ -437,11 +437,13 @@ cd buildtools/isl-0.10
 CC=$CCgcc
 ./configure
 make
-# We're not cross compiling, so lets make sure we unset it.
-unset CROSS_COMPILE
 sed -i -e 's/all:.*/all: $(RAM_FILE)/g' ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
 sed -i -e 's/all:.*/all: $(RAM_FILE)/g' ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/Makefile
 cd ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon
+# Make sure we use the cross compiler to build the firmware.
+# We use the x86 cross compiler because we're building on amd64
+unset CROSS_COMPILE
+export CROSS_COMPILE=${NEXMON_ROOT}/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-x86/bin/arm-none-eabi-
 make clean
 # We do this so we don't have to install the ancient isl version into /usr/local/lib on systems.
 LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make
