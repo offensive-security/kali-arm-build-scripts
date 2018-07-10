@@ -465,6 +465,7 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # This is required for any wifi to work on the RPi 3B+
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
+cd ${basedir}
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
