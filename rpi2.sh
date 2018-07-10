@@ -255,12 +255,16 @@ proc /proc proc nodev,noexec,nosuid 0  0
 /dev/mmcblk0p1 /boot vfat noauto 0 0
 EOF
 
-# Firmware needed for rpi3 wifi/bt
+# Firmware needed for rpi3+ wifi/bt
 # Without these text files, the firmware doesn't seem to load properly, and they aren't distributed in the firmware packages.
+# We install firmware-broadcom but the firmware that is in there doesn't seem to match what RPis use so we download them manually to be sure.
 mkdir -p ${basedir}/kali-${architecture}/lib/firmware/brcm/
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.txt
-#wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.bin
+# This is required for any wifi to work on the RPi 3B+
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 cd ${basedir}
 
 # rpi-wiggle
