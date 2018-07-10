@@ -119,17 +119,24 @@ console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
 # Create monitor mode start/remove
-cat << EOF > kali-${architecture}/usr/bin/monstart
+cat << 'EOF' > kali-${architecture}/usr/bin/monstart
 #!/bin/bash
-echo "Nexutil setting monitoring mode"
-/usr/bin/nexutil -m2
+interface=wlan0mon
+echo "Bring up monitor mode interface ${interface}"
+iw phy phy0 interface add ${interface} type monitor
+ifconfig ${interface} up
+if [ $? -eq 0 ]; then
+  echo "started monitor interface on ${interface}"
+fi
 EOF
 chmod 755 kali-${architecture}/usr/bin/monstart
 
 cat << EOF > kali-${architecture}/usr/bin/monstop
 #!/bin/bash
-/usr/bin/nexutil -m0
-echo "Monitor mode stopped"
+interface=wlan0mon
+ifconfig ${interface} down
+sleep 1
+iw dev ${interface} del
 EOF
 chmod 755 kali-${architecture}/usr/bin/monstop
 
@@ -157,7 +164,6 @@ Before=regenerate_ssh_host_keys.service
 Type=oneshot
 ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
-ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
