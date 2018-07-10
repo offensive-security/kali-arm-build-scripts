@@ -430,6 +430,8 @@ cd ${basedir}/nexmon
 # Disable statistics
 touch DISABLE_STATISTICS
 source setup_env.sh
+ls -lah /usr/lib/x86_64-linux-gnu/libl.a
+ls -lah /usr/lib/x86_64-linux-gnu/libfl.a
 make
 cd buildtools/isl-0.10
 CC=$CCgcc
