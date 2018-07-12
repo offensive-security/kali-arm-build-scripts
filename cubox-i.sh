@@ -13,12 +13,12 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/cubox-i-$1
+basedir=`pwd`/cuboxi-$1
 
 # Custom hostname variable
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=${3:-kali-linux-$1-cubox-i}
+imagename=${3:-kali-linux-$1-cuboxi}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
 # Suite to use.  
