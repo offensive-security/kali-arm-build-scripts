@@ -301,7 +301,7 @@ bootz \${loadaddr} - \${fdtaddr}
 EOF
 
 # And generate the boot.scr
-mkimage -A arm -T script -C none -d ${basedir}/kali-${architecture}/boot/boot.txt ${basedir}kali-${architecture}/boot/boot.scr
+mkimage -A arm -T script -C none -d ${basedir}/kali-${architecture}/boot/boot.txt ${basedir}/kali-${architecture}/boot/boot.scr
 
 cd ${basedir}
 
