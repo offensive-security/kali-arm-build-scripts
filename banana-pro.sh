@@ -80,7 +80,7 @@ mirror=http.kali.org
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p ${basedir}
-echo "The basedir thinks it is: ${basedir}""
+echo "The basedir thinks it is: ${basedir}"
 cd ${basedir}
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
