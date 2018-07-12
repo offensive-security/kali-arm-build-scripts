@@ -299,6 +299,9 @@ rm -rf rpi-firmware
 cd ${TOPDIR}
 git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son ${basedir}/kali-${architecture}/usr/src/kernel
 cd ${basedir}/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
+touch .scmversion
+rm -rf ${basedir}/kali-${architecture}/usr/src/kernel/.git
 
 # Set default defconfig
 export ARCH=arm
@@ -391,6 +394,10 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
 cd ${basedir}
+
+echo "Running du to see how big kali-${architecture} is"
+du -sh ${basedir}/kali-${architecture}
+echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
