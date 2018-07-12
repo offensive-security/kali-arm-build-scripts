@@ -169,6 +169,9 @@ apt-get --yes --allow-change-held-packages autoremove
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
+# Copy bashrc
+cp  /etc/skel/.bashrc /root/.bashrc
+
 rm /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d
