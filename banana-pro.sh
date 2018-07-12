@@ -11,7 +11,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/bananapro-$1
+basedir="`pwd`/bananapro-$1"
 
 # Custom hostname variable
 hostname=${2:-kali}

@@ -11,7 +11,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/bananapi-$1
+basedir="`pwd`/bananapi-$1"
 
 # Custom hostname variable
 hostname=${2:-kali}
@@ -41,12 +41,12 @@ fi
 # being different than the ones the build system expects, so we uninstall libfdt
 # and at the end of the script we will reinstall it.
 
-#if [ $(dpkg-query -W -f='${Status}' libfdt-dev 2>/dev/null | grep -c "ok installed") -eq 1 ];
-#then
-#    echo "Removing libfdt-dev because it causes issues with the build"
-#    apt-get --yes purge libfdt-dev
-#    libfdtdev=1
-#fi
+if [ $(dpkg-query -W -f='${Status}' libfdt-dev 2>/dev/null | grep -c "ok installed") -eq 1 ];
+then
+    echo "Removing libfdt-dev because it causes issues with the build"
+    apt-get --yes purge libfdt-dev
+    libfdtdev=1
+fi
 
 # Unset CROSS_COMPILE so that if there is any native compiling needed it doesn't
 # get cross compiled.
@@ -346,10 +346,10 @@ cd ${basedir}
 
 losetup -d ${loopdevice}
 
-#if [[ "$libfdtdev" -eq "1" ]]; then
-#    echo "Installing libfdt-dev because it was installed before image build"
-#    apt-get --yes install libfdt-dev;
-#fi
+if [[ "$libfdtdev" -eq "1" ]]; then
+    echo "Installing libfdt-dev because it was installed before image build"
+    apt-get --yes install libfdt-dev;
+fi
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
