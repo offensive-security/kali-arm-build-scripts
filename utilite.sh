@@ -121,6 +121,37 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+mkdir -p kali-${architecture}/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+
+chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 set -e
@@ -144,6 +175,21 @@ apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes 
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
+
+# Because copying in authorized_keys is hard for people to do, let's make the
+# image insecure and enable root login with a password.
+echo "Making the image insecure"
+sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+systemctl enable rpiwiggle
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+
+# Copy over the default bashrc
+cp  /etc/skel/.bashrc /root/.bashrc
+
+# Fix startup time from 5 minutes to 15 secs on raise interface wlan0
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -193,6 +239,11 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail
 #unset http_proxy
 
+cd ${basedir}
+
+# Clone a cross compiler to use instead of the Kali one due to kernel age.
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --branch utilite/devel --depth 1 https://github.com/utilite-computer/linux-kernel ${basedir}/kali-${architecture}/usr/src/kernel
@@ -210,7 +261,7 @@ cp ${basedir}/../kernel-configs/utilite-3.10.config .config
 cp ${basedir}/../kernel-configs/utilite-3.10.config ${basedir}/kali-${architecture}/usr/src/utilite-3.10.config
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
 cp arch/arm/boot/zImage ${basedir}/kali-$architecture/boot/zImage-cm-fx6
