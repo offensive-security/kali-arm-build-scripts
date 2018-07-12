@@ -69,8 +69,8 @@ mirror=http.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -181,9 +181,9 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
 # Serial console settings.
 # (No auto login)
-echo 'T1:12345:respawn:/sbin/agetty 115200 ttyS0 vt100' >> ${basedir}/kali-${architecture}/etc/inittab
+echo 'T1:12345:respawn:/sbin/agetty 115200 ttyS0 vt100' >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -193,40 +193,40 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux -b odroidc-3.10.y ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
+git clone --depth 1 https://github.com/hardkernel/linux -b odroidc-3.10.y "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
 # NOTE: 3.8 now works with a 4.8 compiler, 3.4 does not!
 export CROSS_COMPILE=arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211-backports.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211-backports.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 make odroidc_defconfig
 cp .config ../odroidc.config
 make -j $(grep -c processor /proc/cpuinfo)
 make uImage
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/
-cp arch/arm/boot/dts/meson8b_odroidc.dtb ${basedir}/kali-${architecture}/boot/
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/
+cp arch/arm/boot/dts/meson8b_odroidc.dtb "${basedir}"/kali-${architecture}/boot/
 make mrproper
 cp ../odroidc.config .config
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # Create a boot.ini file with possible options if people want to change them.
-cat << EOF > ${basedir}/kali-${architecture}/boot/boot.ini
+cat << EOF > "${basedir}"/kali-${architecture}/boot/boot.ini
 ODROIDC-UBOOT-CONFIG
 
 # Possible screen resolutions
@@ -325,7 +325,7 @@ bootm 0x21000000 - 0x21800000"
 EOF
 
 # Create systemd service to setup display.
-cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/amlogic.service
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/amlogic.service
 [Unit]
 Description=AMlogic HDMI Initialization
 
@@ -339,9 +339,9 @@ WantedBy=multi-user.target
 EOF
 
 # Create symlink to enable the service...
-ln -sf /lib/systemd/system/amlogic.service ${basedir}/kali-${architecture}/etc/systemd/system/multi-user.target.wants/amlogic.service
+ln -sf /lib/systemd/system/amlogic.service "${basedir}"/kali-${architecture}/etc/systemd/system/multi-user.target.wants/amlogic.service
 
-cat << EOF > ${basedir}/kali-${architecture}/usr/bin/amlogic.sh
+cat << EOF > "${basedir}"/kali-${architecture}/usr/bin/amlogic.sh
 #!/bin/sh
 
 for x in \$(cat /proc/cmdline); do
@@ -430,9 +430,9 @@ echo 7 > /sys/class/net/eth0/queues/tx-0/xps_cpus
 # Move IRQ's of ethernet to CPU1/2
 echo 1,2 > /proc/irq/40/smp_affinity_list
 EOF
-chmod 755 ${basedir}/kali-${architecture}/usr/bin/amlogic.sh
+chmod 755 "${basedir}"/kali-${architecture}/usr/bin/amlogic.sh
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/sysctl.d/99-c1-network.conf
+cat << EOF > "${basedir}"/kali-${architecture}/etc/sysctl.d/99-c1-network.conf
 net.core.rmem_max = 26214400
 net.core.wmem_max = 26214400
 net.core.rmem_default = 514400
@@ -448,22 +448,22 @@ net.core.optmem_max = 65535
 net.core.netdev_max_backlog = 5000
 EOF
 
-cd ${basedir}
+cd "${basedir}"
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
 echo "Creating image file for ODROID-C1"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 3072s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -475,10 +475,10 @@ mkfs.vfat ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -486,7 +486,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
@@ -498,7 +498,7 @@ kpartx -dv ${loopdevice}
 # it to the image.  This is required because of a requirement that the
 # bootloader be signed.
 git clone --depth 1 https://github.com/hardkernel/u-boot -b odroidc-v2011.03
-cd ${basedir}/u-boot
+cd "${basedir}"/u-boot
 # https://code.google.com/p/chromium/issues/detail?id=213120
 sed -i -e "s/soft-float/float-abi=hard -mfpu=vfpv3/g" \
     arch/arm/cpu/armv7/config.mk
@@ -508,7 +508,7 @@ make CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo)
 cd sd_fuse
 sh sd_fusing.sh ${loopdevice}
 
-cd ${basedir}
+cd "${basedir}"
 
 losetup -d ${loopdevice}
 
@@ -516,12 +516,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Clean up the build system"
-rm -rf ${basedir}
+rm -rf "${basedir}"

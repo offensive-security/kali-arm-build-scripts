@@ -70,8 +70,8 @@ mirror=http.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --variant minbase --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -138,7 +138,7 @@ EOF
 
 chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -150,7 +150,7 @@ ExecStartPost=/bin/systemctl disable rpiwiggle
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -221,17 +221,17 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 #umount kali-$architecture/proc
 
 # Enable serial console access
-echo "T1:23:respawn:/sbin/agetty -L ttymxc3 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
+echo "T1:23:respawn:/sbin/agetty -L ttymxc3 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/udev/links.conf
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/udev/links.conf
 M   ttymxc3 c   5 1
 EOF
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/securetty
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/securetty
 ttymxc3
 EOF
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -239,51 +239,51 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail
 #unset http_proxy
 
-cd ${basedir}
+cd "${basedir}"
 
 # Clone a cross compiler to use instead of the Kali one due to kernel age.
 git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --branch utilite/devel --depth 1 https://github.com/utilite-computer/linux-kernel ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+git clone --branch utilite/devel --depth 1 https://github.com/utilite-computer/linux-kernel "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 # Needed for issues with hdmi being inited already in u-boot.
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/f922b0d.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/f922b0d.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 # This patch is necessary for older revisions of the Utilite so leave the patch
 # and comment in the repo to know why this is here.  Should be fixed by a u-boot
 # upgrade but CompuLab haven't released it yet, so leave it here for now.
-#patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/31727b0.patch
-cp ${basedir}/../kernel-configs/utilite-3.10.config .config
-cp ${basedir}/../kernel-configs/utilite-3.10.config ${basedir}/kali-${architecture}/usr/src/utilite-3.10.config
+#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/31727b0.patch
+cp "${basedir}"/../kernel-configs/utilite-3.10.config .config
+cp "${basedir}"/../kernel-configs/utilite-3.10.config "${basedir}"/kali-${architecture}/usr/src/utilite-3.10.config
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-cp arch/arm/boot/zImage ${basedir}/kali-$architecture/boot/zImage-cm-fx6
-cp arch/arm/boot/dts/imx6q-sbc-fx6m.dtb ${basedir}/kali-${architecture}/boot/imx6q-sbc-fx6m.dtb
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
+cp arch/arm/boot/zImage "${basedir}"/kali-$architecture/boot/zImage-cm-fx6
+cp arch/arm/boot/dts/imx6q-sbc-fx6m.dtb "${basedir}"/kali-${architecture}/boot/imx6q-sbc-fx6m.dtb
 make mrproper
 cp ../utilite-3.10.config .config
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # Create a file to set up our u-boot environment
-cat << EOF > ${basedir}/kali-${architecture}/boot/boot.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/boot.txt
 setenv mmcdev 2
 setenv bootargs 'earlyprintk console=ttymxc3,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rw rootwait net.ifnames=0'
 setenv loadaddr  0x10800000
@@ -301,29 +301,29 @@ bootz \${loadaddr} - \${fdtaddr}
 EOF
 
 # And generate the boot.scr
-mkimage -A arm -T script -C none -d ${basedir}/kali-${architecture}/boot/boot.txt ${basedir}/kali-${architecture}/boot/boot.scr
+mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.txt "${basedir}"/kali-${architecture}/boot/boot.scr
 
-cd ${basedir}
+cd "${basedir}"
 
 # rpi-wiggle
-mkdir -p ${basedir}/kali-${architecture}/root/scripts
+mkdir -p "${basedir}"/kali-${architecture}/root/scripts
 wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -337,10 +337,10 @@ mkfs.vfat ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -348,7 +348,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
@@ -361,12 +361,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}
+rm -rf "${basedir}"

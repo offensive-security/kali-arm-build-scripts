@@ -68,8 +68,8 @@ fi
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -217,7 +217,7 @@ fi
 #umount kali-$architecture/proc
 
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
@@ -227,48 +227,48 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${a
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
+cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
 rm -rf rpi-firmware
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabi-
 make re4son_pi1_defconfig
 
 # Build kernel
 make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 
 # Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/kernel.img
+cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* "${basedir}"/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/overlays/
 
 make mrproper
 make re4son_pi1_defconfig
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # Create cmdline.txt file
-cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
 dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait net.ifnames=0
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
-cat << EOF > ${basedir}/kali-${architecture}/etc/fstab
+cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc /proc proc nodev,noexec,nosuid 0  0
 /dev/mmcblk0p2  / ext4 errors=remount-ro 0 1
@@ -278,36 +278,36 @@ proc /proc proc nodev,noexec,nosuid 0  0
 EOF
 
 # Re4son's rpi-tft configurator
-wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config 
-chmod 755 ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config 
+chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 
 # rpi-wiggle
-mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+mkdir -p "${basedir}"/kali-${architecture}/root/scripts
+wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
-cd ${basedir}
+cd "${basedir}"
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
+cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 echo "Running du to see how big kali-${architecture} is"
-du -sh ${basedir}/kali-${architecture}
+du -sh "${basedir}"/kali-${architecture}
 echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 0 64
 parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -319,10 +319,10 @@ mkfs.vfat ${bootp}
 mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -330,7 +330,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 # Sync before unmounting to ensure everything is written
@@ -344,12 +344,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}
+rm -rf "${basedir}"

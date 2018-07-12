@@ -65,8 +65,8 @@ export security=security.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} kali-rolling kali-${architecture} http://${mirror}/kali
@@ -174,26 +174,26 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
 # For serial console you can use one of the following two items.
 # (No auto login)
-#T1:12345:respawn:/sbin/agetty 115200 ttymxc0 vt100 >> ${basedir}/root/etc/inittab
+#T1:12345:respawn:/sbin/agetty 115200 ttymxc0 vt100 >> "${basedir}"/root/etc/inittab
 # (Auto login on serial console)
 #T1:12345:respawn:/bin/login -f root ttymxc0 /dev/ttymxc0 2>&1
 echo 'T1:12345:respawn:/sbin/agetty 115200 ttymxc0 vt100' >> \
-    ${basedir}/kali-${architecture}/etc/inittab
+    "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/udev/links.conf
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/udev/links.conf
 M   ttymxc0 c 5 1
 EOF
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/securetty
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/securetty
 ttymxc0
 EOF
 
 # Currently we use a 2.6.31 kernel, it's patched so udev will work, but Debian's
 # udev doesn't know that.  So we yank this line out of the init script otherwise
 # udev won't start and we have no devices, including keyboard/usb support.
-sed -i -e "s/2.6.3\[0-1\]/2.6.30/g" ${basedir}/kali-${architecture}/etc/init.d/udev
+sed -i -e "s/2.6.3\[0-1\]/2.6.30/g" "${basedir}"/kali-${architecture}/etc/init.d/udev
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://old.kali.org/kali moto main non-free contrib
 deb-src http://old.kali.org/kali moto main non-free contrib
 EOF
@@ -203,20 +203,20 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/genesi/linux-legacy ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/genesi/linux-legacy "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 make mx51_efikamx_defconfig
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot
-cd ${basedir}
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot
+cd "${basedir}"
 
 # Create boot.txt file
-cat << EOF > ${basedir}/kali-${architecture}/boot/boot.script
+cat << EOF > "${basedir}"/kali-${architecture}/boot/boot.script
 setenv ramdisk uInitrd;
 setenv kernel uImage;
 setenv bootargs console=tty1 root=/dev/mmcblk0p2 rootwait rootfstype=ext4 rw quiet;
@@ -232,19 +232,19 @@ fi;
 EOF
 
 # Create u-boot boot script image
-mkimage -A arm -T script -C none -d ${basedir}/kali-${architecture}/boot/boot.script ${basedir}/kali-${architecture}/boot/boot.scr
+mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.script "${basedir}"/kali-${architecture}/boot/boot.scr
 
-cd ${basedir}
+cd "${basedir}"
 
 # Create the disk and partition it
 echo "Creating image file for ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary ext2 4096s 266239s
 parted ${imagename}.img --script -- mkpart primary ext4 266240s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 device="/dev/mapper/${device}"
 bootp=${device}p1
@@ -255,10 +255,10 @@ mkfs.ext2 ${bootp}
 mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
@@ -267,7 +267,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
@@ -280,12 +280,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}
+rm -rf "${basedir}"

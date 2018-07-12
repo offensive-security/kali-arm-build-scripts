@@ -68,8 +68,8 @@ kernel_release="R67-10575.B-chromeos-3.8"
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -172,7 +172,7 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 #umount kali-$architecture/dev/
 #umount kali-$architecture/proc
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main contrib non-free
 deb-src http://http.kali.org/kali kali-rolling main contrib non-free
 EOF
@@ -183,30 +183,30 @@ EOF
 # Pull in the gcc 4.7 cross compiler to build the kernel.
 # Debian uses a 7.3 based kernel, and the chromebook kernel doesn't support
 # that.
-cd ${basedir}
+cd "${basedir}"
 git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-cp ${basedir}/../kernel-configs/chromebook-3.8.config .config
-cp ${basedir}/../kernel-configs/chromebook-3.8.config ../exynos.config
-cp ${basedir}/../kernel-configs/chromebook-3.8_wireless-3.4.config exynos_wifi34.config
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+cp "${basedir}"/../kernel-configs/chromebook-3.8.config .config
+cp "${basedir}"/../kernel-configs/chromebook-3.8.config ../exynos.config
+cp "${basedir}"/../kernel-configs/chromebook-3.8_wireless-3.4.config exynos_wifi34.config
+git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-exynos-drm-smem-start-len.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Commented-out-pr_debug-line.patch
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0002-Fix-udl_connector-include.patch
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-exynos-drm-smem-start-len.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Commented-out-pr_debug-line.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0002-Fix-udl_connector-include.patch
 make oldconfig || die "Kernel config options added"
 make -j $(grep -c processor /proc/cpuinfo)
 make dtbs
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-cat << __EOF__ > ${basedir}/kali-${architecture}/usr/src/kernel/arch/arm/boot/kernel-exynos.its
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
+cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/kernel-exynos.its
 /dts-v1/;
  
 / {
@@ -410,7 +410,7 @@ cat << __EOF__ > ${basedir}/kali-${architecture}/usr/src/kernel/arch/arm/boot/ke
     };
 };
 __EOF__
-cd ${basedir}/kali-${architecture}/usr/src/kernel/arch/arm/boot
+cd "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot
 mkimage -D "-I dts -O dtb -p 2048" -f kernel-exynos.its exynos-kernel
 
 # microSD Card
@@ -420,36 +420,36 @@ echo 'noinitrd console=tty1 quiet root=PARTUUID=%U/PARTNROFF=1 rootwait rw lsm.m
 # bootloader in the kernel partition on ARM.
 dd if=/dev/zero of=bootloader.bin bs=512 count=1
 
-vbutil_kernel --arch arm --pack ${basedir}/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --bootloader bootloader.bin --vmlinuz exynos-kernel
+vbutil_kernel --arch arm --pack "${basedir}"/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --bootloader bootloader.bin --vmlinuz exynos-kernel
 
-cd ${basedir}/kali-${architecture}/usr/src/kernel/
+cd "${basedir}"/kali-${architecture}/usr/src/kernel/
 make mrproper
 cp ../exynos.config .config
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # Bit of a hack to hide eMMC partitions from XFCE
-cat << EOF > ${basedir}/kali-${architecture}/etc/udev/rules.d/99-hide-emmc-partitions.rules
+cat << EOF > "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-hide-emmc-partitions.rules
 KERNEL=="mmcblk0*", ENV{UDISKS_IGNORE}="1"
 EOF
 
 # Disable uap0 and p2p0 interfaces in NetworkManager
-printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> ${basedir}/kali-${architecture}/etc/NetworkManager/NetworkManager.conf
+printf '\n[keyfile]\nunmanaged-devices=interface-name:p2p0\n' >> "${basedir}"/kali-${architecture}/etc/NetworkManager/NetworkManager.conf
 
 # Touchpad configuration
-mkdir -p ${basedir}/kali-${architecture}/etc/X11/xorg.conf.d
-cat << EOF > ${basedir}/kali-${architecture}/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
+mkdir -p "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d
+cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
 Section "InputClass"
 	Identifier		"touchpad"
 	MatchIsTouchpad		"on"
@@ -464,12 +464,12 @@ EndSection
 EOF
 
 # Mali GPU rules aka mali-rules package in ChromeOS
-cat << EOF > ${basedir}/kali-${architecture}/etc/udev/rules.d/50-mali.rules
+cat << EOF > "${basedir}"/kali-${architecture}/etc/udev/rules.d/50-mali.rules
 KERNEL=="mali0", MODE="0660", GROUP="video"
 EOF
 
 # Video rules aka media-rules package in ChromeOS
-cat << EOF > ${basedir}/kali-${architecture}/etc/udev/rules.d/50-media.rules
+cat << EOF > "${basedir}"/kali-${architecture}/etc/udev/rules.d/50-media.rules
 ATTR{name}=="s5p-mfc-dec", SYMLINK+="video-dec"
 ATTR{name}=="s5p-mfc-enc", SYMLINK+="video-enc"
 ATTR{name}=="s5p-jpeg-dec", SYMLINK+="jpeg-dec"
@@ -488,7 +488,7 @@ EOF
 
 # This is for Peach - kinda a hack, never really worked properly they say.
 # Ambient light sensor
-cat << EOF > ${basedir}/kali-${architecture}/lib/udev/light-sensor-set-multiplier.sh
+cat << EOF > "${basedir}"/kali-${architecture}/lib/udev/light-sensor-set-multiplier.sh
 #!/bin/sh
 
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
@@ -517,20 +517,20 @@ for FILE in /sys/bus/iio/devices/*/continuous; do
 done
 EOF
 
-cat << EOF > ${basedir}/kali-${architecture}/lib/udev/rules.d/99-light-sensor.rules
+cat << EOF > "${basedir}"/kali-${architecture}/lib/udev/rules.d/99-light-sensor.rules
 # Calibrate the light sensor when the isl29018 driver is installed.
 ACTION=="add", SUBSYSTEM=="drivers", KERNEL=="isl29018", RUN+="light-sensor-set-multiplier.sh"
 EOF
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-cd ${basedir}
+cd "${basedir}"
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel gpt
 cgpt create -z ${imagename}.img
 cgpt create ${imagename}.img
@@ -538,7 +538,7 @@ cgpt create ${imagename}.img
 cgpt add -i 1 -t kernel -b 8192 -s 32768 -l kernel -S 1 -T 5 -P 10 ${imagename}.img
 cgpt add -i 2 -t data -b 40960 -s `expr $(cgpt show ${imagename}.img | grep 'Sec GPT table' | awk '{ print \$1 }')  - 40960` -l Root ${imagename}.img
 
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -547,8 +547,8 @@ rootp=${device}p2
 
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
 
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -556,13 +556,13 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partition
 sync
 umount ${rootp}
 
-dd if=${basedir}/kernel.bin of=${bootp}
+dd if="${basedir}"/kernel.bin of=${bootp}
 
 cgpt repair ${loopdevice}
 
@@ -573,12 +573,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}
+rm -rf "${basedir}"

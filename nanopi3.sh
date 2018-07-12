@@ -69,8 +69,8 @@ mirror=http.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -229,9 +229,9 @@ EOF
 
 # Serial console settings.
 # (No auto login)
-echo 'T1:12345:respawn:/sbin/agetty 115200 ttyAMA0 vt100' >> ${basedir}/kali-${architecture}/etc/inittab
+echo 'T1:12345:respawn:/sbin/agetty 115200 ttyAMA0 vt100' >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -244,114 +244,114 @@ git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabih
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
+git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 # Ugh, this patch is needed because the ethernet driver uses parts of netdev
 # from a newer kernel?
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/0001-Remove-define.patch
-cp ${basedir}/../kernel-configs/nanopi3* ..
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Remove-define.patch
+cp "${basedir}"/../kernel-configs/nanopi3* ..
 cp ../nanopi3-720p.config .config
 #make nanopi3_linux_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make uImage
 make modules
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 # We copy this twice because you can't do symlinks on fat partitions.
 # Also, the uImage known as uImage.hdmi is used by uboot if hdmi output is
 # detected.
-cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/uImage-720p
-cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/uImage.hdmi
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage-720p
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage.hdmi
 # Friendlyarm suggests staying at 720p for now.
 cp ../nanopi3-1080p.config .config
 make -j $(grep -c processor /proc/cpuinfo)
 make uImage
-cp arch/arm/boot/uImage ${basedir}/kali-${architecture}/boot/uImage-1080p
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage-1080p
 #cp ../nanopi2-lcd-hd101.config .config
 #make -j $(grep -c processor /proc/cpuinfo)
 #make uImage
-#cp arch/arm/boot/uImage ${basedir}/bootp/uImage-hd101
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd101
 #cp ../nanopi2-lcd-hd700.config .config
 #make -j $(grep -c processor /proc/cpuinfo)
 #make uImage
-#cp arch/arm/boot/uImage ${basedir}/bootp/uImage-hd700
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd700
 #cp ../nanopi2-lcd.config .config
 #make -j $(grep -c processor /proc/cpuinfo)
 #make uImage
 # The default uImage is for lcd usage, so we copy the lcd one twice
 # so people have a backup in case they overwrite uImage for some reason.
-#cp arch/arm/boot/uImage ${basedir}/bootp/uImage-s70
-#cp arch/arm/boot/uImage ${basedir}/bootp/uImage.lcd
-#cp arch/arm/boot/uImage ${basedir}/bootp/uImage
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-s70
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage.lcd
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage
 make mrproper
 cp ../nanopi3-720p.config .config
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # FriendlyARM suggest using backports for wifi with their devices, and the
 # recommended version is the 4.4.2.
-cd ${basedir}/kali-${architecture}/usr/src/
+cd "${basedir}"/kali-${architecture}/usr/src/
 #wget https://www.kernel.org/pub/linux/kernel/projects/backports/stable/v4.4.2/backports-4.4.2-1.tar.xz
 #tar -xf backports-4.4.2-1.tar.xz
 git clone https://github.com/friendlyarm/wireless
 cd wireless
 cd backports-4.4.2-1
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.4.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
 cd ..
-#cp ${basedir}/../kernel-configs/backports.config .config
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo) KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root INSTALL_MOD_PATH=${basedir}/root install
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD=${basedir}/root/usr/src/kernel KLIB=${basedir}/root mrproper
-#cp ${basedir}/../kernel-configs/backports.config .config
-XCROSS=${basedir}/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k ${basedir}/kali-${architecture}/usr/src/kernel -c nanopi3 -o ${basedir}/kali-${architecture}
-cd ${basedir}
+#cp "${basedir}"/../kernel-configs/backports.config .config
+#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo) KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root
+#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root INSTALL_MOD_PATH="${basedir}"/root install
+#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root mrproper
+#cp "${basedir}"/../kernel-configs/backports.config .config
+XCROSS="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k "${basedir}"/kali-${architecture}/usr/src/kernel -c nanopi3 -o "${basedir}"/kali-${architecture}
+cd "${basedir}"
 
 
 # Copy over the firmware for the nanopi3 wifi.
 # At some point, nexmon could work for the device, but the support would need to
 # be added to nexmon.
-mkdir -p ${basedir}/kali-${architecture}/lib/firmware/ap6212/
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/nvram.txt
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
-cd ${basedir}
+mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/ap6212/
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/nvram.txt
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # rpi-wiggle
-mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+mkdir -p "${basedir}"/kali-${architecture}/root/scripts
+wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Create the disk and partition it
 # We start out at around 4MB so there is room to write u-boot without issues.
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary ext4 4096s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -363,10 +363,10 @@ mkfs.ext4 ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -374,7 +374,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
@@ -385,18 +385,18 @@ kpartx -dv ${loopdevice}
 # Samsung bootloaders must be signed.
 # These are the same steps that are done by
 # https://github.com/friendlyarm/sd-fuse_nanopi2/blob/master/fusing.sh
-cd ${basedir}
+cd "${basedir}"
 mkdir -p bootloader
-cd ${basedir}/bootloader
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/bl1-mmcboot.bin?raw=true' -O ${basedir}/bootloader/bl1-mmcboot.bin
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-loader.img?raw=true' -O ${basedir}/bootloader/fip-loader.img
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-secure.img?raw=true' -O ${basedir}/bootloader/fip-secure.img
-wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-nonsecure.img?raw=true' -O ${basedir}/bootloader/fip-nonsecure.img
+cd "${basedir}"/bootloader
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/bl1-mmcboot.bin?raw=true' -O "${basedir}"/bootloader/bl1-mmcboot.bin
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-loader.img?raw=true' -O "${basedir}"/bootloader/fip-loader.img
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-secure.img?raw=true' -O "${basedir}"/bootloader/fip-secure.img
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-nonsecure.img?raw=true' -O "${basedir}"/bootloader/fip-nonsecure.img
 
-dd if=${basedir}/bootloader/bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
-dd if=${basedir}/bootloader/fip-loader.img of=${loopdevice} bs=512 seek=129 count=1
-dd if=${basedir}/bootloader/fip-secure.img of=${loopdevice} bs=512 seek=769
-dd if=${basedir}/bootloader/fip-nonsecure.img of=${loopdevice} bs=512 seek=3841
+dd if="${basedir}"/bootloader/bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
+dd if="${basedir}"/bootloader/fip-loader.img of=${loopdevice} bs=512 seek=129 count=1
+dd if="${basedir}"/bootloader/fip-secure.img of=${loopdevice} bs=512 seek=769
+dd if="${basedir}"/bootloader/fip-nonsecure.img of=${loopdevice} bs=512 seek=3841
 
 # It should be possible to build your own u-boot, as part of this, if you
 # prefer, it will only generate the fip-nonsecure.img however.
@@ -406,7 +406,7 @@ dd if=${basedir}/bootloader/fip-nonsecure.img of=${loopdevice} bs=512 seek=3841
 #make CROSS_COMPILE=aarch64-linux-gnu-
 #dd if=fip-nonsecure.img of=$loopdevice bs=512 seek=3841
 
-cd ${basedir}
+cd "${basedir}"
 
 losetup -d ${loopdevice}
 
@@ -414,12 +414,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Clean up the build system"
-rm -rf ${basedir}
+rm -rf "${basedir}"

@@ -47,8 +47,8 @@ mirror=http.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -110,7 +110,7 @@ EOF
 
 chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -122,9 +122,9 @@ ExecStartPost=/bin/systemctl disable rpiwiggle
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/enable-ssh.service
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
 [Unit]
 Description=Turn on SSH if /boot/ssh is present
 ConditionPathExistsGlob=/boot/ssh{,.txt}
@@ -137,9 +137,9 @@ ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/enable-ssh.service
+chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
 
-cat << EOF > ${basedir}/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 [Unit]
 Description=Copy user wpa_supplicant.conf
 ConditionPathExists=/boot/wpa_supplicant.conf
@@ -154,7 +154,7 @@ ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Download the hyperpixel's service files here so we can enable them in the third stage with the rest of the services
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-touch.service -O kali-${architecture}/lib/systemd/system/hyperpixel-touch.service
@@ -164,13 +164,13 @@ chmod 755 kali-${architecture}/usr/bin/hyperpixel-init
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/bin/hyperpixel-touch -O kali-${architecture}/usr/bin/hyperpixel-touch
 chmod 755 kali-${architecture}/usr/bin/hyperpixel-touch
 
-cat << EOF > ${basedir}/kali-${architecture}/debconf.set
+cat << EOF > "${basedir}"/kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-mkdir -p ${basedir}/kali-${architecture}/usr/bin
-cat << 'EOF' > ${basedir}/kali-${architecture}/usr/bin/monstart
+mkdir -p "${basedir}"/kali-${architecture}/usr/bin
+cat << 'EOF' > "${basedir}"/kali-${architecture}/usr/bin/monstart
 #!/bin/bash
 interface=wlan0mon
 echo "Bring up monitor mode interface ${interface}"
@@ -180,32 +180,32 @@ if [ $? -eq 0 ]; then
   echo "started monitor interface on ${interface}"
 fi
 EOF
-chmod 755 ${basedir}/kali-${architecture}/usr/bin/monstart
+chmod 755 "${basedir}"/kali-${architecture}/usr/bin/monstart
 
-cat << 'EOF' > ${basedir}/kali-${architecture}/usr/bin/monstop
+cat << 'EOF' > "${basedir}"/kali-${architecture}/usr/bin/monstop
 #!/bin/bash
 interface=wlan0mon
 ifconfig ${interface} down
 sleep 1
 iw dev ${interface} del
 EOF
-chmod 755 ${basedir}/kali-${architecture}/usr/bin/monstop
+chmod 755 "${basedir}"/kali-${architecture}/usr/bin/monstop
 
 # Bluetooth enabling
-mkdir -p ${basedir}/kali-${architecture}/etc/udev/rules.d
-cp ${basedir}/../misc/pi-bluetooth/99-com.rules ${basedir}/kali-${architecture}/etc/udev/rules.d/99-com.rules
-mkdir -p ${basedir}/kali-${architecture}/lib/systemd/system/
-cp ${basedir}/../misc/pi-bluetooth/hciuart.service ${basedir}/kali-${architecture}/lib/systemd/system/hciuart.service
-mkdir -p ${basedir}/kali-${architecture}/usr/bin
-cp ${basedir}/../misc/pi-bluetooth/btuart ${basedir}/kali-${architecture}/usr/bin/btuart
+mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d
+cp "${basedir}"/../misc/pi-bluetooth/99-com.rules "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-com.rules
+mkdir -p "${basedir}"/kali-${architecture}/lib/systemd/system/
+cp "${basedir}"/../misc/pi-bluetooth/hciuart.service "${basedir}"/kali-${architecture}/lib/systemd/system/hciuart.service
+mkdir -p "${basedir}"/kali-${architecture}/usr/bin
+cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/usr/bin/btuart
 # Ensure btuart is executable
-chmod 755 ${basedir}/kali-${architecture}/usr/bin/btuart
+chmod 755 "${basedir}"/kali-${architecture}/usr/bin/btuart
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O ${basedir}/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
 
-cat << EOF > ${basedir}/kali-${architecture}/third-stage
+cat << EOF > "${basedir}"/kali-${architecture}/third-stage
 #!/bin/bash
 set -e
 dpkg-divert --add --local --divert /usr/sbin/invoke-rc.d.chroot --rename /usr/sbin/invoke-rc.d
@@ -273,12 +273,12 @@ rm -f cleanup
 #rm -f /usr/bin/qemu*
 EOF
 
-chmod 755 ${basedir}/kali-${architecture}/third-stage
+chmod 755 "${basedir}"/kali-${architecture}/third-stage
 
 # rpi-wiggle
-mkdir -p ${basedir}/kali-${architecture}/root/scripts
+mkdir -p "${basedir}"/kali-${architecture}/root/scripts
 wget https://raw.githubusercontent.com/steev/rpiwiggle/master/rpi-wiggle -O kali-${architecture}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
@@ -300,21 +300,21 @@ rm -rf kali-${architecture}/third-stage
 #umount kali-$architecture/proc
 
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
 # Create cmdline.txt file
-cd ${basedir}
+cd "${basedir}"
 
-cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
 dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
-cat << EOF > ${basedir}/kali-${architecture}/etc/fstab
+cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
@@ -323,9 +323,9 @@ EOF
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
+cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
-cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
+cat << EOF >> "${basedir}"/kali-${architecture}/boot/config.txt
 
 # If you would like to enable USB booting on your Pi, uncomment the following line.
 # Boot from microsd card with it, then reboot.
@@ -336,14 +336,14 @@ cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
 EOF
 
 # Hyperpixel display setup
-echo "i2c-dev" >> ${basedir}/kali-${architecture}/etc/modules
-echo "uinput" >> ${basedir}/kali-${architecture}/etc/modules
+echo "i2c-dev" >> "${basedir}"/kali-${architecture}/etc/modules
+echo "uinput" >> "${basedir}"/kali-${architecture}/etc/modules
 
 # And download the dtbo files here, because now we've built the kernel and installed the other overlays.
-wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/boot/overlays/hyperpixel-gpio-backlight.dtbo -O ${basedir}/kali-${architecture}/boot/overlays/hyperpixel-gpio-backlight.dtbo
-wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/boot/overlays/hyperpixel.dtbo -O ${basedir}/kali-${architecture}/boot/overlays/hyperpixel.dtbo
+wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/boot/overlays/hyperpixel-gpio-backlight.dtbo -O "${basedir}"/kali-${architecture}/boot/overlays/hyperpixel-gpio-backlight.dtbo
+wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/boot/overlays/hyperpixel.dtbo -O "${basedir}"/kali-${architecture}/boot/overlays/hyperpixel.dtbo
 
-cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
+cat << EOF >> "${basedir}"/kali-${architecture}/boot/config.txt
 
 # HyperPixel LCD Settings
 dtoverlay=hyperpixel
@@ -366,18 +366,18 @@ EOF
 
 # Because we use debian's firmware package and they install it to /boot/firmware instead of /boot directly
 # we have to mv it to /boot so the thing will boot.
-mv ${basedir}/kali-${architecture}/boot/firmware/* ${basedir}/kali-${architecture}/boot/
+mv "${basedir}"/kali-${architecture}/boot/firmware/* "${basedir}"/kali-${architecture}/boot/
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 # Set a REGDOMAIN.  This needs to be done or wireless doesn't work correctly on the RPi 3B+
-sed -i -e 's/REGDOM.*/REGDOMAIN=00/g' ${basedir}/kali-${architecture}/etc/default/crda
+sed -i -e 's/REGDOM.*/REGDOMAIN=00/g' "${basedir}"/kali-${architecture}/etc/default/crda
 
 # Build nexmon firmware outside the build system, if we can.
-cd ${basedir}
-git clone https://github.com/seemoo-lab/nexmon.git ${basedir}/nexmon --depth 1
-cd ${basedir}/nexmon
+cd "${basedir}"
+git clone https://github.com/seemoo-lab/nexmon.git "${basedir}"/nexmon --depth 1
+cd "${basedir}"/nexmon
 # Disable statistics
 touch DISABLE_STATISTICS
 source setup_env.sh
@@ -402,35 +402,35 @@ cd ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon
 make clean
 LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make ARCH=arm CC=${NEXMON_ROOT}/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-x86/bin/arm-none-eabi-
 # RPi0w->3B firmware
-cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
-cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
+cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
+cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
 # RPi3B+ firmware
-cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
-cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.txt
+cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
+cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.txt
 # Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
 # This is required for any wifi to work on the RPi 3B+
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
-cd ${basedir}
+cd "${basedir}"
 
 echo "Running du to see how big kali-${architecture} is"
-du -sh ${basedir}/kali-${architecture}
+du -sh "${basedir}"/kali-${architecture}
 echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 0 64
 parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -442,23 +442,23 @@ mkfs.vfat ${bootp}
 mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root/
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root/
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
-rm -rf ${basedir}/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
+rm -rf "${basedir}"/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
-cat << EOF > ${basedir}/root/etc/resolv.conf
+cat << EOF > "${basedir}"/root/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
 # Make sure to enable ssh on the device by default
-touch ${basedir}/root/boot/ssh
+touch "${basedir}"/root/boot/ssh
 
 sync
 umount -l ${bootp}
@@ -469,12 +469,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}
+rm -rf "${basedir}"

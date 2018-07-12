@@ -66,8 +66,8 @@ fi
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -175,9 +175,9 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 #umount kali-$architecture/proc
 
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -187,50 +187,50 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y ${basedir}/kali-${architecture}/usr/src/kernel
-git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
+git clone --depth 1 https://github.com/raspberrypi/linux -b rpi-4.1.y "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/raspberrypi/tools "${basedir}"/tools
 
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-4.1.patch
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.1.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-4.1.config .config
-cp ${basedir}/../kernel-configs/rpi-4.1.config ${basedir}/kali-${architecture}/usr/src/rpi-4.1.config
+export CROSS_COMPILE="${basedir}"/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
+cp "${basedir}"/../kernel-configs/rpi-4.1.config .config
+cp "${basedir}"/../kernel-configs/rpi-4.1.config "${basedir}"/kali-${architecture}/usr/src/rpi-4.1.config
 make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
+cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
 rm -rf rpi-firmware
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
-mkdir -p ${basedir}/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/bcm*.dtb ${basedir}/kali-${architecture}/boot/
-cp arch/arm/boot/dts/overlays/*overlay*.dtb ${basedir}/kali-${architecture}/boot/overlays/
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/kernel.img
+mkdir -p "${basedir}"/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/bcm*.dtb "${basedir}"/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*overlay*.dtb "${basedir}"/kali-${architecture}/boot/overlays/
 make mrproper
 cp ../rpi-4.1.config .config
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # Create cmdline.txt file
-cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
 dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 net.ifnames=0 rw
 EOF
 
 # Create config.txt file
-cat << EOF > ${basedir}/kali-${architecture}/boot/config.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/config.txt
 # uncomment if you get no picture on HDMI for a default "safe" mode
 #hdmi_safe=1
 
@@ -278,7 +278,7 @@ dtparam=spi=on
 EOF
 
 # Create /etc/modules based on ODROID-W
-cat << EOF > ${basedir}/kali-${architecture}/etc/modules
+cat << EOF > "${basedir}"/kali-${architecture}/etc/modules
 # /etc/modules: kernel modules to load at boot time.
 #
 # This file contains the names of kernel modules that should be loaded
@@ -290,27 +290,27 @@ spi_bcm2708
 fbtft_device name=adafruit22a rotate=90
 EOF
 
-mkdir -p ${basedir}/kali-${architecture}/etc/modprobe.d/
-cat << EOF > ${basedir}/kali-${architecture}/etc/modprobe.d/fbtft_device.conf
+mkdir -p "${basedir}"/kali-${architecture}/etc/modprobe.d/
+cat << EOF > "${basedir}"/kali-${architecture}/etc/modprobe.d/fbtft_device.conf
 options fbtft_device name=adafruit22a rotate=90
 EOF
 
-cd ${basedir}
+cd "${basedir}"
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 0 64
 parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -322,10 +322,10 @@ mkfs.vfat ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -333,7 +333,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
@@ -346,12 +346,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}
+rm -rf "${basedir}"

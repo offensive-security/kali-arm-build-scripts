@@ -73,8 +73,8 @@ mirror=http.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -200,32 +200,32 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 
 # Serial console settings.
 # (Auto login on serial console)
-#T1:12345:respawn:/sbin/agetty 115200 ttySAC2 vt100 >> ${basedir}/kali-${architecture}/etc/inittab
+#T1:12345:respawn:/sbin/agetty 115200 ttySAC2 vt100 >> "${basedir}"/kali-${architecture}/etc/inittab
 # (No auto login)
-#T1:12345:respawn:/bin/login -f root ttySAC2 /dev/ttySAC2 2>&1' >> ${basedir}/kali-${architecture}/etc/inittab
+#T1:12345:respawn:/bin/login -f root ttySAC2 /dev/ttySAC2 2>&1' >> "${basedir}"/kali-${architecture}/etc/inittab
 # Make sure ttySAC1 is in root/etc/securetty so root can login on serial console.
-echo 'T1:12345:respawn:/bin/login -f root ttySAC2 /dev/ttySAC2 2>&1' >> ${basedir}/kali-${architecture}/etc/inittab
+echo 'T1:12345:respawn:/bin/login -f root ttySAC2 /dev/ttySAC2 2>&1' >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/udev/links.conf
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/udev/links.conf
 M   ttySAC2 c 5 1
 EOF
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/securetty
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/securetty
 ttySAC0
 ttySAC1
 ttySAC2
 EOF
 
 # Start X on the ODROID XU.
-cp ${basedir}/kali-${architecture}/etc/skel/.profile ${basedir}/kali-${architecture}/root/.bash_profile
+cp "${basedir}"/kali-${architecture}/etc/skel/.profile "${basedir}"/kali-${architecture}/root/.bash_profile
 
-cat << EOF >> ${basedir}/kali-${architecture}/root/.bash_profile
+cat << EOF >> "${basedir}"/kali-${architecture}/root/.bash_profile
 if [ -z "$DISPLAY" ] && [ $(tty) = /dev/ttySAC1 ]; then
 startx
 fi
 EOF
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -235,54 +235,54 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux.git -b odroidxu-3.4.y ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+git clone --depth 1 https://github.com/hardkernel/linux.git -b odroidxu-3.4.y "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/xu.config .config
-cp ${basedir}/../kernel-configs/xu.config ${basedir}/kali-${architecture}/usr/src/xu.config
+cp "${basedir}"/../kernel-configs/xu.config .config
+cp "${basedir}"/../kernel-configs/xu.config "${basedir}"/kali-${architecture}/usr/src/xu.config
 make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
+cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/
 
 # This is to build the console framebuffer application.
 echo "Building the hwcomposer"
-cd ${basedir}/kali-${architecture}/usr/src/kernel/tools/hardkernel/exynos5-hwcomposer
+cd "${basedir}"/kali-${architecture}/usr/src/kernel/tools/hardkernel/exynos5-hwcomposer
 # It's quite chatty still, so we if 0 the logging, and also add a missing #define
 sed -i -e 's/if 1/if 0/g' include/log.h
 sed -i -e 's/#define ALOGD/#define ALOGD\r#define ALOGF/g' include/log.h
 
 ./configure --prefix=/usr --build x86_64-pc-linux-gnu --host ${hosttuple}
 make
-make DESTDIR=${basedir}/kali-${architecture} install
+make DESTDIR="${basedir}"/kali-${architecture} install
 
-cd ${basedir}/kali-${architecture}/etc/
+cd "${basedir}"/kali-${architecture}/etc/
 sed -i -e 's~^exit 0~exynos5-hwcomposer > /dev/null 2>\&1 \&\nexit 0~' rc.local
 
-cd ${basedir}
+cd "${basedir}"
 
-cd ${basedir}/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
 make mrproper
 cp ../xu.config .config
 make modules_prepare
-cd ${basedir}
+cd "${basedir}"
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # XU can do 720p or 1080p so create 2 boot.txt, default to 720p
-cat << EOF > ${basedir}/kali-${architecture}/boot/boot-hdmi-720.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/boot-hdmi-720.txt
 setenv initrd_high "0xffffffff"
 setenv fdt_high "0xffffffff"
 setenv fb_x_res "1280"
@@ -293,7 +293,7 @@ setenv bootargs "console=tty1 console=ttySAC2,115200n8 vmalloc=512M fb_x_res=\${
 boot
 EOF
 
-cat << EOF > ${basedir}/kali-${architecture}/boot/boot-hdmi-1080.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/boot-hdmi-1080.txt
 setenv initrd_high "0xffffffff"
 setenv fdt_high "0xffffffff"
 setenv fb_x_res "1920"
@@ -305,26 +305,26 @@ boot
 EOF
 
 # Create boot.scr(s)
-mkimage -A arm -T script -C none -d ${basedir}/bootp/boot-hdmi-720.txt ${basedir}/kali-${architecture}/boot/boot-720.scr
-mkimage -A arm -T script -C none -d ${basedir}/bootp/boot-hdmi-1080.txt ${basedir}/kali-${architecture}/boot/boot-1080.scr
-cp ${basedir}/bootp/boot-720.scr ${basedir}/kali-${architecture}/boot/boot.scr
+mkimage -A arm -T script -C none -d "${basedir}"/bootp/boot-hdmi-720.txt "${basedir}"/kali-${architecture}/boot/boot-720.scr
+mkimage -A arm -T script -C none -d "${basedir}"/bootp/boot-hdmi-1080.txt "${basedir}"/kali-${architecture}/boot/boot-1080.scr
+cp "${basedir}"/bootp/boot-720.scr "${basedir}"/kali-${architecture}/boot/boot.scr
 
-cd ${basedir}
+cd "${basedir}"
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 3072s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -336,10 +336,10 @@ mkfs.vfat ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -347,12 +347,12 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Write the signed u-boot binary to the image so that it will boot.
-cd ${basedir}/root/usr/src/kernel/tools/hardkernel/u-boot-pre-built
+cd "${basedir}"/root/usr/src/kernel/tools/hardkernel/u-boot-pre-built
 sh sd_fusing.sh ${loopdevice}
-cd ${basedir}
+cd "${basedir}"
 
 # Unmount partitions
 sync
@@ -365,16 +365,16 @@ kpartx -dv ${loopdevice}
 # So, we'll need to copy them from the kernel directory into here.
 # We also need to modify some files in u-boot to work with the cross compiler.
 #git clone --depth 1 https://github.com/hardkernel/u-boot -b odroid-v2012.07
-#cd ${basedir}/u-boot
+#cd "${basedir}"/u-boot
 # https://code.google.com/p/chromium/issues/detail?id=213120
 #sed -i -e "s/soft-float/float-abi=hard -mfpu=vfpv3/g" \
 #    arch/arm/cpu/armv7/config.mk
 #make smdk5410_config
 #make -j $(grep -c processor /proc/cpuinfo)
-#cd ${basedir}/u-boot/sd_fuse/smdk5410/
-#cp ${basedir}/kernel/tools/hardkernel/u-boot-pre-built/
+#cd "${basedir}"/u-boot/sd_fuse/smdk5410/
+#cp "${basedir}"/kernel/tools/hardkernel/u-boot-pre-built/
 #sh sd_fuse.sh $loopdevice
-#cd ${basedir}
+#cd "${basedir}"
 
 losetup -d ${loopdevice}
 
@@ -382,12 +382,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}
+rm -rf "${basedir}"

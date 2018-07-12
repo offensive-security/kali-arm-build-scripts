@@ -55,8 +55,8 @@ mirror=http.kali.org
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -163,17 +163,17 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 #umount kali-${architecture}/proc
 
 # Enable serial console on ttyO0
-echo 'T1:12345:respawn:/sbin/agetty 115200 ttyO0 vt100' >> ${basedir}/kali-${architecture}/etc/inittab
+echo 'T1:12345:respawn:/sbin/agetty 115200 ttyO0 vt100' >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/udev/links.conf
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/udev/links.conf
 M   ttyO0 c 5 1
 EOF
 
-cat << EOF >> ${basedir}/kali-${architecture}/etc/securetty
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/securetty
 ttyO0
 EOF
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -182,18 +182,18 @@ EOF
 #unset http_proxy
 
 # Get, compile and install kernel
-git clone --depth 1 https://github.com/steev/luna-kernel ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/mac80211.patch
+git clone --depth 1 https://github.com/steev/luna-kernel "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/luna.config .config
+cp "${basedir}"/../kernel-configs/luna.config .config
 make -j $(grep -c processor /proc/cpuinfo)
-cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/
-cp arch/arm/boot/dts/am335x-*luna*.dtb ${basedir}/kali-${architecture}/boot/
-cd ${basedir}
+cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/
+cp arch/arm/boot/dts/am335x-*luna*.dtb "${basedir}"/kali-${architecture}/boot/
+cd "${basedir}"
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/fstab
+cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 /dev/mmcblk0p2 / auto errors=remount-ro 0 1
 /dev/mmcblk0p1 /boot auto defaults 0 0
 EOF
@@ -201,16 +201,16 @@ EOF
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 #u-boot LUNA specific overrides: 
-cat << EOF > ${basedir}/kali-${architecture}/boot/uEnv.txt
+cat << EOF > "${basedir}"/kali-${architecture}/boot/uEnv.txt
 fdtfile=am335x-luna.dtb
 kernel_file=zImage
 initrd_file=uInitrd
@@ -228,17 +228,17 @@ mmcargs=setenv bootargs console=\${console} root=\${mmcroot} rootfstype=\${mmcro
 uenvcmd=run loadzimage; run loadfdt; run mmcargs; bootz \${loadaddr} - \${fdtaddr}
 EOF
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
 echo "Creating image file for LUNA"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -250,10 +250,10 @@ mkfs.vfat -F 16 ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p $${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p $"${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -261,7 +261,7 @@ nameserver 8.8.8.8
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
@@ -274,12 +274,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Removing temporary build files"
-rm -rf ${basedir}
+rm -rf "${basedir}"

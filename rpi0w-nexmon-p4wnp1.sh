@@ -69,8 +69,8 @@ fi
 # to unset it.
 #export http_proxy="http://localhost:3142/"
 
-mkdir -p ${basedir}
-cd ${basedir}
+mkdir -p "${basedir}"
+cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -171,20 +171,20 @@ chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
 # Bluetooth enabling
 mkdir -p kali-${architecture}/etc/udev/rules.d
-cp ${basedir}/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
+cp "${basedir}"/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
 mkdir -p kali-${architecture}/lib/systemd/system/
-cp ${basedir}/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
+cp "${basedir}"/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
 mkdir -p kali-${architecture}/lib/udev/rules.d/
-cp ${basedir}/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
+cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
 mkdir -p kali-${architecture}/usr/bin
-cp ${basedir}/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
-cp ${basedir}/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
+cp "${basedir}"/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
+cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
 # Ensure btuart is executable
 chmod 755 kali-${architecture}/usr/bin/btuart
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
+cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -299,9 +299,9 @@ LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /cleanup
 #umount kali-$architecture/proc
 
 # Enable login over serial
-echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> ${basedir}/kali-${architecture}/etc/inittab
+echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/apt/sources.list
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
@@ -316,13 +316,13 @@ cd ${TOPDIR}
 
 # RPI Firmware
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
+cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
 rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son ${basedir}/kali-${architecture}/usr/src/kernel
-cd ${basedir}/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
 export ARCH=arm
@@ -335,36 +335,36 @@ make re4son_pi1_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 
 # Make kernel modules
-make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 
 # Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
-cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
-cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/kernel.img
+cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* "${basedir}"/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/overlays/
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
 # version is
-kernver=$(ls ${basedir}/kali-${architecture}/lib/modules/)
-cd ${basedir}/kali-${architecture}/lib/modules/${kernver}
+kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
+cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
 rm build
 rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
-cd ${basedir}
+cd "${basedir}"
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
-cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
+cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config.txt
 
-cat << EOF >> ${basedir}/kali-${architecture}/boot/config.txt
+cat << EOF >> "${basedir}"/kali-${architecture}/boot/config.txt
 dtoverlay=dwc2
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
-cat << EOF > ${basedir}/kali-${architecture}/etc/fstab
+cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
@@ -373,14 +373,14 @@ EOF
 
 
 # rpi-wiggle
-mkdir -p ${basedir}/kali-${architecture}/root/scripts
-wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
-chmod 755 ${basedir}/kali-${architecture}/root/scripts/rpi-wiggle.sh
+mkdir -p "${basedir}"/kali-${architecture}/root/scripts
+wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
+chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Build nexmon firmware outside the build system, if we can.
-cd ${basedir}
-git clone https://github.com/seemoo-lab/nexmon.git ${basedir}/nexmon --depth 1
-cd ${basedir}/nexmon
+cd "${basedir}"
+git clone https://github.com/seemoo-lab/nexmon.git "${basedir}"/nexmon --depth 1
+cd "${basedir}"/nexmon
 # Disable statistics
 touch DISABLE_STATISTICS
 source setup_env.sh
@@ -399,30 +399,30 @@ make clean
 # We do this so we don't have to install the ancient isl version into /usr/local/lib on systems.
 LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make ARCH=arm CC=${NEXMON_ROOT}/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-x86/bin/arm-none-eabi-
 # RPi0w->3B firmware
-cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
-cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
+cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
+cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
 # Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
-cd ${basedir}
+wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
+cd "${basedir}"
 
-cd ${basedir}
+cd "${basedir}"
 
-cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
-chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
+cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
+chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
-sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 0 64
 parted ${imagename}.img --script -- mkpart primary ext4 64 -1
 
 # Set the partition variables
-loopdevice=`losetup -f --show ${basedir}/${imagename}.img`
+loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
@@ -434,10 +434,10 @@ mkfs.vfat ${bootp}
 mkfs.ext4 ${rootp}
 
 # Create the dirs for the partitions and mount them
-mkdir -p ${basedir}/root
-mount ${rootp} ${basedir}/root
-mkdir -p ${basedir}/root/boot
-mount ${bootp} ${basedir}/root/boot
+mkdir -p "${basedir}"/root
+mount ${rootp} "${basedir}"/root
+mkdir -p "${basedir}"/root/boot
+mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -446,10 +446,10 @@ EOF
 
 # Because of the p4wnp1 script, we set the hostname down here, instead of using the machine name.
 # Set hostname
-echo "${hostname}" > ${basedir}/kali-${architecture}/etc/hostname
+echo "${hostname}" > "${basedir}"/kali-${architecture}/etc/hostname
 
 # So X doesn't complain, we add $hostname to hosts
-cat << EOF > ${basedir}/kali-${architecture}/etc/hosts
+cat << EOF > "${basedir}"/kali-${architecture}/etc/hosts
 127.0.0.1       ${hostname}    localhost
 ::1             localhost ip6-localhost ip6-loopback
 fe00::0         ip6-localnet
@@ -459,11 +459,11 @@ ff02::2         ip6-allrouters
 EOF
 
 echo "Rsyncing rootfs into image file"
-rsync -HPavz -q ${basedir}/kali-${architecture}/ ${basedir}/root/
+rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Build nexmon
-#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-#LANG=C systemd-nspawn -M ${machine} -D ${basedir}/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
+#LANG=C systemd-nspawn -M ${machine} -D "${basedir}"/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
+#LANG=C systemd-nspawn -M ${machine} -D "${basedir}"/root/ /bin/bash -c "LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 # Unmount partitions
 sync
@@ -476,12 +476,12 @@ losetup -d ${loopdevice}
 MACHINE_TYPE=`uname -m`
 if [ ${MACHINE_TYPE} == 'x86_64' ]; then
 echo "Compressing ${imagename}.img"
-pixz ${basedir}/${imagename}.img ${basedir}/../${imagename}.img.xz
-rm ${basedir}/${imagename}.img
+pixz "${basedir}"/${imagename}.img "${basedir}"/../${imagename}.img.xz
+rm "${basedir}"/${imagename}.img
 fi
 
 # Clean up all the temporary build stuff and remove the directories.
 # Comment this out to keep things around if you want to see what may have gone
 # wrong.
 echo "Cleaning up the temporary build files..."
-rm -rf ${basedir}
+rm -rf "${basedir}"
