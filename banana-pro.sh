@@ -11,7 +11,7 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir="`pwd`/bananapro-$1"
+basedir='`pwd`/bananapro-$1'
 
 # Custom hostname variable
 hostname=${2:-kali}
@@ -80,7 +80,6 @@ mirror=http.kali.org
 #export http_proxy="http://localhost:3142/"
 
 mkdir -p "${basedir}"
-echo "The basedir thinks it is: "${basedir}""
 cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
