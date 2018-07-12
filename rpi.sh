@@ -295,6 +295,10 @@ cp ${basedir}/../misc/config.txt ${basedir}/kali-${architecture}/boot/config.txt
 cp ${basedir}/../misc/zram ${basedir}/kali-${architecture}/etc/init.d/zram
 chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
+echo "Running du to see how big kali-${architecture} is"
+du -sh ${basedir}/kali-${architecture}
+echo "the above is how big the sdcard needs to be"
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}
