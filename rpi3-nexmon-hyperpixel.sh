@@ -160,7 +160,9 @@ chmod 644 ${basedir}/kali-${architecture}/lib/systemd/system/copy-user-wpasuppli
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-touch.service -O kali-${architecture}/lib/systemd/system/hyperpixel-touch.service
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-init.service -O kali-${architecture}/lib/systemd/system/hyperpixel-init.service
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/bin/hyperpixel-init -O kali-${architecture}/usr/bin/hyperpixel-init
+chmod 755 kali-${architecture}/usr/bin/hyperpixel-init
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/bin/hyperpixel-touch -O kali-${architecture}/usr/bin/hyperpixel-touch
+chmod 755 kali-${architecture}/usr/bin/hyperpixel-touch
 
 cat << EOF > ${basedir}/kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
@@ -415,6 +417,10 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O ${basedir}/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
 cd ${basedir}
+
+echo "Running du to see how big kali-${architecture} is"
+du -sh ${basedir}/kali-${architecture}
+echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
