@@ -20,8 +20,8 @@ basedir=`pwd`/rpi-tft-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpitft}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 3000=3GB)
+size=3000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -42,7 +42,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas"
+base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas whiptail"
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -229,28 +229,29 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 -b rpi-3.15.y https://github.com/adafruit/adafruit-raspberrypi-linux ${basedir}/kali-${architecture}/usr/src/kernel
-git clone --depth 1 https://github.com/raspberrypi/tools ${basedir}/tools
-
+# Kernel section. If you want to use a custom kernel, or configuration, replace
+# them in this section.
+git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
+cp -rf rpi-firmware/boot/* ${basedir}/kali-${architecture}/boot/
+rm -rf rpi-firmware
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son ${basedir}/kali-${architecture}/usr/src/kernel
 cd ${basedir}/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > ${basedir}/kali-${architecture}/usr/src/kernel-at-commit
-git submodule init
-git submodule update
-patch -p1 --no-backup-if-mismatch < ${basedir}/../patches/kali-wifi-injection-3.12.patch
-touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=${basedir}/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian/bin/arm-linux-gnueabihf-
-cp ${basedir}/../kernel-configs/rpi-ada-3.15.config .config
-cp ${basedir}/../kernel-configs/rpi-ada-3.15.config ${basedir}/kali-${architecture}/usr/src/rpi-ada-3.15.config
+export CROSS_COMPILE=arm-linux-gnueabi-
+make re4son_pi1_defconfig
+
+# Build kernel
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH=${basedir}/kali-${architecture}
-git clone --depth 1 https://github.com/adafruit/rpi-firmware.git rpi-firmware
-rm -rf rpi-firmware/extra rpi-firmware/modules rpi-firmware/firmware rpi-firmware/vc
-cp -rf rpi-firmware/* ${basedir}/kali-${architecture}/boot/
-rm -rf rpi-firmware/
-cp arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
+
+# Copy kernel to boot
+perl scripts/mkknlimg --dtok arch/arm/boot/zImage ${basedir}/kali-${architecture}/boot/kernel.img
+cp arch/arm/boot/dts/*.dtb ${basedir}/kali-${architecture}/boot/
+cp arch/arm/boot/dts/overlays/*.dtb* ${basedir}/kali-${architecture}/boot/overlays/
+cp arch/arm/boot/dts/overlays/README ${basedir}/kali-${architecture}/boot/overlays/
+
 make mrproper
-cp ../rpi-ada-3.15.config .config
+make re4son_pi1_defconfig
 make modules_prepare
 cd ${basedir}
 
@@ -267,33 +268,7 @@ cd ${basedir}
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt
-dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait fbcon=map:10 fbcon=font:VGA8x8 net.ifnames=0
-EOF
-
-cat << EOF >> ${basedir}/kali-${architecture}/etc/modules
-i2c-dev
-bcm2708-rng
-snd-bcm2835
-spi-bcm2708
-i2c-bcm2708
-fbtft_device
-EOF
-
-cat << EOF > ${basedir}/kali-${architecture}/etc/modprobe.d/pitft.conf
-options fbtft_device name=adafruitrt28 rotate=90 frequency=3200000
-EOF
-
-cat << EOF > ${basedir}/kali-${architecture}/root/.profile
-export FRAMEBUFFER=/dev/fb1
-EOF
-
-mkdir -p ${basedir}/kali-${architecture}/etc/X11/xorg.conf.d/
-cat << EOF > ${basedir}/kali-${architecture}/etc/X11/xorg.conf.d/10-fbdev.conf
-Section "Device"
-	Identifier	"TFT"
-	Driver		"fbdev"
-	Option		"fbdev"	"/dev/fb1"
-EndSection
+dwc_otg.lpm_enable=0 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 elevator=deadline root=/dev/mmcblk0p2 rootfstype=ext4 rootwait net.ifnames=0
 EOF
 
 # systemd doesn't seem to be generating the fstab properly for some people, so
@@ -307,14 +282,9 @@ proc /proc proc nodev,noexec,nosuid 0  0
 /dev/mmcblk0p1 /boot vfat noauto 0 0
 EOF
 
-cat << EOF > ${basedir}/kali-${architecture}/etc/X11/xorg.conf.d/99-calibration.conf
-Section "InputClass"
-Identifier "calibration"
-MatchProduct "stmpe-ts"
-Option "Calibration" "3800 200 200 3800"
-Option "SwapAxes" "1"
-EndSection
-EOF
+# Re4son's rpi-tft configurator
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config 
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts

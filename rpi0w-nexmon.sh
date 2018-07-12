@@ -22,8 +22,8 @@ TOPDIR=`pwd`
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi0w-nexmon}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 3000=3GB)
+size=3000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -329,6 +329,10 @@ rm source
 ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
 cd ${basedir}
+
+# Re4son's rpi-tft configurator
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config 
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config
 
 # Create cmdline.txt file
 cat << EOF > ${basedir}/kali-${architecture}/boot/cmdline.txt

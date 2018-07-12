@@ -20,8 +20,8 @@ basedir=`pwd`/rpi2-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi2}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 3000=3GB)
+size=3000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -295,6 +295,10 @@ chmod 755 ${basedir}/kali-${architecture}/etc/init.d/zram
 
 # We do this again down here, because for some reason it seems to reset during third-stage?
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' ${basedir}/kali-${architecture}/etc/ssh/sshd_config
+
+# Re4son's rpi-tft configurator
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config 
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"

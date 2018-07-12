@@ -377,6 +377,10 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 
 cd ${basedir}
 
+# Re4son's rpi-tft configurator
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config 
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of=${basedir}/${imagename}.img bs=1M count=${size}

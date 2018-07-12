@@ -20,8 +20,8 @@ basedir=`pwd`/rpi-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 3000=3GB)
+size=3000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -276,6 +276,10 @@ proc /proc proc nodev,noexec,nosuid 0  0
 #/dev/SWAP none swap sw 0 0
 /dev/mmcblk0p1 /boot vfat noauto 0 0
 EOF
+
+# Re4son's rpi-tft configurator
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config 
+chmod 755 ${basedir}/kali-${architecture}/usr/bin/kalipi-tft-config
 
 # rpi-wiggle
 mkdir -p ${basedir}/kali-${architecture}/root/scripts
