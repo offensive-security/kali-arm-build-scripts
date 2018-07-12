@@ -248,6 +248,9 @@ git clone --depth 1 https://github.com/LeMaker/linux-sunxi -b lemaker-3.4 "${bas
 git clone --depth 1 https://github.com/linux-sunxi/sunxi-tools
 git clone --depth 1 https://github.com/LeMaker/sunxi-boards
 
+# Clone a cross compiler to use instead of the Kali one due to kernel age.
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 cd "${basedir}"/sunxi-tools
 make fex2bin
 ./fex2bin "${basedir}"/sunxi-boards/sys_config/a20/BananaPro.fex "${basedir}"/kali-${architecture}/boot/script.bin
@@ -257,7 +260,7 @@ git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 cp "${basedir}"/../kernel-configs/lemaker.config .config
 cp "${basedir}"/../kernel-configs/lemaker.config "${basedir}"/kali-${architecture}/usr/src/lemaker.config
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
