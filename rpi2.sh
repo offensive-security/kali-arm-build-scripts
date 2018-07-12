@@ -144,6 +144,38 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+[Unit]
+Description=Turn on SSH if /boot/ssh is present
+ConditionPathExistsGlob=/boot/ssh{,.txt}
+After=regenerate_ssh_host_keys.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /boot/ssh ; rm -f /boot/ssh.txt"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+
+cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+[Unit]
+Description=Copy user wpa_supplicant.conf
+ConditionPathExists=/boot/wpa_supplicant.conf
+Before=dhcpcd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/mv /boot/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
+ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+
 # Let's try out binky's package for the rpi kernel and headers.
 wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
 wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
@@ -186,6 +218,15 @@ systemctl enable rpiwiggle
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
+
+# Enable copying of user wpa_supplicant.conf file
+systemctl enable copy-user-wpasupplicant
+
+# Enable... enabling ssh by putting ssh or ssh.txt file in /boot
+systemctl enable enable-ssh
+
+# Copy over the default bashrc
+cp  /etc/skel/.bashrc /root/.bashrc
 
 # libinput seems to fail hard on RaspberryPi devices, so we make sure it's not
 # installed here (and we have xserver-xorg-input-evdev and
