@@ -31,8 +31,8 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="apt-utils console-setup kali-defaults e2fsprogs ifupdown initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 net-tools iw wget"
-desktop="kali-menu fonts-croscore kali-defaults kali-menu fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
-tools="aircrack-ng crunch cewl ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois winexe wpscan wireshark"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windowsbinaries winexe wpscan wireshark"
 services="apache2 openssh-server"
 extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware raspi3-firmware xfonts-terminus"
 
@@ -381,6 +381,8 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # This is required for any wifi to work on the RPi 3B+
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
+rm -rf "${basedir}"/kali-${architecture}/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
+
 cd "${basedir}"
 
 # Re4son's rpi-tft configurator
@@ -414,9 +416,6 @@ mount ${bootp} "${basedir}"/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
-
-#LANG=C systemd-nspawn -M ${machine} -D "${basedir}"/root/ /bin/bash -c "cd /root && gcc -Wall -shared -o libfakeuname.so fakeuname.c"
-#LANG=C systemd-nspawn -M ${machine} -D "${basedir}"/root/ /bin/bash -c "chmod 755 /root/buildnexmon.sh && LD_PRELOAD=/root/libfakeuname.so /root/buildnexmon.sh"
 
 rm -rf "${basedir}"/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
 
