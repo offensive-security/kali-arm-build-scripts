@@ -202,8 +202,10 @@ cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/us
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/btuart
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel_20180713-010442_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180713-010442_armhf.deb
+wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel-headers_20180713-010442_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180713-010442_armhf.deb
+# Mister-X's libfakeioctl fixes
+cp "${basedir}"/../misc/fakeioctl.c "${basedir}"/kali-${architecture}/root/fakeioctl.c
 
 cat << EOF > "${basedir}"/kali-${architecture}/third-stage
 #!/bin/bash
@@ -224,7 +226,7 @@ apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes 
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+dpkg -i /root/raspberrypi-kernel_20180713-010442_armhf.deb /root/raspberrypi-kernel-headers_20180713-010442_armhf.deb
 
 apt-get --yes --allow-change-held-packages autoremove
 
@@ -421,7 +423,7 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # This is required for any wifi to work on the RPi 3B+
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
-rm -rf "${basedir}"/kali-${architecture}/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
+rm -rf "${basedir}"/kali-${architecture}/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel*.deb}
 
 cd "${basedir}"
 
