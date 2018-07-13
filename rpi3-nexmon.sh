@@ -30,7 +30,7 @@ suite=kali-rolling
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils console-setup kali-defaults e2fsprogs ifupdown initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 net-tools iw wget"
+base="apt-utils console-setup kali-defaults e2fsprogs ifupdown initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 net-tools iw wget psmsic"
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windowsbinaries winexe wpscan wireshark"
 services="apache2 openssh-server"
