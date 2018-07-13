@@ -17,8 +17,8 @@ basedir=`pwd`/rpi3-nexmon-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi3-nexmon}
-# Size of image in megabytes (Default is 3000=3GB)
-size=3000
+# Size of image in megabytes (Default is 3500=3.5GB)
+size=3500
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -32,9 +32,9 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools parted sudo usbutils firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 net-tools iw wget"
 desktop="kali-menu fonts-croscore kali-defaults kali-menu fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
+tools="aircrack-ng crunch cewl ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois winexe wpscan wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware raspi3-firmware"
+extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware raspi3-firmware xfonts-terminus"
 
 packages="${arm} ${base} ${services} ${extras}"
 
@@ -247,6 +247,11 @@ systemctl enable enable-ssh
 
 # Copy over the default bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
+
+# Try and make the console a bit nicer
+# Set the terminus font for a bit nicer display.
+sed -i -e 's/FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
+sed -i -e 's/FONTSIZE=.*/FONTSIZE="6x12"/' /etc/default/console-setup
 
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
 sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
