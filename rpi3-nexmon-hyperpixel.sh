@@ -421,6 +421,8 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # This is required for any wifi to work on the RPi 3B+
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
 
+rm -rf "${basedir}"/kali-${architecture}/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
+
 cd "${basedir}"
 
 echo "Running du to see how big kali-${architecture} is"
@@ -454,8 +456,6 @@ mount ${bootp} "${basedir}"/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
-
-rm -rf "${basedir}"/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel_20180704-223830_armhf.deb,raspberrypi-kernel-headers_20180704-223830_armhf.deb}
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > "${basedir}"/root/etc/resolv.conf
