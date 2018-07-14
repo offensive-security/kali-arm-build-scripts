@@ -20,8 +20,8 @@ basedir=`pwd`/odroidc2-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-odroidc2}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 4000=4GB)
+size=4000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -58,10 +58,10 @@ unset CROSS_COMPILE
 # DO NOT REMOVE IT FROM THE PACKAGE LIST.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils"
-base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 ifupdown initramfs-tools iw kali-defaults mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
-services="apache2 openssh-server"
+tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
+services="apache2 atftpd openssh-server openvpn tightvncserver"
 extras="fbset xfce4-terminal xfce4-goodies wpasupplicant libnss-systemd"
 #kali="build-essential debhelper devscripts dput lintian quilt git-buildpackage gitk dh-make sbuild"
 
@@ -423,7 +423,7 @@ make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm64/boot/Image "${basedir}"/kali-${architecture}/boot/
 cp arch/arm64/boot/dts/meson64_odroidc2.dtb "${basedir}"/kali-${architecture}/boot/
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
-make modules_prepare
+make mrproper
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
