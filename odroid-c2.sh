@@ -418,6 +418,7 @@ patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl91
 cp "${basedir}"/../kernel-configs/odroid-c2.config .config
 cp .config "${basedir}"/kali-${architecture}/usr/src/odroid-c2.config
 cd "${basedir}"/kali-${architecture}/usr/src/kernel/
+rm -rf "${basedir}"/kali-${architecture}/usr/src/kernel/.git
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm64/boot/Image "${basedir}"/kali-${architecture}/boot/
@@ -631,6 +632,10 @@ wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O "$
 chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
+
+echo "Running du to see how big kali-${architecture} is"
+du -sh "${basedir}"/kali-${architecture}
+echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
