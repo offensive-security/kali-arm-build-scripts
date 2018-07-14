@@ -20,8 +20,8 @@ basedir=`pwd`/odroidc2-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-odroidc2}
-# Size of image in megabytes (Default is 4000=4GB)
-size=4000
+# Size of image in megabytes (Default is 4500=4.5GB)
+size=4500
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -424,7 +424,7 @@ make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm64/boot/Image "${basedir}"/kali-${architecture}/boot/
 cp arch/arm64/boot/dts/meson64_odroidc2.dtb "${basedir}"/kali-${architecture}/boot/
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
-make mrproper
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- mrproper
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
