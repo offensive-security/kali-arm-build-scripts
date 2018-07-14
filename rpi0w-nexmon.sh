@@ -335,7 +335,7 @@ rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.30-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.50-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
@@ -359,6 +359,11 @@ perl scripts/mkknlimg --dtok arch/arm/boot/zImage "${basedir}"/kali-${architectu
 cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
 cp arch/arm/boot/dts/overlays/*.dtb* "${basedir}"/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/overlays/
+
+# Clean up the build a bit...
+make mrproper
+make re4son_pi1_defconfig
+make modules_prepare
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
@@ -431,6 +436,7 @@ wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/b
 # Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
+rm -rf "${basedir}"/nexmon
 cd "${basedir}"
 
 echo "Running du to see how big kali-${architecture} is"
