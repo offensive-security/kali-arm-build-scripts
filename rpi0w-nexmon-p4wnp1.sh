@@ -22,8 +22,8 @@ TOPDIR=`pwd`
 hostname=${2:-kali}
 # Custom image name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi0w-nexmon-p4wnp1}
-# Size of image in megabytes (Default is 4000=4GB)
-size=4000
+# Size of image in megabytes (Default is 4500=4.5GB)
+size=4500
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -272,7 +272,7 @@ echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0
 
 # Install P4wnP1 (kali version)
 cd /root
-git clone https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
+git clone --depth 1 https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
 chmod 755 /root/P4wnP1/install.sh
 cd /root/P4wnP1 
 git submodule update --init --recursive --remote
@@ -373,6 +373,10 @@ perl scripts/mkknlimg --dtok arch/arm/boot/zImage "${basedir}"/kali-${architectu
 cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
 cp arch/arm/boot/dts/overlays/*.dtb* "${basedir}"/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/overlays/
+
+make mrproper
+make re4son_pi1_defconfig
+make modules_prepare
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled
