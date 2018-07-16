@@ -172,8 +172,8 @@ EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180704-223830_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.30-re4son/raspberrypi-kernel-headers_20180704-223830_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel_20180716-020055_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180716-020055_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel-headers_20180716-020055_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -200,7 +200,7 @@ apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20180704-223830_armhf.deb /root/raspberrypi-kernel-headers_20180704-223830_armhf.deb
+dpkg -i /root/raspberrypi-kernel_20180716-020055_armhf.deb /root/raspberrypi-kernel-headers_20180716-020015_armhf.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -335,6 +335,12 @@ sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${archi
 # Re4son's rpi-tft configurator
 wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config 
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
+
+rm -rf "${basedir}"/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel*.deb}
+
+echo "Running du to see how big kali-${architecture} is"
+du -sh "${basedir}"/kali-${architecture}
+echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"

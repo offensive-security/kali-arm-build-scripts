@@ -195,10 +195,10 @@ cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/us
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/btuart
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel_20180713-010442_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180713-010442_armhf.deb
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel-headers_20180713-010442_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180713-010442_armhf.deb
+wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel_20180716-020055_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180716-020055_armhf.deb
+wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel-headers_20180716-020055_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
 # Mister-X's libfakeioctl fixes
-cp "${basedir}"/../misc/fakeioctl.c "${basedir}"/kali-${architecture}/root/fakeioctl.c
+#cp "${basedir}"/../misc/fakeioctl.c "${basedir}"/kali-${architecture}/root/fakeioctl.c
 
 cat << EOF > "${basedir}"/kali-${architecture}/third-stage
 #!/bin/bash
@@ -219,7 +219,7 @@ apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes 
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20180713-010442_armhf.deb /root/raspberrypi-kernel-headers_20180713-010442_armhf.deb
+dpkg -i /root/raspberrypi-kernel_20180716-020055_armhf.deb /root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
 
 apt-get --yes --allow-change-held-packages autoremove
 # libinput seems to fail hard on RaspberryPi devices, so we make sure it's not
@@ -389,6 +389,12 @@ cd "${basedir}"
 wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config 
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 
+rm -rf "${basedir}"/kali-${architecture}/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel*.deb}
+
+echo "Running du to see how big kali-${architecture} is"
+du -sh "${basedir}"/kali-${architecture}
+echo "the above is how big the sdcard needs to be"
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
@@ -416,8 +422,6 @@ mount ${bootp} "${basedir}"/root/boot
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
-
-rm -rf "${basedir}"/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel*.deb}
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > "${basedir}"/root/etc/resolv.conf
