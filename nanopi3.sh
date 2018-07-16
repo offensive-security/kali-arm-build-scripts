@@ -20,8 +20,8 @@ basedir=`pwd`/nanopi3-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-nanopi3}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 4500=4.5GB)
+size=4500
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -53,14 +53,14 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
-desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
-services="apache2 haveged openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
+services="apache2 atftpd openssh-server openvpn tightvncserver"
+extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools bluez bluez-firmware xfonts-terminus"
 
 packages="${arm} ${base} ${services} ${extras}"
-architecture="armhf"
+architecture="arm64"
 # If you have your own preferred mirrors, set them here.
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
@@ -74,8 +74,6 @@ cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
-
-cp /usr/bin/qemu-arm-static kali-${architecture}/usr/bin/
 
 LANG=C systemd-nspawn -M ${machine} -D kali-${architecture} /debootstrap/debootstrap --second-stage
 
@@ -152,7 +150,6 @@ Before=regenerate_ssh_host_keys.service
 Type=oneshot
 ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
-ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -247,72 +244,28 @@ git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabih
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/friendlyarm/linux -b nanopi2-v4.4.y "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
+export ARCH=arm64
+#export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE=aarch64-linux-gnu-
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
+#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 # Ugh, this patch is needed because the ethernet driver uses parts of netdev
 # from a newer kernel?
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Remove-define.patch
-cp "${basedir}"/../kernel-configs/nanopi3* ..
-cp ../nanopi3-720p.config .config
-#make nanopi3_linux_defconfig
+#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Remove-define.patch
+#cp "${basedir}"/../kernel-configs/nanopi3* ..
+#cp ../nanopi3-720p.config .config
+make nanopi3_linux_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
-make uImage
-make modules
-make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
-# We copy this twice because you can't do symlinks on fat partitions.
-# Also, the uImage known as uImage.hdmi is used by uboot if hdmi output is
-# detected.
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage-720p
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage.hdmi
-# Friendlyarm suggests staying at 720p for now.
-cp ../nanopi3-1080p.config .config
-make -j $(grep -c processor /proc/cpuinfo)
-make uImage
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage-1080p
-#cp ../nanopi2-lcd-hd101.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd101
-#cp ../nanopi2-lcd-hd700.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd700
-#cp ../nanopi2-lcd.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-# The default uImage is for lcd usage, so we copy the lcd one twice
-# so people have a backup in case they overwrite uImage for some reason.
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-s70
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage.lcd
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
+cp arch/arm64/boot/Image "${basedir}"/kali-${architecture}/boot
+cp arch/arm64/boot/dts/nexell/*.dtb "${basedir}"/kali-${architecture}/boot/
 make mrproper
-cp ../nanopi3-720p.config .config
-make modules_prepare
+make nanopi3_linux_defconfig
 cd "${basedir}"
-
-# FriendlyARM suggest using backports for wifi with their devices, and the
-# recommended version is the 4.4.2.
-cd "${basedir}"/kali-${architecture}/usr/src/
-#wget https://www.kernel.org/pub/linux/kernel/projects/backports/stable/v4.4.2/backports-4.4.2-1.tar.xz
-#tar -xf backports-4.4.2-1.tar.xz
-git clone https://github.com/friendlyarm/wireless
-cd wireless
-cd backports-4.4.2-1
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
-cd ..
-#cp "${basedir}"/../kernel-configs/backports.config .config
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo) KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root INSTALL_MOD_PATH="${basedir}"/root install
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root mrproper
-#cp "${basedir}"/../kernel-configs/backports.config .config
-XCROSS="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k "${basedir}"/kali-${architecture}/usr/src/kernel -c nanopi3 -o "${basedir}"/kali-${architecture}
-cd "${basedir}"
-
 
 # Copy over the firmware for the nanopi3 wifi.
 # At some point, nexmon could work for the device, but the support would need to
@@ -342,7 +295,7 @@ sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${archi
 
 # rpi-wiggle
 mkdir -p "${basedir}"/kali-${architecture}/root/scripts
-wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
+wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Create the disk and partition it
