@@ -20,8 +20,8 @@ basedir=`pwd`/rpi-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi}
-# Size of image in megabytes (Default is 3500=3.5GB)
-size=3500
+# Size of image in megabytes (Default is 4000=4GB)
+size=4000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
