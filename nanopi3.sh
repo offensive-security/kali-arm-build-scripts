@@ -299,11 +299,10 @@ wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O "${basedir}"/ka
 chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 # Create the disk and partition it
-# We start out at around 4MB so there is room to write u-boot without issues.
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
-parted ${imagename}.img --script -- mkpart primary ext4 4096s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables

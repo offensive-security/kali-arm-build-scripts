@@ -292,11 +292,10 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Create the disk and partition it
-# We start out at around 4MB so there is room to write u-boot without issues.
 echo "Creating image file for NanoPi2"
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
-parted ${imagename}.img --script -- mkpart primary ext4 4096s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
