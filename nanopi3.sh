@@ -289,9 +289,14 @@ mkdir -p "${basedir}"/kali-${architecture}/root/scripts
 wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
+# Some maths... here.
+RAW_SIZE_MB=${size}
+BLOCK_SIZE=1024
+RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=${BLOCK_SIZE} count=0 seek=${RAW_SIZE}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary ext4 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
