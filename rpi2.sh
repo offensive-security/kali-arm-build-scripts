@@ -200,7 +200,7 @@ apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20180716-020055_armhf.deb /root/raspberrypi-kernel-headers_20180716-020015_armhf.deb
+dpkg -i /root/raspberrypi-kernel_20180716-020055_armhf.deb /root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
