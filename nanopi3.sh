@@ -239,9 +239,6 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Clone a cross compiler to use instead of the Kali one due to kernel age.
-git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
-
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/friendlyarm/linux -b nanopi2-v4.4.y "${basedir}"/kali-${architecture}/usr/src/kernel
@@ -252,12 +249,6 @@ export ARCH=arm64
 #export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 export CROSS_COMPILE=aarch64-linux-gnu-
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
-#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
-# Ugh, this patch is needed because the ethernet driver uses parts of netdev
-# from a newer kernel?
-#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Remove-define.patch
-#cp "${basedir}"/../kernel-configs/nanopi3* ..
-#cp ../nanopi3-720p.config .config
 make nanopi3_linux_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
