@@ -141,7 +141,6 @@ Before=regenerate_ssh_host_keys.service
 Type=oneshot
 ExecStart=/root/scripts/rpi-wiggle.sh
 ExecStartPost=/bin/systemctl disable rpiwiggle
-ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -329,7 +328,7 @@ chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 
 # rpi-wiggle
 mkdir -p "${basedir}"/kali-${architecture}/root/scripts
-wget https://raw.github.com/offensive-security/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
+wget https://raw.github.com/steev/rpiwiggle/master/rpi-wiggle -O "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 cd "${basedir}"
