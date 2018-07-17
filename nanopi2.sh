@@ -206,7 +206,7 @@ git clone --depth 1 https://github.com/friendlyarm/linux -b nanopi2-v4.4.y "${ba
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
-export ARCH=armhf
+export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
 make nanopi2_linux_defconfig
