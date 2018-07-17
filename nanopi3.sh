@@ -348,6 +348,7 @@ wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-lo
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-secure.img?raw=true' -O "${basedir}"/bootloader/fip-secure.img
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-nonsecure.img?raw=true' -O "${basedir}"/bootloader/fip-nonsecure.img
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/tools/fw_printenv?raw=true' -O "${basedir}"/bootloader/fw_printenv
+chmod 755 "${basedir}"/bootloader/fw_printenv
 
 dd if="${basedir}"/bootloader/bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
 dd if="${basedir}"/bootloader/fip-loader.img of=${loopdevice} bs=512 seek=129
