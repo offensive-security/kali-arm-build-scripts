@@ -262,10 +262,14 @@ cd "${basedir}"
 # At some point, nexmon could work for the device, but the support would need to
 # be added to nexmon.
 mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/ap6212/
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/nvram.txt
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/nvram.txt
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212a.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/nvram_ap6212.txt
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a1.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a1.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a1.hcd -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/bcm43438a1.hcd
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/config_ap6212.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/config.txt
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
@@ -292,7 +296,7 @@ chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 # Some maths... here.
 RAW_SIZE_MB=${size}
 BLOCK_SIZE=1024
-RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
+let RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
@@ -343,11 +347,26 @@ wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/bl1-mm
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-loader.img?raw=true' -O "${basedir}"/bootloader/fip-loader.img
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-secure.img?raw=true' -O "${basedir}"/bootloader/fip-secure.img
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-nonsecure.img?raw=true' -O "${basedir}"/bootloader/fip-nonsecure.img
+wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/tools/fw_printenv?raw=true' -O "${basedir}"/bootloader/fw_printenv
 
 dd if="${basedir}"/bootloader/bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
 dd if="${basedir}"/bootloader/fip-loader.img of=${loopdevice} bs=512 seek=129
 dd if="${basedir}"/bootloader/fip-secure.img of=${loopdevice} bs=512 seek=769
 dd if="${basedir}"/bootloader/fip-nonsecure.img of=${loopdevice} bs=512 seek=3841
+
+cat << EOF > "${basedir}"/bootloader/env.conf
+# U-Boot environment for Debian, Ubuntu
+#
+# Copyright (C) Guangzhou FriendlyARM Computer Tech. Co., Ltd.
+# (http://www.friendlyarm.com)
+#
+
+bootargs	console=ttySAC0,115200n8 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rw consoleblank=0 net.ifnames=0
+bootdelay	1
+EOF
+
+./fw_printenv ${loopdevice} -s env.conf
+sync
 
 # It should be possible to build your own u-boot, as part of this, if you
 # prefer, it will only generate the fip-nonsecure.img however.
