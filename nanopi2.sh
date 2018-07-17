@@ -101,7 +101,6 @@ iface lo inet loopback
 auto eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
-hwaddress 76:92:d4:85:f3:0f
 
 # This prevents NetworkManager from attempting to use this
 # device to connect to wifi, since NM doesn't show which device is which.
@@ -125,6 +124,35 @@ cat << EOF > kali-${architecture}/debconf.set
 console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
+
+mkdir -p kali-${architecture}/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -153,8 +181,14 @@ apt-get --yes --allow-change-held-packages autoremove
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
-sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-update-rc.d ssh enable
+sed -i -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+
+# Resize FS on first run (hopefully)
+systemctl enable rpiwiggle
+
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
 
 # Copy bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
