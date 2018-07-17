@@ -20,8 +20,8 @@ basedir=`pwd`/nanopi2-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-nanopi2}
-# Size of image in megabytes (Default is 7000=7GB)
-size=7000
+# Size of image in megabytes (Default is 4500=4.5GB)
+size=4500
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -53,11 +53,11 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
-desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
-services="apache2 haveged openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas firmware-brcm80211 ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
+services="apache2 atftpd openssh-server openvpn tightvncserver"
+extras="iceweasel xfce4-terminal wpasupplicant python-smbus i2c-tools bluez bluez-firmware xfonts-terminus"
 
 packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
@@ -200,79 +200,36 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
-
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/friendlyarm/linux -b nanopi2-v4.4.y "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
-# Ugh, this patch is needed because the ethernet driver uses parts of netdev
-# from a newer kernel?
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Remove-define.patch
-cp "${basedir}"/../kernel-configs/nanopi2* "${basedir}"/kali-${architecture}/usr/src/
-cp ../nanopi2-vendor.config .config
-make -j $(grep -c processor /proc/cpuinfo)
-make uImage
-make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
-# We copy this twice because you can't do symlinks on fat partitions.
-# Also, the uImage known as uImage.hdmi is used by uboot if hdmi output is
-# detected.
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage-720p
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage.hdmi
-# Friendlyarm suggests staying at 720p for now.
-#cp ../nanopi2-1080p.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-1080p
-#cp ../nanopi2-lcd-hd101.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd101
-#cp ../nanopi2-lcd-hd700.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd700
-#cp ../nanopi2-lcd.config .config
-#make -j $(grep -c processor /proc/cpuinfo)
-#make uImage
-# The default uImage is for lcd usage, so we copy the lcd one twice
-# so people have a backup in case they overwrite uImage for some reason.
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-s70
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage.lcd
-#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage
-make mrproper
-cp ../nanopi2-vendor.config .config
-make modules_prepare
-cd "${basedir}"
-
-# FriendlyARM suggest using backports for wifi with their devices, and the
-# recommended version is the 4.4.2.
-cd "${basedir}"/kali-${architecture}/usr/src/
-#wget https://www.kernel.org/pub/linux/kernel/projects/backports/stable/v4.4.2/backports-4.4.2-1.tar.xz
-#tar -xf backports-4.4.2-1.tar.xz
-git clone https://github.com/friendlyarm/wireless
-cd wireless
-cd backports-4.4.2-1
+export ARCH=armhf
+export CROSS_COMPILE=arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
-cd ..
-#cp "${basedir}"/../kernel-configs/backports.config .config
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo) KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root INSTALL_MOD_PATH="${basedir}"/root install
-#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root mrproper
-#cp "${basedir}"/../kernel-configs/backports.config .config
-XCROSS="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k "${basedir}"/kali-${architecture}/usr/src/kernel -c nanopi2 -o "${basedir}"/kali-${architecture}
-
+make nanopi2_linux_defconfig
+make -j $(grep -c processor /proc/cpuinfo)
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
+cp arch/arm/boot/Image "${basedir}"/kali-${architecture}/boot
+cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
+make mrproper
+make nanopi2_linux_defconfig
 cd "${basedir}"
+
+# Copy over the firmware for the nanopi3 wifi.
+# At some point, nexmon could work for the device, but the support would need to
+# be added to nexmon.
 mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/ap6212/
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/nvram.txt
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
-wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O "${basedir}"/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/nvram.txt
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/nvram_ap6212a.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/nvram_ap6212.txt
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a1.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a1.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/fw_bcm43438a0_apsta.bin -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/fw_bcm43438a0_apsta.bin
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a0.hcd -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/bcm43438a0.hcd
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/bcm43438a1.hcd -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/bcm43438a1.hcd
+wget https://raw.githubusercontent.com/friendlyarm/android_vendor_broadcom_nanopi2/nanopi2-lollipop-mr1/proprietary/config_ap6212.txt -O ${basedir}/kali-${architecture}/lib/firmware/ap6212/config.txt
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
@@ -291,9 +248,14 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
+
+RAW_SIZE_MB=${size}
+BLOCK_SIZE=1024
+let RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
+
 # Create the disk and partition it
-echo "Creating image file for NanoPi2"
-dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
+echo "Creating image file ${imagename}.img"
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=${BLOCK_SIZE} count=0 seek=${RAW_SIZE}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary ext4 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
@@ -328,6 +290,7 @@ rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 sync
 umount -l ${bootp}
 umount -l ${rootp}
+kpartx -dv ${loopdevice}
 
 # Samsung bootloaders must be signed.
 # These are the same steps that are done by
@@ -340,17 +303,32 @@ wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebui
 wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl_mon.img
 wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bootloader.img # This is u-boot
 wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/loader-mmc.img
+wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/tools/fw_printenv
+chmod 755 fw_printenv
+ln -s fw_printenv fw_setenv
 
 dd if=bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
 dd if=loader-mmc.img of=${loopdevice} bs=512 seek=129
 dd if=bl_mon.img of=${loopdevice} bs=512 seek=513
 dd if=bootloader.img of=${loopdevice} bs=512 seek=3841
 
+cat << EOF > ${basedir}/bootloader/env.conf
+# U-Boot environment for Debian, Ubuntu
+#
+# Copyright (C) Guangzhou FriendlyARM Computer Tech. Co., Ltd.
+# (http://www.friendlyarm.com)
+#
+
+bootargs	console=ttyAMA0,115200n8 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rw consoleblank=0 net.ifnames=0
+bootdelay	1
+EOF
+
+./fw_setenv ${loopdevice} -s env.conf
+
 sync
 
 cd "${basedir}"
 
-kpartx -dv ${loopdevice}
 losetup -d ${loopdevice}
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
