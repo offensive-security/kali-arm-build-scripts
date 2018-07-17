@@ -349,6 +349,7 @@ wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-se
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/prebuilt/fip-nonsecure.img?raw=true' -O "${basedir}"/bootloader/fip-nonsecure.img
 wget 'https://github.com/friendlyarm/sd-fuse_s5p6818/blob/master/tools/fw_printenv?raw=true' -O "${basedir}"/bootloader/fw_printenv
 chmod 755 "${basedir}"/bootloader/fw_printenv
+ln -s "${basedir}"/bootloader/fw_printenv "${basedir}"/bootloader/fw_setenv
 
 dd if="${basedir}"/bootloader/bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
 dd if="${basedir}"/bootloader/fip-loader.img of=${loopdevice} bs=512 seek=129
@@ -366,7 +367,7 @@ bootargs	console=ttySAC0,115200n8 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait r
 bootdelay	1
 EOF
 
-./fw_printenv ${loopdevice} -s env.conf
+./fw_setenv ${loopdevice} -s env.conf
 sync
 
 # It should be possible to build your own u-boot, as part of this, if you
