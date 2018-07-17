@@ -212,8 +212,10 @@ patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-
 make nanopi2_linux_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
-cp arch/arm/boot/Image "${basedir}"/kali-${architecture}/boot
+cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot
 cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
+# Bit of a hack, and probably isn't right, but my nanopi2 seems to think it's a rev00
+cp "${basedir}"/kali-${architecture}/boot/s5p4418-nanopi2-rev01.dtb "${basedir}"/kali-${architecture}/boot/s5p4418-nanopi2-rev00.dtb
 make mrproper
 make nanopi2_linux_defconfig
 cd "${basedir}"
