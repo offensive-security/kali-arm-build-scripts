@@ -14,12 +14,12 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/rpi-$1
+basedir=`pwd`/rpi-hyperpixel-$1
 
 # Custom hostname variable
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=${3:-kali-linux-$1-rpi}
+imagename=${3:-kali-linux-$1-rpi-hyperpixel}
 # Size of image in megabytes (Default is 4500=4.5GB)
 size=4500
 # Suite to use.  
