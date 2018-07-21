@@ -48,7 +48,7 @@ base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmw
 #desktop="fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng cewl crunch dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan"
 services="apache2 atftpd openssh-server openvpn tightvncserver"
-extras=" wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
+extras="alsa-utils lua5.1 whiptail wpasupplicant python-smbus i2c-tools python-requests python-configobj python-pip bluez bluez-firmware"
 
 packages="${arm} ${base} ${services} ${extras}"
 architecture="armel"
@@ -153,18 +153,18 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
-[Unit]
-Description=Resize filesystem
-Before=regenerate_ssh_host_keys.service
-[Service]
-Type=oneshot
-ExecStart=/root/scripts/rpi-wiggle.sh
-ExecStartPost=/bin/systemctl disable rpiwiggle
-[Install]
-WantedBy=multi-user.target
-EOF
-chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+#cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+#[Unit]
+#Description=Resize filesystem
+#Before=regenerate_ssh_host_keys.service
+#[Service]
+#Type=oneshot
+#ExecStart=/root/scripts/rpi-wiggle.sh
+#ExecStartPost=/bin/systemctl disable rpiwiggle
+#[Install]
+#WantedBy=multi-user.target
+#EOF
+#chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
 [Unit]
@@ -260,7 +260,7 @@ echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 # Resize FS on first run (hopefully)
-systemctl enable rpiwiggle
+#systemctl enable rpiwiggle
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
@@ -379,6 +379,10 @@ cd "${basedir}"
 # Re4son's rpi-tft configurator
 wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config 
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
+
+# Re4son's kalipi-config
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-config/kalipi-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-config
+chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-config
 
 # Create cmdline.txt file
 cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
