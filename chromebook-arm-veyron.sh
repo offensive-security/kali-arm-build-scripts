@@ -117,6 +117,23 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
+mkdir -p kali-${architecture}/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+[Unit]
+Description=Regenerate SSH host keys
+Before=ssh.service
+[Service]
+Type=oneshot
+ExecStartPre=-/bin/dd if=/dev/hwrng of=/dev/urandom count=1 bs=4096
+ExecStartPre=-/bin/sh -c "/bin/rm -f -v /etc/ssh/ssh_host_*_key*"
+ExecStart=/usr/bin/ssh-keygen -A -v
+ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc -c <\"$i\") ;if [ $actualsize -eq 0 ]; then echo size is 0 bytes ; exit 1 ; fi ; done ; /bin/systemctl disable regenerate_ssh_host_keys"
+[Install]
+WantedBy=multi-user.target
+EOF
+
+chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 set -e
@@ -141,8 +158,17 @@ apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-ge
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
-# Copy bashrc
+# Generate SSH host keys on first run
+systemctl enable regenerate_ssh_host_keys
+systemctl enable ssh
+
+# Copy over the default bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
+
+# Try and make the console a bit nicer
+# Set the terminus font for a bit nicer display.
+sed -i -e 's/FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
+sed -i -e 's/FONTSIZE=.*/FONTSIZE="6x12"/' /etc/default/console-setup
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
