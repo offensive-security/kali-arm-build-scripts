@@ -238,8 +238,33 @@ cd "${basedir}"/kali-${architecture}/usr/src/kernel
 touch .scmversion
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
+# We need to apply a "few" various fixes...  this is gonna take a while.
+git apply "${basedir}"/../patches/mainline/0001-clk-meson-gxbb-set-fclk_div2-as-CLK_IS_CRITICAL.patch
+git apply "${basedir}"/../patches/mainline/0002-ARM64-dts-meson-gxbb-nanopi-k2-Add-HDMI-CEC-and-CVBS.patch
+git apply "${basedir}"/../patches/mainline/0003-drm-meson-Make-DMT-timings-parameters-and-pixel-cloc.patch
+git apply "${basedir}"/../patches/mainline/0004-ARM64-defconfig-enable-CEC-support.patch
+git apply "${basedir}"/../patches/mainline/0005-clk-meson-switch-gxbb-cts-amclk-div-to-the-generic-d.patch
+git apply "${basedir}"/../patches/mainline/0006-clk-meson-remove-unused-clk-audio-divider-driver.patch
+git apply "${basedir}"/../patches/mainline/0007-ASoC-meson-add-meson-audio-core-driver.patch
+git apply "${basedir}"/../patches/mainline/0008-ASoC-meson-add-register-definitions.patch
+git apply "${basedir}"/../patches/mainline/0009-ASoC-meson-add-aiu-i2s-dma-support.patch
+git apply "${basedir}"/../patches/mainline/0010-ASoC-meson-add-initial-i2s-dai-support.patch
+git apply "${basedir}"/../patches/mainline/0011-ASoC-meson-add-aiu-spdif-dma-support.patch
+git apply "${basedir}"/../patches/mainline/0012-ASoC-meson-add-initial-spdif-dai-support.patch
+git apply "${basedir}"/../patches/mainline/0013-ARM64-defconfig-enable-audio-support-for-meson-SoCs-.patch
+git apply "${basedir}"/../patches/mainline/0014-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
+git apply "${basedir}"/../patches/mainline/0015-snd-meson-activate-HDMI-audio-path.patch
+git apply "${basedir}"/../patches/mainline/0016-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
+git apply "${basedir}"/../patches/mainline/0017-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+git apply "${basedir}"/../patches/mainline/0018-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+git apply "${basedir}"/../patches/mainline/0019-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
+git apply "${basedir}"/../patches/mainline/0020-drm-meson-Call-drm_crtc_vblank_on-drm_crtc_vblank_of.patch
+git apply "${basedir}"/../patches/mainline/0021-media-platform-meson-ao-cec-make-busy-TX-warning-sil.patch
+git apply "${basedir}"/../patches/mainline/90dc377aa5ed708a38a010e6861b468cd9373f4f.patch
+# And now the two wifi related so we can do things.
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.16.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
+# Now copy in the config file and then build this sucker
 cp "${basedir}"/../kernel-configs/odroidc2-mainline.config .config
 cp .config "${basedir}"/kali-${architecture}/usr/src/odroidc2-mainline.config
 cd "${basedir}"/kali-${architecture}/usr/src/kernel/
@@ -285,10 +310,13 @@ setenv fdt_high "0xffffffff"
 setenv kernel_filename Image
 setenv fdt_filename meson-gxbb-odroidc2.dtb
 setenv bootargs "root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rw"
-setenv bootcmd "ext4load mmc 1:1 '${loadaddr}' '${kernel_filename}'; ext4load mmc 1:1 '${dtb_loadaddr}' '${fdt_filename}'; booti '${loadaddr}' - '${dtb_loadaddr}'"
+# Without an initramfs
+setenv bootcmd "load ${devtype} ${devnum}:${partition} '${loadaddr}' '${kernel_filename}'; load ${devtype} ${devnum}:${partition} '${dtb_loadaddr}' '${fdt_filename}'; booti '${loadaddr}' - '${dtb_loadaddr}'"
+# With an initramfs
+# NOTE: EXPECTS THE INITRAMFS FILENAME TO BE "initramfs.gz"
+# setenv bootcmd "load ${devtype} ${devnum}:${partition} '${loadaddr}' '${kernel_filename}'; load ${devtype} ${devnum}:${partition} '${dtb_loadaddr}' '${fdt_filename}'; load ${devtype} ${devnum}:${partition} ${ramdisk_addr_r} initramfs.gz; booti '${loadaddr}' ${ramdisk_addr_r}:${filesize} '${dtb_loadaddr}'"
 boot
 EOF
-mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.cmd "${basedir}"/kali-${architecture}/boot/boot.scr
 
 echo "Running du to see how big kali-${architecture} is"
 du -sh "${basedir}"/kali-${architecture}
@@ -329,6 +357,18 @@ mount ${bootp} "${basedir}"/root/boot
 cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
+
+# u-boot sees the sdcard as mmc0, emmc as mmc1
+# kernel sees the sdcard as mmcblk1, emmc as mmc0
+# So we need to use the PARTUUID for the rootfs partition in order to boot, since
+# we can't pass /dev/mmcblkXp2 for the rootdevice.  If an initramfs is used, this could probably be skipped
+# by using the LABEL or UUID, but either way, here we go.
+sed -i -e 's/root=\/dev\/mmcblk0p2/root=PARTUUID=$(blkid -s PARTUUID -o value ${rootp})/g' "${basedir}"/kali-${architecture}/boot/boot.cmd
+
+# Let's cat the output of the file so we can make sure it's correct.
+cat "${basedir}"/kali-${architecture}/boot/boot.cmd
+# And NOW we can actually make it the boot.scr that is needed.
+mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.cmd "${basedir}"/kali-${architecture}/boot/boot.scr
 
 echo "Rsyncing rootfs into image file"
 rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
