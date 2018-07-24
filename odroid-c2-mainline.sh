@@ -14,14 +14,14 @@ if [[ $# -eq 0 ]] ; then
     exit 0
 fi
 
-basedir=`pwd`/odroidc2-$1
+basedir=`pwd`/odroidc2-mainline-$1
 
 # Custom hostname variable
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=${3:-kali-linux-$1-odroidc2}
-# Size of image in megabytes (Default is 4500=4.5GB)
-size=5000
+imagename=${3:-kali-linux-$1-odroidc2-mainline}
+# Size of image in megabytes (Default is 5500=5.5GB)
+size=5500
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -275,6 +275,8 @@ chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
+# For some reason, u-boot sees whatever boot media as mmc1 instead of mmc0.  So default to mmc 1 instead of mmc 0.
+# As per usual, the kernel does the right thing, so the boot media is seen as mmcblk0.
 cat << 'EOF' > "${basedir}"/kali-${architecture}/boot/boot.cmd
 setenv loadaddr "0x20000000"
 setenv dtb_loadaddr "0x01000000"
@@ -283,16 +285,17 @@ setenv fdt_high "0xffffffff"
 setenv kernel_filename Image
 setenv fdt_filename meson-gxbb-odroidc2.dtb
 setenv bootargs "root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rw"
-setenv bootcmd "ext4load mmc 0:1 '${loadaddr}' '${kernel_filename}'; ext4load mmc 0:1 '${dtb_loadaddr}' '${fdt_filename}'; booti '${loadaddr}' - '${dtb_loadaddr}'"
+setenv bootcmd "ext4load mmc 1:1 '${loadaddr}' '${kernel_filename}'; ext4load mmc 1:1 '${dtb_loadaddr}' '${fdt_filename}'; booti '${loadaddr}' - '${dtb_loadaddr}'"
 boot
 EOF
-
+mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.cmd "${basedir}"/kali-${architecture}/boot/boot.scr
 
 echo "Running du to see how big kali-${architecture} is"
 du -sh "${basedir}"/kali-${architecture}
 echo "the above is how big the sdcard needs to be"
 
-# Some maths... here.
+# Some maths here... it's not magic, we just want the block size a certain way
+# so that partitions line up in a way that's more optimal.
 RAW_SIZE_MB=${size}
 BLOCK_SIZE=1024
 let RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
@@ -301,7 +304,7 @@ let RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=${BLOCK_SIZE} count=0 seek=${RAW_SIZE}
 parted ${imagename}.img --script -- mklabel msdos
-parted ${imagename}.img --script -- mkpart primary ext4 2048s 264191s
+parted ${imagename}.img --script -- mkpart primary ext4 4096s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
 
 # Set the partition variables
@@ -313,8 +316,8 @@ bootp=${device}p1
 rootp=${device}p2
 
 # Create file systems
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L boot ${bootp}
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
+mkfs.ext4 -L boot ${bootp}
+mkfs.ext4 -L rootfs ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p "${basedir}"/root
@@ -351,7 +354,7 @@ mkdir -p "${basedir}"/bootloader
 cd "${basedir}"/bootloader
 git clone https://github.com/afaerber/meson-tools --depth 1
 git clone git://git.denx.de/u-boot --depth 1
-git clone https://github.com/hardkernel/u-boot -b odroidc2-v2015.01 u-boot-hk
+git clone https://github.com/hardkernel/u-boot -b odroidc2-v2015.01 u-boot-hk --depth 1
 
 # First things first, let's build the meson-tools, of which, we only really need amlbootsig
 cd "${basedir}"/bootloader/meson-tools/
@@ -368,22 +371,22 @@ make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu-
 # one single directory, but since we're not keeping these things around afterwards, it's fine to 
 # leave them where they are.
 
-# first we gotta generate the fip.bin file.
+# This is funky, but in the end, it should do the right thing.
 cd "${basedir}"/bootloader/
-./u-boot-hk/tools/fip_create/fip_create --bl30 ./u-boot-hk/fip/gxb/bl30.bin --bl301 ./u-boot-hk/fip/gxb/bl301.bin \
---bl31 ./u-boot-hk/fip/gxb/bl31.bin --bl33 ./u-boot/u-boot.bin fip.bin
-# Dump the fip.bin, this just tells us it was done correctly.
-./u-boot-hk/tools/fip_create/fip_create --dump fip.bin
-# Now we create the file that gets signed and becomes the bootloader.
-cat ./u-boot-hk/fip/gxb/bl2.package ./fip.bin > package_fip.bin
-./meson-tools/amlbootsig package_fip.bin u-boot.img
-# And now... we strip the bits off...
-dd if=u-boot.img of=u-boot.gxbb bs=512 skip=96
+# Create the fip.bin
+./u-boot-hk/tools/fip_create/fip_create --bl30 ./u-boot-hk/fip/gxb/bl30.bin \
+--bl301 ./u-boot-hk/fip/gxb/bl301.bin --bl31 ./u-boot-hk/fip/gxb/bl31.bin \
+--bl33 u-boot/u-boot.bin fip.bin
 
-# Finally, we can write this to our loopdevice and pray it works.
-dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} bs=1 count=442
-dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} bs=512 skip=1 seek=1
-dd if=./u-boot.gxbb of=${loopdevice} bs=512 skip=96
+# Create the stage2 bootloader thingie?
+cat ./u-boot-hk/fip/gxb/bl2.package fip.bin > boot_new.bin
+# Now sign it, and call it u-boot.bin
+./meson-tools/amlbootsig boot_new.bin u-boot.bin
+# Now strip a portion of it off, and put it in the sd_fuse directory
+dd if=u-boot.bin of=./u-boot-hk/sd_fuse/u-boot.bin bs=512 skip=96
+# Finally, write it to the loopdevice so we have our bootloader on the card.
+cd ./u-boot-hk/sd_fuse
+./sd_fuse.sh ${loopdevice}
 sync
 
 losetup -d ${loopdevice}
