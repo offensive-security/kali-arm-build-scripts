@@ -365,10 +365,10 @@ make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu-
 
 # first we gotta generate the fip.bin file.
 cd "${basedir}"/bootloader/
-./u-boot-hk/tools/fip_create --bl30 ./u-boot-hk/fip/gxb/bl30.bin --bl301 ./u-boot-hk/fip/gxb/bl301.bin \
+./u-boot-hk/tools/fip_create/fip_create --bl30 ./u-boot-hk/fip/gxb/bl30.bin --bl301 ./u-boot-hk/fip/gxb/bl301.bin \
 --bl31 ./u-boot-hk/fip/gxb/bl31.bin --bl33 ./u-boot/u-boot.bin fip.bin
 # Dump the fip.bin, this just tells us it was done correctly.
-./u-boot-hk/tools/fip_create --dump fip.bin
+./u-boot-hk/tools/fip_create/fip_create --dump fip.bin
 # Now we create the file that gets signed and becomes the bootloader.
 cat ./u-boot-hk/fip/gxb/bl2.package ./fip.bin > package_fip.bin
 ./meson-tools/amlbootsig package_fip.bin u-boot.img
