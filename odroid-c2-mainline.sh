@@ -292,9 +292,14 @@ echo "Running du to see how big kali-${architecture} is"
 du -sh "${basedir}"/kali-${architecture}
 echo "the above is how big the sdcard needs to be"
 
+# Some maths... here.
+RAW_SIZE_MB=${size}
+BLOCK_SIZE=1024
+let RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=${BLOCK_SIZE} count=0 seek=${RAW_SIZE}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary ext4 2048s 264191s
 parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
@@ -376,9 +381,9 @@ cat ./u-boot-hk/fip/gxb/bl2.package ./fip.bin > package_fip.bin
 dd if=u-boot.img of=u-boot.gxbb bs=512 skip=96
 
 # Finally, we can write this to our loopdevice and pray it works.
-dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} conv=fsync bs=1 count=442
-dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} conv=fsync bs=512 skip=1 seek=1
-dd if=./u-boot.gxbb of=${loopdevice} conv=fsync bs=512 skip=96
+dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} bs=1 count=442
+dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} bs=512 skip=1 seek=1
+dd if=./u-boot.gxbb of=${loopdevice} bs=512 skip=96
 sync
 
 losetup -d ${loopdevice}
