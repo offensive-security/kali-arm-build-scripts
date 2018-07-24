@@ -376,8 +376,8 @@ cat ./u-boot-hk/fip/gxb/bl2.package ./fip.bin > package_fip.bin
 dd if=u-boot.img of=u-boot.gxbb bs=512 skip=96
 
 # Finally, we can write this to our loopdevice and pray it works.
-dd if=./u-boot-hk/fip/gxb/bl1.bin.hardkernel of=${loopdevice} conv=fsync bs=1 count=442
-dd if=./u-boot-hk/fip/gxb/bl1.bin.hardkernel of=${loopdevice} conv=fsync bs=512 skip=1 seek=1
+dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} conv=fsync bs=1 count=442
+dd if=./u-boot-hk/sd_fuse/bl1.bin.hardkernel of=${loopdevice} conv=fsync bs=512 skip=1 seek=1
 dd if=./u-boot.gxbb of=${loopdevice} conv=fsync bs=512 skip=96
 sync
 
