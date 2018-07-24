@@ -363,7 +363,7 @@ EOF
 # So we need to use the PARTUUID for the rootfs partition in order to boot, since
 # we can't pass /dev/mmcblkXp2 for the rootdevice.  If an initramfs is used, this could probably be skipped
 # by using the LABEL or UUID, but either way, here we go.
-sed -i -e 's/root=\/dev\/mmcblk0p2/root=PARTUUID=$(blkid -s PARTUUID -o value ${rootp})/g' "${basedir}"/kali-${architecture}/boot/boot.cmd
+sed -i -e "s/root=\/dev\/mmcblk0p2/root=PARTUUID=$(blkid -s PARTUUID -o value ${rootp})/g" "${basedir}"/kali-${architecture}/boot/boot.cmd
 
 # Let's cat the output of the file so we can make sure it's correct.
 cat "${basedir}"/kali-${architecture}/boot/boot.cmd
