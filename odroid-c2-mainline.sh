@@ -370,6 +370,10 @@ make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu-
 # Now the real fun... keeping track of file locations isn't fun, and i should probably move them to 
 # one single directory, but since we're not keeping these things around afterwards, it's fine to 
 # leave them where they are.
+# See:
+# https://forum.odroid.com/viewtopic.php?t=26833
+# https://github.com/nxmyoz/c2-overlay/blob/master/Readme.md
+# for the inspirations for it.  Specifically Adrian's posts got us closest.
 
 # This is funky, but in the end, it should do the right thing.
 cd "${basedir}"/bootloader/
@@ -386,8 +390,9 @@ cat ./u-boot-hk/fip/gxb/bl2.package fip.bin > boot_new.bin
 dd if=u-boot.bin of=./u-boot-hk/sd_fuse/u-boot.bin bs=512 skip=96
 # Finally, write it to the loopdevice so we have our bootloader on the card.
 cd ./u-boot-hk/sd_fuse
-./sd_fuse.sh ${loopdevice}
+./sd_fusing.sh ${loopdevice}
 sync
+cd "${basedir}"
 
 losetup -d ${loopdevice}
 
