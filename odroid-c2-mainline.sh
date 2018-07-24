@@ -21,7 +21,7 @@ hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-odroidc2}
 # Size of image in megabytes (Default is 4500=4.5GB)
-size=4500
+size=5000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -308,7 +308,7 @@ bootp=${device}p1
 rootp=${device}p2
 
 # Create file systems
-mkfs.vfat -O ^flex_bg -O ^metadata_csum -L boot ${bootp}
+mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L boot ${bootp}
 mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
 
 # Create the dirs for the partitions and mount them
