@@ -239,7 +239,7 @@ touch .scmversion
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
 # We need to apply a "few" various fixes...  this is gonna take a while.
-git apply "${basedir}"/../patches/mainline/0001-clk-meson-gxbb-set-fclk_div2-as-CLK_IS_CRITICAL.patch
+#git apply "${basedir}"/../patches/mainline/0001-clk-meson-gxbb-set-fclk_div2-as-CLK_IS_CRITICAL.patch
 git apply "${basedir}"/../patches/mainline/0002-ARM64-dts-meson-gxbb-nanopi-k2-Add-HDMI-CEC-and-CVBS.patch
 git apply "${basedir}"/../patches/mainline/0003-drm-meson-Make-DMT-timings-parameters-and-pixel-cloc.patch
 git apply "${basedir}"/../patches/mainline/0004-ARM64-defconfig-enable-CEC-support.patch
