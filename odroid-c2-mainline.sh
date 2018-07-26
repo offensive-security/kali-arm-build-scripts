@@ -261,6 +261,9 @@ git apply "${basedir}"/../patches/mainline/0019-drm-bridge-dw-hdmi-Use-AUTO-CTS-
 git apply "${basedir}"/../patches/mainline/0020-drm-meson-Call-drm_crtc_vblank_on-drm_crtc_vblank_of.patch
 git apply "${basedir}"/../patches/mainline/0021-media-platform-meson-ao-cec-make-busy-TX-warning-sil.patch
 git apply "${basedir}"/../patches/mainline/90dc377aa5ed708a38a010e6861b468cd9373f4f.patch
+# Nick a couple from Armbina
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mainline/general-increasing_DMA_block_memory_allocation_to_2048.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mainline/board-odroidc2-enable-scpi-dvfs.patch
 # And now the two wifi related so we can do things.
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.16.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
