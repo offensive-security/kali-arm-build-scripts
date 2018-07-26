@@ -303,8 +303,14 @@ chmod 755 "${basedir}"/kali-${architecture}/root/scripts/rpi-wiggle.sh
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
-# For some reason, u-boot sees whatever boot media as mmc1 instead of mmc0.  So default to mmc 1 instead of mmc 0.
-# As per usual, the kernel does the right thing, so the boot media is seen as mmcblk0.
+# U-boot sees the emmc as mmc1, sdcard as mmc0
+# Kernel sees the emmc as mmcblk0, sdcard as mmcblk1.
+# Because of this, we can't pass root=/dev/mmcblkX because it changes based on people using
+# emmc/sdcard, so we try to get fancy and have U-Boot spit out the part uuid for the root partition.
+# All the reading I've done says that the partuuid never changes, however, in my testing with the sed line
+# lower in the script (commented out presently) it was changing, when I would image to an actual sdcard or
+# emmc.  So this way we should be able to have u-boot replace it with whatever it sees, and that should do
+# the right thing.
 cat << 'EOF' > "${basedir}"/kali-${architecture}/boot/boot.cmd
 setenv loadaddr "0x20000000"
 setenv dtb_loadaddr "0x01000000"
@@ -312,7 +318,8 @@ setenv initrd_high "0xffffffff"
 setenv fdt_high "0xffffffff"
 setenv kernel_filename Image
 setenv fdt_filename meson-gxbb-odroidc2.dtb
-setenv bootargs "root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rw"
+if test "${devtype}" = "mmc"; then part uuid ${devtype} ${devnum}:2 rootpartuuid; fi
+setenv bootargs "root=PARTUUID=${rootpartuuid} rootfstype=ext4 rootwait rw net.ifnames=0 ipv6.disable=1"
 # Without an initramfs
 setenv bootcmd "load ${devtype} ${devnum}:${partition} '${loadaddr}' '${kernel_filename}'; load ${devtype} ${devnum}:${partition} '${dtb_loadaddr}' '${fdt_filename}'; booti '${loadaddr}' - '${dtb_loadaddr}'"
 # With an initramfs
@@ -366,7 +373,7 @@ EOF
 # So we need to use the PARTUUID for the rootfs partition in order to boot, since
 # we can't pass /dev/mmcblkXp2 for the rootdevice.  If an initramfs is used, this could probably be skipped
 # by using the LABEL or UUID, but either way, here we go.
-sed -i -e "s/root=\/dev\/mmcblk0p2/root=PARTUUID=$(blkid -s PARTUUID -o value ${rootp})/g" "${basedir}"/kali-${architecture}/boot/boot.cmd
+#sed -i -e "s/root=\/dev\/mmcblk0p2/root=PARTUUID=$(blkid -s PARTUUID -o value ${rootp})/g" "${basedir}"/kali-${architecture}/boot/boot.cmd
 
 # Let's cat the output of the file so we can make sure it's correct.
 cat "${basedir}"/kali-${architecture}/boot/boot.cmd
