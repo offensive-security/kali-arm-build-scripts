@@ -228,6 +228,17 @@ deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
+# For some reason the latest modesetting driver (part of xorg server)
+# seems to cause a lot of jerkiness.  Using the fbdev driver is not
+# ideal but it's far less frustrating to work with.
+mkdir -p "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d
+cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/20-fbdev.conf
+Section "Driver"
+    Identifier      "Meson drm driver"
+    Driver          "fbdev"
+EndSection
+EOF
+
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
