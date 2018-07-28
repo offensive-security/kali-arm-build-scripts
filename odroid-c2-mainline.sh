@@ -233,10 +233,21 @@ EOF
 # ideal but it's far less frustrating to work with.
 mkdir -p "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d
 cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/20-fbdev.conf
-Section "Driver"
+Section "Device"
     Identifier      "Meson drm driver"
     Driver          "fbdev"
 EndSection
+EOF
+
+# Make sure we can login as root on the serial console.
+# Mainline gives us a ttyAML0 which doesn't exist in there.
+
+cat << EOF >> "${basedir}"/kali-${architecture}/etc/securetty
+
+# Amlogic serial console
+ttyAML0
+ttyAML1
+ttyAML2
 EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
