@@ -240,6 +240,31 @@ Section "Device"
 EndSection
 EOF
 
+# 1366x768 is sort of broken on the ODROID-C2, not sure where the issue is, but
+# we can work around it by setting the resolution to 1360x768.
+# This requires 2 files, a script and then something for lightdm to use.
+# I do not have anything set up for the console though, so that's still broken for now.
+mkdir -p "${basedir}"/kali-${architecture}/usr/local/bin
+cat << 'EOF' > "${basedir}"/kali-${architecture}/usr/local/bin/xrandrscript.sh
+#!/usr/bin/env bash
+
+resolution=$(xdpyinfo | awk '/dimensions:/ { print $2; exit }')
+
+if [[ "$resolution" == "1366x768" ]]; then
+    xrandr --newmode "1360x768_60.00"   84.75  1360 1432 1568 1776  768 771 781 798 -hsync +vsync
+    xrandr --addmode HDMI-1 1360x768_60.00
+    xrandr --output HDMI-1 --mode  1360x768_60.00
+fi
+EOF
+chmod 755 "${basedir}"/kali-${architecture}/usr/local/bin/xrandrscript.sh
+
+mkdir -p "${basedir}"/kali-${architecture}/usr/share/lightdm/lightdm.conf.d/
+cat << EOF > "${basedir}"/kali-${architecture}/usr/share/lightdm/lightdm.conf.d/60-xrandrscript.conf
+[SeatDefaults]
+display-setup-script=/usr/local/bin/xrandrscript.sh
+session-setup-script=/usr/local/bin/xrandrscript.sh
+EOF
+
 # Make sure we can login as root on the serial console.
 # Mainline gives us a ttyAML0 which doesn't exist in there.
 
@@ -284,7 +309,7 @@ git apply "${basedir}"/../patches/mainline/0019-drm-bridge-dw-hdmi-Use-AUTO-CTS-
 git apply "${basedir}"/../patches/mainline/0020-drm-meson-Call-drm_crtc_vblank_on-drm_crtc_vblank_of.patch
 git apply "${basedir}"/../patches/mainline/0021-media-platform-meson-ao-cec-make-busy-TX-warning-sil.patch
 git apply "${basedir}"/../patches/mainline/90dc377aa5ed708a38a010e6861b468cd9373f4f.patch
-# Nick a couple from Armbina
+# Nick a couple from Armbian
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mainline/general-increasing_DMA_block_memory_allocation_to_2048.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mainline/board-odroidc2-enable-scpi-dvfs.patch
 # And now the two wifi related so we can do things.
