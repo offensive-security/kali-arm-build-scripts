@@ -235,7 +235,8 @@ mkdir -p "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d
 cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/20-fbdev.conf
 Section "Device"
     Identifier      "Meson drm driver"
-    Driver          "fbdev"
+    Driver          "modesetting"
+    Option          "AccelMethod"   "none"
 EndSection
 EOF
 
