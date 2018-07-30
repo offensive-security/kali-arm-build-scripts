@@ -234,27 +234,75 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# We need an older gcc because of kernel age.
+cd "${basedir}"
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/friendlyarm/linux -b nanopi2-v4.4.y "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/friendlyarm/linux-3.4.y -b nanopi2-lollipop-mr1 "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
-make nanopi2_linux_defconfig
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
+# Ugh, this patch is needed because the ethernet driver uses parts of netdev
+# from a newer kernel?
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Remove-define.patch
+cp "${basedir}"/../kernel-configs/nanopi2* "${basedir}"/kali-${architecture}/usr/src/
+cp ../nanopi2-vendor.config .config
 make -j $(grep -c processor /proc/cpuinfo)
+make uImage
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
-cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot
-cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
-# Bit of a hack, and probably isn't right, but my nanopi2 seems to think it's a rev00
-cp "${basedir}"/kali-${architecture}/boot/s5p4418-nanopi2-rev01.dtb "${basedir}"/kali-${architecture}/boot/s5p4418-nanopi2-rev00.dtb
+# We copy this twice because you can't do symlinks on fat partitions.
+# Also, the uImage known as uImage.hdmi is used by uboot if hdmi output is
+# detected.
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage-720p
+cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage.hdmi
+# Friendlyarm suggests staying at 720p for now.
+#cp ../nanopi2-1080p.config .config
+#make -j $(grep -c processor /proc/cpuinfo)
+#make uImage
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-1080p
+#cp ../nanopi2-lcd-hd101.config .config
+#make -j $(grep -c processor /proc/cpuinfo)
+#make uImage
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd101
+#cp ../nanopi2-lcd-hd700.config .config
+#make -j $(grep -c processor /proc/cpuinfo)
+#make uImage
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-hd700
+#cp ../nanopi2-lcd.config .config
+#make -j $(grep -c processor /proc/cpuinfo)
+#make uImage
+# The default uImage is for lcd usage, so we copy the lcd one twice
+# so people have a backup in case they overwrite uImage for some reason.
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-s70
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage.lcd
+#cp arch/arm/boot/uImage "${basedir}"/bootp/uImage
 make mrproper
-make nanopi2_linux_defconfig
 cd "${basedir}"
 
-# Copy over the firmware for the nanopi3 wifi.
+# FriendlyARM suggest using backports for wifi with their devices, and the
+# recommended version is the 4.4.2.
+cd "${basedir}"/kali-${architecture}/usr/src/
+#wget https://www.kernel.org/pub/linux/kernel/projects/backports/stable/v4.4.2/backports-4.4.2-1.tar.xz
+#tar -xf backports-4.4.2-1.tar.xz
+git clone https://github.com/friendlyarm/wireless
+cd wireless
+cd backports-4.4.2-1
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.4.patch
+cd ..
+#cp "${basedir}"/../kernel-configs/backports.config .config
+#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo) KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root
+#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root INSTALL_MOD_PATH="${basedir}"/root install
+#make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root mrproper
+#cp "${basedir}"/../kernel-configs/backports.config .config
+XCROSS="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k "${basedir}"/kali-${architecture}/usr/src/kernel -c nanopi2 -o "${basedir}"/kali-${architecture}
+cd "${basedir}"
+
+# Copy over the firmware for the nanopi2/3 wifi.
 # At some point, nexmon could work for the device, but the support would need to
 # be added to nexmon.
 mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/ap6212/
