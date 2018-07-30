@@ -16,7 +16,7 @@ basedir=`pwd`/nyan-$1
 # Custom hostname variable
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
-imagename=${3:-kali-linux-$1-acer}
+imagename=${3:-kali-linux-$1-nyan}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
 # Suite to use.  
