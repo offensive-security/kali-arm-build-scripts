@@ -497,6 +497,10 @@ umount ${bootp}
 umount ${rootp}
 kpartx -dv ${loopdevice}
 
+# Clone an older cross compiler to build the older u-boot.
+cd "${basedir}"
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Build the latest u-boot bootloader, and then use the Hardkernel script to fuse
 # it to the image.  This is required because of a requirement that the
 # bootloader be signed.
@@ -505,8 +509,8 @@ cd "${basedir}"/u-boot
 # https://code.google.com/p/chromium/issues/detail?id=213120
 sed -i -e "s/soft-float/float-abi=hard -mfpu=vfpv3/g" \
     arch/arm/cpu/armv7/config.mk
-make CROSS_COMPILE=arm-linux-gnueabihf- odroidc_config
-make CROSS_COMPILE=arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo)
+make CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- odroidc_config
+make CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- -j $(grep -c processor /proc/cpuinfo)
 
 cd sd_fuse
 sh sd_fusing.sh ${loopdevice}
