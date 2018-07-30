@@ -281,7 +281,6 @@ cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/uImage.hdmi
 #cp arch/arm/boot/uImage "${basedir}"/bootp/uImage-s70
 #cp arch/arm/boot/uImage "${basedir}"/bootp/uImage.lcd
 #cp arch/arm/boot/uImage "${basedir}"/bootp/uImage
-make mrproper
 cd "${basedir}"
 
 # FriendlyARM suggest using backports for wifi with their devices, and the
@@ -300,6 +299,11 @@ cd ..
 #make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KLIB_BUILD="${basedir}"/root/usr/src/kernel KLIB="${basedir}"/root mrproper
 #cp "${basedir}"/../kernel-configs/backports.config .config
 XCROSS="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf- ANDROID=n ./build.sh -k "${basedir}"/kali-${architecture}/usr/src/kernel -c nanopi2 -o "${basedir}"/kali-${architecture}
+cd "${basedir}"
+
+# Now we clean up the kernel build
+cd "${basedir}"/kali-${architecture}/usr/src/kernel
+make mrproper
 cd "${basedir}"
 
 # Copy over the firmware for the nanopi2/3 wifi.
