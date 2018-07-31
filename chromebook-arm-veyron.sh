@@ -62,6 +62,9 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
+# Unused currently, but can be used to point at a specific release.
+kernel_release="R67-10575.B-chromeos-3.14"
+
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
 #export http_proxy="http://localhost:3142/"
