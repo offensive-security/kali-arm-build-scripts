@@ -329,6 +329,10 @@ umount -l ${bootp}
 umount -l ${rootp}
 kpartx -dv ${loopdevice}
 
+# Old u-boot requires old cross compiler
+cd "${basedir}"
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Build the latest u-boot bootloader, and then use the Hardkernel script to fuse
 # it to the image.  This is required because of a requirement that the
 # bootloader be signed.
@@ -337,6 +341,7 @@ cd "${basedir}"/u-boot
 # https://code.google.com/p/chromium/issues/detail?id=213120
 sed -i -e "s/soft-float/float-abi=hard -mfpu=vfpv3/g" \
     arch/arm/cpu/armv7/config.mk
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 make smdk4412_config
 make -j $(grep -c processor /proc/cpuinfo)
 
