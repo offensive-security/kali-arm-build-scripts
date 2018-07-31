@@ -387,18 +387,20 @@ kpartx -dv ${loopdevice}
 # Download the latest prebuilt from the above url.
 mkdir -p "${basedir}"/bootloader
 cd "${basedir}"/bootloader
-wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl1-mmcboot.bin
-wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl_mon.img
-wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bootloader.img # This is u-boot
-wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/loader-mmc.img
+wget 'https://github.com/friendlyarm/sd-fuse_nanopi2/blob/96e1ba9603d237d0169485801764c5ce9591bf5e/prebuilt/2ndboot.bin?raw=true' -O 2ndboot.bin
+wget 'https://github.com/friendlyarm/sd-fuse_nanopi2/blob/96e1ba9603d237d0169485801764c5ce9591bf5e/prebuilt/boot.TBI?raw=true' -O boot.TBI
+wget 'https://github.com/friendlyarm/sd-fuse_nanopi2/blob/96e1ba9603d237d0169485801764c5ce9591bf5e/prebuilt/bootloader' -O bootloader
+#wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl1-mmcboot.bin
+#wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bl_mon.img
+#wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/bootloader.img # This is u-boot
+#wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/prebuilt/loader-mmc.img
 wget https://raw.githubusercontent.com/friendlyarm/sd-fuse_nanopi2/master/tools/fw_printenv
 chmod 755 fw_printenv
 ln -s fw_printenv fw_setenv
 
-dd if=bl1-mmcboot.bin of=${loopdevice} bs=512 seek=1
-dd if=loader-mmc.img of=${loopdevice} bs=512 seek=129
-dd if=bl_mon.img of=${loopdevice} bs=512 seek=513
-dd if=bootloader.img of=${loopdevice} bs=512 seek=3841
+dd if=2ndboot.bin of=${loopdevice} bs=512 seek=1
+dd if=boot.TBI of=${loopdevice} bs=512 seek=64 count=1
+dd if=bootloader of=${loopdevice} bs=512 seek=65
 
 cat << EOF > ${basedir}/bootloader/env.conf
 # U-Boot environment for Debian, Ubuntu
