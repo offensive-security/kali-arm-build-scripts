@@ -328,9 +328,9 @@ boot
 EOF
 
 # Create boot.scr(s)
-mkimage -A arm -T script -C none -d "${basedir}"/bootp/boot-hdmi-720.txt "${basedir}"/kali-${architecture}/boot/boot-720.scr
-mkimage -A arm -T script -C none -d "${basedir}"/bootp/boot-hdmi-1080.txt "${basedir}"/kali-${architecture}/boot/boot-1080.scr
-cp "${basedir}"/bootp/boot-720.scr "${basedir}"/kali-${architecture}/boot/boot.scr
+mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot-hdmi-720.txt "${basedir}"/kali-${architecture}/boot/boot-720.scr
+mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot-hdmi-1080.txt "${basedir}"/kali-${architecture}/boot/boot-1080.scr
+cp "${basedir}"/kali-${architecture}/boot/boot-720.scr "${basedir}"/kali-${architecture}/boot/boot.scr
 
 cd "${basedir}"
 
