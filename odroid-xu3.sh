@@ -226,23 +226,24 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux.git -b odroidxu3-3.10.y "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/hardkernel/linux.git -b odroidxu4-4.14.y "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.14.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 touch .scmversion
 export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
-cp "${basedir}"/../kernel-configs/odroid-xu3.config .config
-cp "${basedir}"/../kernel-configs/odroid-xu3.config "${basedir}"/kali-${architecture}/usr/src/odroid-xu3.config
+make odroidxu4_defconfig
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot
 cp arch/arm/boot/dts/exynos5422-odroidxu3.dtb "${basedir}"/kali-${architecture}/boot
+cp arch/arm/boot/dts/exynos5422-odroidxu3-lite.dtb "${basedir}"/kali-${architecture}/boot
+cp arch/arm/boot/dts/exynos5422-odroidxu4.dtb "${basedir}"/kali-${architecture}/boot
+cp arch/arm/boot/dts/exynos5422-odroidxu4-kvm.dtb "${basedir}"/kali-${architecture}/boot
 make mrproper
-cp ../odroid-xu3.config .config
-make modules_prepare
+make odroidxu4_defconfig
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
