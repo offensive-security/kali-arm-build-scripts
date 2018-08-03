@@ -2376,6 +2376,22 @@ ATTR{name}=="mt81xx-vcodec-enc", SYMLINK+="video-enc"
 ATTR{name}=="mt81xx-image-proc", SYMLINK+="image-proc0"
 EOF
 
+# EHCI is apparently quirky.
+cat << EOF > "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-rk3288-ehci-persist.rules
+ACTION=="add|change", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_MODEL}!="EHCI_Host_Controller", DRIVERS=="ehci-platform", ATTR{power/persist}="1"
+EOF
+
+# Avoid gpio charger wakeup system
+cat << EOF > "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-rk3288-gpio-charger.rules
+ACTION=="add|change", SUBSYSTEM=="platform", ENV{DRIVER}=="gpio-charger", ATTR{power/wakeup}="disabled"
+EOF
+
+# disable btdsio
+mkdir -p "${basedir}"/kali-${architecture}/etc/modprobe.d/
+cat << EOF > "${basedir}"/kali-${architecture}/etc/modprobe.d/blacklist-btsdio.conf
+blacklist btsdio
+EOF
+
 # Touchpad configuration
 mkdir -p "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d
 cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/10-synaptics-chromebook.conf
