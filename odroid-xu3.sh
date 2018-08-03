@@ -350,7 +350,12 @@ echo "Rsyncing rootfs into image file"
 rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Write the signed u-boot binary to the image so that it will boot.
-cd "${basedir}"/root/usr/src/kernel/tools/hardkernel/prebuilt_uboot
+cd "${basedir}"
+git clone https://github.com/hardkernel/u-boot.git -b odroidxu4-v2017.05
+cd "${basedir}"/u-boot
+make odroid-xu4_defconfig
+make
+cd sd_fuse
 sh sd_fusing.sh ${loopdevice}
 cd "${basedir}"
 
