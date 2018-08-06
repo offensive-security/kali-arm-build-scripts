@@ -186,6 +186,11 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+
+# We need an older cross compiler due to kernel age.
+cd "${basedir}"
+git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://github.com/rabeeh/linux.git "${basedir}"/kali-${architecture}/usr/src/kernel
@@ -195,7 +200,7 @@ patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/remove-defined-from-timeconst.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 make cubox_defconfig
 cp .config "${basedir}"/kali-${architecture}/usr/src/cubox.config
 make -j $(grep -c processor /proc/cpuinfo) uImage modules
