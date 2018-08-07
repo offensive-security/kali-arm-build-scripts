@@ -198,6 +198,10 @@ EOF
 # Uncomment this if you use apt-cacher-ng or else git clones will fail.
 #unset http_proxy
 
+# Need to patch the kernel to support newer gcc, but that'll happen after 2018.3
+cd "${basedir}"
+git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Get, compile and install kernel
 git clone --depth 1 https://github.com/wawtechnologies/linux-kernel-3.14.51-catchwire-kalitap.git "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
@@ -206,7 +210,7 @@ patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
 touch .scmversion
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 cp "${basedir}"/../kernel-configs/kalitap.config .config
 cp "${basedir}"/../kernel-configs/kalitap.config "${basedir}"/kali-${architecture}/usr/src/kalitap.config
 make -j $(grep -c processor /proc/cpuinfo)
