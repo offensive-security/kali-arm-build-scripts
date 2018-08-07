@@ -277,7 +277,7 @@ make ARCH=arm catchwire_config
 make ARCH=arm
 
 cp MLO "${basedir}"/kali-${architecture}/boot/
-cp u-boot.img "${basedir}"kali-${architecture}/boot/
+cp u-boot.img "${basedir}"/kali-${architecture}/boot/
 
 cd "${basedir}"
 
