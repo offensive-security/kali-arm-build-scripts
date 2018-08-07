@@ -269,6 +269,9 @@ systemctl enable ssh
 # Enable copying of user wpa_supplicant.conf file
 systemctl enable copy-user-wpasupplicant
 
+# We don't use network-manager on the 0w so we need to make sure wpa_supplicant is started
+systemctl enable wpa_supplicant
+
 # Enable... enabling ssh by putting ssh or ssh.txt file in /boot
 systemctl enable enable-ssh
 
