@@ -281,7 +281,7 @@ EOF
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux.git "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 -b linux-4.18.y https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 touch .scmversion
 export ARCH=arm64
