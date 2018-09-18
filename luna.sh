@@ -43,7 +43,7 @@ base="apt-utils kali-defaults ifupdown initramfs-tools usbutils firmware-linux f
 desktop="kali-menu xfce4 network-manager network-manager-gnome ntpdate xserver-xorg-video-fbdev"
 tools="passing-the-hash winexe aircrack-ng hydra john sqlmap wireshark libnfc-bin mfoc"
 services="openssh-server apache2"
-extras="iceweasel wpasupplicant"
+extras="firefox-esr wpasupplicant"
 
 export packages="${arm} ${base} ${services} ${extras}"
 export architecture="armhf"

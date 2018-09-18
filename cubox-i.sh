@@ -56,7 +56,7 @@ base="apt-utils e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usb
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
-extras="iceweasel xfce4-terminal wpasupplicant"
+extras="firefox-esr xfce4-terminal wpasupplicant"
 
 packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"

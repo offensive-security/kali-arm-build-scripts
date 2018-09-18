@@ -54,7 +54,7 @@ base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmw
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-synaptics xserver-xorg-input-all xserver-xorg-input-libinput"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
 services="apache2 atftpd openssh-server openvpn tightvncserver"
-extras="bluez bluez-firmware iceweasel xfce4-goodies xfce4-terminal wpasupplicant xfonts-terminus"
+extras="bluez bluez-firmware firefox-esr xfce4-goodies xfce4-terminal wpasupplicant xfonts-terminus"
 
 packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
