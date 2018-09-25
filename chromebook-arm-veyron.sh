@@ -431,8 +431,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
 	    };
 	};
         fdt@18{
-        description = "rk3288-rialto-rev1.dtb";
-        data = /incbin/("dts/rk3288-rialto-rev1.dtb");
+        description = "rk3288-rialto-rev3.dtb";
+        data = /incbin/("dts/rk3288-rialto-rev3.dtb");
         type = "flat_dt";
         arch = "arm";
         compression = "none";
