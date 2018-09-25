@@ -214,6 +214,11 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# The kernel doesn't like GCC 8, so we use an older cross compiler.
+# Really need to look into getting the mainline kernel working :(
+cd "${basedir}"
+git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.14 "${basedir}"/kali-${architecture}/usr/src/kernel
@@ -222,7 +227,7 @@ cp "${basedir}"/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
 cp .config "${basedir}"/kali-${architecture}/usr/src/veyron.config
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
 # This allows us to patch the kernel without it adding -dirty to the kernel version.
 touch .scmversion
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211-3.8.patch
