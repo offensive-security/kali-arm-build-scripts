@@ -326,6 +326,8 @@ cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
+# This is a bit of a hack because of using Debian's raspi3-firmware package.
+tmpfs     /boot/firmware  tmpfs rw            0       0
 EOF
 
 # Copy a default config, with everything commented out so people find it when

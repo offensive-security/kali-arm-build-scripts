@@ -284,11 +284,11 @@ EOF
 # let's create one.
 cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 # <file system> <mount point>   <type>  <options>       <dump>  <pass>
-proc /proc proc nodev,noexec,nosuid 0  0
-/dev/mmcblk0p2  / ext4 errors=remount-ro 0 1
-# Change this if you add a swap partition or file
-#/dev/SWAP none swap sw 0 0 
-/dev/mmcblk0p1 /boot vfat noauto 0 0
+proc            /proc           proc    defaults          0       0
+/dev/mmcblk0p1  /boot           vfat    defaults          0       2
+/dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
+# This is a bit of a hack because of using Debian's raspi3-firmware package.
+tmpfs     /boot/firmware  tmpfs rw            0       0
 EOF
 
 # Firmware needed for rpi3+ wifi/bt
