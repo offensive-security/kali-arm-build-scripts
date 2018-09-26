@@ -62,8 +62,7 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
-# Unused currently, but can be used to point at a specific release.
-kernel_release="R67-10575.B-chromeos-3.14"
+kernel_release="R69-10895.B-chromeos-3.14"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
@@ -221,7 +220,7 @@ git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.14 "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 cp "${basedir}"/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
 cp .config "${basedir}"/kali-${architecture}/usr/src/veyron.config
