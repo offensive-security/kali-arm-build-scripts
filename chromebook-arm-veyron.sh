@@ -214,6 +214,11 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+# The kernel doesn't like GCC 8, so we use an older cross compiler.
+# Really need to look into getting the mainline kernel working :(
+cd "${basedir}"
+git clone https://github.com/steev/gcc-linaro-4.9.4-2017.01-i686_arm-linux-gnueabihf
+
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
 git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b chromeos-3.14 "${basedir}"/kali-${architecture}/usr/src/kernel
@@ -222,7 +227,7 @@ cp "${basedir}"/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
 cp .config "${basedir}"/kali-${architecture}/usr/src/veyron.config
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE="${basedir}"/gcc-linaro-4.9.4-2017.01-i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 # This allows us to patch the kernel without it adding -dirty to the kernel version.
 touch .scmversion
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211-3.8.patch
@@ -426,6 +431,16 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
 	    };
 	};
         fdt@18{
+        description = "rk3288-rialto-rev3.dtb";
+        data = /incbin/("dts/rk3288-rialto-rev3.dtb");
+        type = "flat_dt";
+        arch = "arm";
+        compression = "none";
+        hash@1{
+        algo = "sha1";
+        };
+    };
+        fdt@19{
             description = "rk3288-speedy.dtb";
             data = /incbin/("dts/rk3288-speedy.dtb");
             type = "flat_dt";
@@ -435,7 +450,7 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
                 algo = "sha1";
             };
         };
-        fdt@19{
+        fdt@20{
             description = "rk3288-speedy-rev1.dtb";
             data = /incbin/("dts/rk3288-speedy-rev1.dtb");
             type = "flat_dt";
@@ -445,7 +460,7 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
                 algo = "sha1";
             };
         };
-        fdt@20{
+        fdt@21{
             description = "rk3288-thea-rev0.dtb";
             data = /incbin/("dts/rk3288-thea-rev0.dtb");
             type = "flat_dt";
@@ -455,7 +470,7 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
                 algo = "sha1";
             };
         };
-        fdt@21{
+        fdt@22{
             description = "rk3288-tiger-rev0.dtb";
             data = /incbin/("dts/rk3288-tiger-rev0.dtb");
             type = "flat_dt";
@@ -489,54 +504,54 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             kernel = "kernel@1";
             fdt = "fdt@5";
         };
-	conf@6{
-	    kernel = "kernel@1";
-	    fdt = "fdt@6";
-	};
-	conf@7{
-	    kernel = "kernel@1";
-	    fdt = "fdt@7";
-	};
-	conf@8{
-	    kernel = "kernel@1";
-	    fdt = "fdt@8";
-	};
-	conf@9{
-	    kernel = "kernel@1";
-	    fdt = "fdt@9";
-	};
-	conf@10{
-	    kernel = "kernel@1";
-	    fdt = "fdt@10";
-	};
-	conf@11{
-	    kernel = "kernel@1";
-	    fdt = "fdt@11";
-	};
-	conf@12{
-	    kernel = "kernel@1";
-	    fdt = "fdt@12";
-	};
-	conf@13{
-	    kernel = "kernel@1:";
-	    fdt = "fdt@13";
-	};
-	conf@14{
-	    kernel = "kernel@1";
-	    fdt = "fdt@14";
-	};
-	conf@15{
-	    kernel = "kernel@1";
-	    fdt = "fdt@15";
-	};
-	conf@16{
-	    kernel = "kernel@1";
-	    fdt = "fdt@16";
-	};
-	conf@17{
-	    kernel = "kernel@1";
-	    fdt = "fdt@17";
-	};
+	    conf@6{
+	        kernel = "kernel@1";
+	        fdt = "fdt@6";
+	    };
+	    conf@7{
+	        kernel = "kernel@1";
+	        fdt = "fdt@7";
+	    };
+	    conf@8{
+	        kernel = "kernel@1";
+	        fdt = "fdt@8";
+	    };
+	    conf@9{
+	        kernel = "kernel@1";
+	        fdt = "fdt@9";
+	    };
+	    conf@10{
+	        kernel = "kernel@1";
+	        fdt = "fdt@10";
+	    };
+	    conf@11{
+	        kernel = "kernel@1";
+	        fdt = "fdt@11";
+	    };
+	    conf@12{
+	        kernel = "kernel@1";
+	        fdt = "fdt@12";
+	    };
+	    conf@13{
+	        kernel = "kernel@1:";
+	        fdt = "fdt@13";
+	    };
+	    conf@14{
+	        kernel = "kernel@1";
+	        fdt = "fdt@14";
+	    };
+	    conf@15{
+	        kernel = "kernel@1";
+	        fdt = "fdt@15";
+	    };
+	    conf@16{
+	        kernel = "kernel@1";
+	        fdt = "fdt@16";
+	    };
+	    conf@17{
+	        kernel = "kernel@1";
+	        fdt = "fdt@17";
+	    };
         conf@18{
             kernel = "kernel@1";
             fdt = "fdt@18";
@@ -552,6 +567,10 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
         conf@21{
             kernel = "kernel@1";
             fdt = "fdt@21";
+        };
+        conf@22{
+            kernel = "kernel@1";
+            fdt = "fdt@22";
         };
     };
 };
