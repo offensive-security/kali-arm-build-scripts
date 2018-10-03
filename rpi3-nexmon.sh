@@ -398,9 +398,15 @@ echo "Running du to see how big kali-${architecture} is"
 du -sh "${basedir}"/kali-${architecture}
 echo "the above is how big the sdcard needs to be"
 
+# Some maths here... it's not magic, we just want the block size a certain way
+# so that partitions line up in a way that's more optimal.
+RAW_SIZE_MB=${size}
+BLOCK_SIZE=1024
+let RAW_SIZE=(${RAW_SIZE_MB}*1000*1000)/${BLOCK_SIZE}
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
-dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
+dd if=/dev/zero of="${basedir}"/${imagename}.img bs=${BLOCK_SIZE} count=0 seek=${RAW_SIZE}
 parted ${imagename}.img --script -- mklabel msdos
 parted ${imagename}.img --script -- mkpart primary fat32 0 64
 parted ${imagename}.img --script -- mkpart primary ext4 64 -1
