@@ -172,8 +172,8 @@ EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel_20180716-020055_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180716-020055_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel-headers_20180716-020055_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel_20181013-234548_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20181013-234548_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel-headers_20181013-234548_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -200,7 +200,7 @@ apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20180716-020055_armhf.deb /root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
+dpkg -i /root/raspberrypi-kernel_20181013-234548_armhf.deb /root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
