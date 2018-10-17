@@ -199,14 +199,7 @@ EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Bluetooth enabling
-mkdir -p kali-${architecture}/etc/udev/rules.d
-cp "${basedir}"/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
-cp "${basedir}"/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
-mkdir -p kali-${architecture}/usr/bin
-cp "${basedir}"/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
-cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
-# Ensure btuart is executable
-chmod 755 kali-${architecture}/usr/bin/btuart
+cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
 
 cat << 'EOF' > kali-${architecture}/root/fakeuname.c
 #define _GNU_SOURCE
@@ -276,7 +269,7 @@ systemctl enable wpa_supplicant
 systemctl enable enable-ssh
 
 # Install and hold pi-bluetooth deb package from re4son
-dpkg --force-all -i /root/pi-bluetooth_0.1.4+re4son_all.deb
+dpkg --force-all -i /root/pi-bluetooth+re4son_2.2_all.deb
 apt-mark hold pi-bluetooth
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
