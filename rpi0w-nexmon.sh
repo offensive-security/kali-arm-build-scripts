@@ -199,6 +199,8 @@ EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Bluetooth enabling
+mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d/
+cp "${basedir}"/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
 cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
 
 cat << 'EOF' > kali-${architecture}/root/fakeuname.c
@@ -268,9 +270,8 @@ systemctl enable wpa_supplicant
 # Enable... enabling ssh by putting ssh or ssh.txt file in /boot
 systemctl enable enable-ssh
 
-# Install and hold pi-bluetooth deb package from re4son
+# Install pi-bluetooth deb package from re4son
 dpkg --force-all -i /root/pi-bluetooth+re4son_2.2_all.deb
-apt-mark hold pi-bluetooth
 
 # Turn off kernel dmesg showing up in console since rpi0 only uses console
 echo "dmesg -D" > /etc/rc.local
