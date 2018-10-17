@@ -352,12 +352,12 @@ rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.50-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.71-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
 export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
+export CROSS_COMPILE=arm-linux-gnueabi-
 
 # Set default defconfig
 make re4son_pi1_defconfig
