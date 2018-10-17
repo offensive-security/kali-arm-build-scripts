@@ -200,18 +200,7 @@ WantedBy=multi-user.target
 EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
-# Bluetooth enabling
-mkdir -p kali-${architecture}/etc/udev/rules.d
-cp "${basedir}"/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
-mkdir -p kali-${architecture}/lib/systemd/system/
-cp "${basedir}"/../misc/pi-bluetooth/hciuart.service kali-${architecture}/lib/systemd/system/hciuart.service
-mkdir -p kali-${architecture}/lib/udev/rules.d/
-cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
-mkdir -p kali-${architecture}/usr/bin
-cp "${basedir}"/../misc/pi-bluetooth/btuart kali-${architecture}/usr/bin/btuart
-cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth_0.1.4+re4son_all.deb kali-${architecture}/root/pi-bluetooth_0.1.4+re4son_all.deb
-# Ensure btuart is executable
-chmod 755 kali-${architecture}/usr/bin/btuart
+cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
 
 # Copy a default config, with everything commented out so people find it when
 # they go to add something when they are following instructions on a website.
@@ -254,9 +243,8 @@ systemctl enable rpiwiggle
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
-# Install and hold pi-bluetooth deb package from re4son
-dpkg --force-all -i /root/pi-bluetooth_0.1.4+re4son_all.deb
-apt-mark hold pi-bluetooth
+# Install pi-bluetooth deb package from re4son
+dpkg --force-all -i /root/pi-bluetooth+re4son_2.2_all.deb
 
 # systemd version 232 and above breaks execution of above bluetooth rule, let's fix that
 sed -i 's/^RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6.*/RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6 AF_BLUETOOTH/' /lib/systemd/system/systemd-udevd.service
@@ -264,7 +252,6 @@ sed -i 's/^RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6.*/Restric
 # Enable bluetooth
 systemctl unmask bluetooth.service
 systemctl enable bluetooth
-systemctl enable hciuart
 
 # Create cmdline.txt file
 mkdir -p /boot
