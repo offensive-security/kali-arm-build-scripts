@@ -202,8 +202,8 @@ cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/us
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/btuart
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel_20180716-020055_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20180716-020055_armhf.deb
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.50-re4son/raspberrypi-kernel-headers_20180716-020055_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
+wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel_20181013-234548_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20181013-234548_armhf.deb
+wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel-headers_20181013-234548_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
 # Mister-X's libfakeioctl fixes
 #cp "${basedir}"/../misc/fakeioctl.c "${basedir}"/kali-${architecture}/root/fakeioctl.c
 
@@ -226,7 +226,7 @@ apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes 
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20180716-020055_armhf.deb /root/raspberrypi-kernel-headers_20180716-020055_armhf.deb
+dpkg -i /root/raspberrypi-kernel_20181013-234548_armhf.deb /root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
 
 apt-get --yes --allow-change-held-packages autoremove
 
