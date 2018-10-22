@@ -153,18 +153,18 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
 
-#cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
-#[Unit]
-#Description=Resize filesystem
-#Before=regenerate_ssh_host_keys.service
-#[Service]
-#Type=oneshot
-#ExecStart=/root/scripts/rpi-wiggle.sh
-#ExecStartPost=/bin/systemctl disable rpiwiggle
-#[Install]
-#WantedBy=multi-user.target
-#EOF
-#chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+[Unit]
+Description=Resize filesystem
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/root/scripts/rpi-wiggle.sh
+ExecStartPost=/bin/systemctl disable rpiwiggle
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
 [Unit]
@@ -200,7 +200,7 @@ chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupp
 
 # Bluetooth enabling
 mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d/
-cp "${basedir}"/../misc/pi-bluetooth/99-com.rules kali-${architecture}/etc/udev/rules.d/99-com.rules
+cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
 cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
 
 cat << 'EOF' > kali-${architecture}/root/fakeuname.c
@@ -255,7 +255,7 @@ echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
 # Resize FS on first run (hopefully)
-#systemctl enable rpiwiggle
+systemctl enable rpiwiggle
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
