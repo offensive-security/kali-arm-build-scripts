@@ -612,9 +612,6 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 # Now, to get display working properly, we need an initramfs, so we can run the
 # c2_init.sh file before we launch X.
-# Hack...
-cp /usr/bin/qemu-aarch64-static "${basedir}"/kali-${architecture}/usr/bin
-cp /usr/bin/qemu-arm*-static "${basedir}"/kali-${architecture}/usr/bin
 cat << EOF > "${basedir}"/kali-${architecture}/create-initrd
 #!/bin/bash
 update-initramfs -c -k 3.14.79
