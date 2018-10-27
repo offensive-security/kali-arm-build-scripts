@@ -260,7 +260,7 @@ echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0
 # Install P4wnP1 (kali version)
 cd /root
 git clone --depth 1 https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
-chmod 755 /root/p4wnp11/install.sh
+chmod 755 /root/P4wnP1/install.sh
 cd /root/P4wnP1 
 git submodule update --init --recursive --remote
 ./install.sh
