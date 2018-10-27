@@ -260,7 +260,7 @@ echo "dwc_otg.lpm_enable=0 console=serial0,115200 console=tty1 root=/dev/mmcblk0
 # Install P4wnP1 (kali version)
 cd /root
 git clone --depth 1 https://github.com/nethunteros/P4wnP1.git /root/P4wnP1
-chmod 755 /root/P4wnP1/install.sh
+chmod 755 /root/p4wnp11/install.sh
 cd /root/P4wnP1 
 git submodule update --init --recursive --remote
 ./install.sh
@@ -425,6 +425,9 @@ mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/brcm
 cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
 cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
+# Bluetooth Firmware(?)
+wget https://raw.githubusercontent.com/RPi-Distro/bluez-firmware/master/broadcom/BCM4345C0.hcd -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/BCM4345C0.hcd
+wget https://raw.githubusercontent.com/RPi-Distro/bluez-firmware/master/broadcom/BCM43430A1.hcd -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/BCM43430A1.hcd
 # Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
 # The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
 wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
