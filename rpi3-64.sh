@@ -184,6 +184,13 @@ iw dev ${interface} del
 EOF
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/monstop
 
+# Hacks in place until we get a fixed firefox and fontconfig issue (xfsettingsd keeps crashing)
+wget http://snapshot.debian.org/archive/debian/20180514T153829Z/pool/main/f/fontconfig/fontconfig_2.13.0-5_arm64.deb -O "${basedir}"/kali-${architecture}/root/fontconfig_2.13.0-5_arm64.deb
+wget http://snapshot.debian.org/archive/debian/20180514T153829Z/pool/main/f/fontconfig/libfontconfig1_2.13.0-5_arm64.deb -O "${basedir}"/kali-${architecture}/root/libfontconfig1_2.13.0-5_arm64.deb
+wget 'http://security.debian.org/debian-security/pool/updates/main/f/firefox-esr/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb' -O "${basedir}"/kali-${architecture}/root/'firefox-esr_60.3.0esr-1~deb9u1_arm64.deb'
+wget http://ftp.us.debian.org/debian/pool/main/libe/libevent/libevent-2.0-5_2.0.21-stable-3_arm64.deb -O "${basedir}"/kali-${architecture}/root/libevent-2.0-5_2.0.21-stable-3_arm64.deb
+wget http://ftp.us.debian.org/debian/pool/main/libv/libvpx/libvpx4_1.6.1-3+deb9u1_arm64.deb -O "${basedir}"/kali-${architecture}/root/libvpx4_1.6.1-3+deb9u1_arm64.deb
+
 # Bluetooth enabling
 mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d
 cp "${basedir}"/../misc/pi-bluetooth/99-com.rules "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-com.rules
@@ -217,6 +224,14 @@ apt-get --yes --allow-change-held-packages autoremove
 # installed here (and we have xserver-xorg-input-evdev and
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
+
+# Lets upgrade firefox, libvpx4 and libevent, and also downgrade fontconfig and libfontconfig.
+# Because of an issue with fontconfig crashing on empty font folders, we rm /usr/local/share/fonts
+rm /usr/local/share/fonts
+apt install --yes --allow-change-held-packages /root/libvpx4_1.6.1-3+deb9u1_arm64.deb /root/libevent-2.0-5_2.0.21-stable-3_arm64.deb /root/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb
+apt install --yes --allow-change-held-packages /root/libfontconfig1_2.13.0-5_arm64.deb /root/fontconfig_2.13.0-5_arm64.deb
+apt hold libfontconfig
+apt hold fontconfig
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -254,6 +269,7 @@ apt-get update
 apt-get clean
 rm -f /0
 rm -f /hs_err*
+rm -f /root/*.deb
 rm -f cleanup
 #rm -f /usr/bin/qemu*
 EOF
