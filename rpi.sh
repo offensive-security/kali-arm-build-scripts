@@ -262,6 +262,11 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-$
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
+deb http://http.kali.org/kali kali-rolling main non-free contrib
+deb-src http://http.kali.org/kali kali-rolling main non-free contrib
+EOF
+
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
 # Kernel section. If you want to use a custom kernel, or configuration, replace
