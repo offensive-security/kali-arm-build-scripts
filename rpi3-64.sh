@@ -296,11 +296,12 @@ git clone --depth 1 https://github.com/re4son/re4son-raspberrypi-linux -b rpi-4.
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 # Fix sdcards not working.
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/issue-4973.patch
+# Comment out for now - manually applying seems to want to reverse it so lets not do that.
+#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/issue-4973.patch
 touch .scmversion
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
-make bcmrpi3_defconfig
+cp "${basedir}"/../kernel-configs/rpi3-64bit.config "${basedir}"/kali-${architecture}/usr/src/kernel/.config
 make -j $(grep -c processor /proc/cpuinfo)
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
@@ -313,8 +314,10 @@ cp arch/arm64/boot/dts/broadcom/*.dtb "${basedir}"/kali-${architecture}/boot/
 mkdir -p "${basedir}"/kali-${architecture}/boot/overlays/
 cp arch/arm/boot/dts/overlays/*.dtbo "${basedir}"/kali-${architecture}/boot/overlays/
 make mrproper
-make bcmrpi3_defconfig
-make modules_prepare
+cp "${basedir}"/../kernel-configs/rpi3-64bit.config "${basedir}"/kali-${architecture}/usr/src/kernel/.config
+cp "${basedir}"/../kernel-configs/rpi3-64bit.config "${basedir}"/kali-${architecture}/usr/src/rpi3-64bit.config
+# Don't make prepare or make modules_prepare because it ends up building amd64 binaries
+# and external modules fail.
 cd ${basedir}
 
 # Fix up the symlink for building external modules
