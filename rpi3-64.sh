@@ -230,7 +230,8 @@ apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 rm /usr/local/share/fonts -rf
 apt install --yes --allow-change-held-packages /root/libvpx4_1.6.1-3+deb9u1_arm64.deb /root/libevent-2.0-5_2.0.21-stable-3_arm64.deb /root/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb
 apt install --yes --allow-change-held-packages --allow-downgrades /root/libfontconfig1_2.13.0-5_arm64.deb /root/fontconfig_2.13.0-5_arm64.deb
-
+apt-mark hold libfontconfig1
+apt-mark hold fontconfig
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
