@@ -388,8 +388,10 @@ EOF
 cat << EOF >> "${basedir}"/kali-${architecture}/boot/config.txt
 # Tell firmware to go 64bit mode.
 arm_64bit=1
+# You can force a device with this, but latest firmware should
+# make the correct choice for dtb
 # RPi3 B dtb file
-device_tree=bcm2710-rpi-3-b.dtb
+#device_tree=bcm2710-rpi-3-b.dtb
 # RPi3 B+ dtb file
 #device_tree=bcm2710-rpi-3-b-plus.dtb
 # RPi3 Compute Module dtb file
