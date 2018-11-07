@@ -223,9 +223,7 @@ apt-get --yes --allow-change-held-packages autoremove
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 
-# Lets upgrade firefox, libvpx4 and libevent, and also downgrade fontconfig and libfontconfig.
-# Because of an issue with fontconfig crashing on empty font folders, we rm /usr/local/share/fonts
-rm /usr/local/share/fonts -rf
+# Lets upgrade firefox, libvpx4 and libevent.
 apt install --yes --allow-change-held-packages /root/libvpx4_1.6.1-3+deb9u1_arm64.deb /root/libevent-2.0-5_2.0.21-stable-3_arm64.deb /root/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
