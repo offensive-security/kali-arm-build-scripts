@@ -224,7 +224,7 @@ apt-get --yes --allow-change-held-packages autoremove
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 
 # Lets upgrade firefox, libvpx4 and libevent.
-apt install --yes --allow-downgrade --allow-change-held-packages /root/libvpx4_1.6.1-3+deb9u1_arm64.deb /root/libevent-2.0-5_2.0.21-stable-3_arm64.deb /root/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb
+apt install --yes --allow-downgrades --allow-change-held-packages /root/libvpx4_1.6.1-3+deb9u1_arm64.deb /root/libevent-2.0-5_2.0.21-stable-3_arm64.deb /root/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
