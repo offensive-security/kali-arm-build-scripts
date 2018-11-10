@@ -408,15 +408,15 @@ chmod 755 "${basedir}"/kali-${architecture}/usr/share/initramfs-tools/hooks/fbse
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/hardkernel/linux -b odroidc2-3.14.y "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/hardkernel/linux -b odroidc2-v3.16.y "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 touch .scmversion
 export ARCH=arm64
 export CROSS_COMPILE=aarch64-linux-gnu-
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-3.14.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-3.16.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
-cp "${basedir}"/../kernel-configs/odroid-c2.config .config
-cp .config "${basedir}"/kali-${architecture}/usr/src/odroid-c2.config
+cp "${basedir}"/../kernel-configs/odroid-c2-3.16.config .config
+cp .config "${basedir}"/kali-${architecture}/usr/src/odroid-c2-3.16.config
 cd "${basedir}"/kali-${architecture}/usr/src/kernel/
 rm -rf "${basedir}"/kali-${architecture}/usr/src/kernel/.git
 make -j $(grep -c processor /proc/cpuinfo)
@@ -614,8 +614,8 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 # c2_init.sh file before we launch X.
 cat << EOF > "${basedir}"/kali-${architecture}/create-initrd
 #!/bin/bash
-update-initramfs -c -k 3.14.79
-mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/initrd.img-3.14.79 /boot/uInitrd
+update-initramfs -c -k 3.16.60
+mkimage -A arm64 -O linux -T ramdisk -C none -a 0 -e 0 -n "uInitrd" -d /boot/initrd.img-3.16.60 /boot/uInitrd
 rm -f /create-initrd
 rm -f /usr/bin/qemu-*
 EOF
