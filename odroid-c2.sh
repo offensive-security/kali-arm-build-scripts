@@ -62,8 +62,7 @@ base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmw
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
 services="apache2 atftpd openssh-server openvpn tightvncserver"
-extras="fbset xfce4-terminal xfce4-goodies wpasupplicant libnss-systemd"
-#kali="build-essential debhelper devscripts dput lintian quilt git-buildpackage gitk dh-make sbuild"
+extras="fbset libnss-systemd xfce4-goodies xfce4-terminal wpasupplicant"
 
 packages="${arm} ${base} ${services} ${extras} ${kali}"
 architecture="arm64"
