@@ -494,7 +494,7 @@ EOF
 
 # Turn off Accel.
 cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/20-modesetting.conf
-Section "Driver"
+Section "Device"
     Identifier  "Exynos Video"
     Driver      "modesetting"
     Option      "AccelMethod"   "none"
