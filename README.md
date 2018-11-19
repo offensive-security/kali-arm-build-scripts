@@ -25,7 +25,7 @@ A sample workflow would look similar to (armhf):
     git clone https://github.com/offensive-security/kali-arm-build-scripts
     cd ~/arm-stuff/kali-arm-build-scripts
     ./build-deps.sh
-    ./chromebook-arm-samsung.sh 1.0
+    ./chromebook-arm-exynos.sh 1.0
 
 If you are on 32bit, after the script finishes running, you will have an image
 file located in ~/arm-stuff/kali-arm-build-scripts/chromebook-1.0/ called
