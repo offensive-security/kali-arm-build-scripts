@@ -150,7 +150,7 @@ apt-get --yes --allow-change-held-packages install locales-all
 debconf-set-selections /debconf.set
 rm -f /debconf.set
 apt-get update
-apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools
+apt-get -y install git-core binutils ca-certificates initramfs-tools u-boot-tools cryptsetup-bin
 apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
@@ -494,7 +494,7 @@ EOF
 
 # Turn off Accel.
 cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf.d/20-modesetting.conf
-Section "Driver"
+Section "Device"
     Identifier  "Exynos Video"
     Driver      "modesetting"
     Option      "AccelMethod"   "none"
