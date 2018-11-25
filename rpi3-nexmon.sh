@@ -199,8 +199,8 @@ cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/us
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/btuart
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel_${rpikernelver}_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_${rpikernelver}_armhf.deb
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel_${rpikernelver}_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_${rpikernelver}_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb
 # Mister-X's libfakeioctl fixes
 #cp "${basedir}"/../misc/fakeioctl.c "${basedir}"/kali-${architecture}/root/fakeioctl.c
 
