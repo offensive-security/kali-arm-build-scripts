@@ -26,6 +26,12 @@ size=4000
 # kali-rolling.
 suite=kali-rolling
 
+# Set kernel version here, to make it faster to upgrade to newer versions.
+# Version number comes from https://github.com/nethunteros/rpi-kernel/releases
+# All we need are the numbers.
+kernrelease=v4.14.80
+rpikernelver=20181124-191322
+
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
@@ -202,8 +208,8 @@ cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/us
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/btuart
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel_20181013-234548_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20181013-234548_armhf.deb
-wget 'https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel-headers_20181013-234548_armhf.deb' -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/${kernrelease}-re4son/raspberrypi-kernel_${rpikernelver}_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20181013-234548_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/${kernrelease}-re4son/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
 # Mister-X's libfakeioctl fixes
 #cp "${basedir}"/../misc/fakeioctl.c "${basedir}"/kali-${architecture}/root/fakeioctl.c
 
@@ -228,7 +234,7 @@ apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-ge
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20181013-234548_armhf.deb /root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
+dpkg -i /root/raspberrypi-kernel_${rpikernelver}_armhf.deb /root/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb
 
 apt-get --yes --allow-change-held-packages autoremove
 

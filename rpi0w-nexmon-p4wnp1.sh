@@ -341,7 +341,7 @@ rm -rf rpi-firmware
 
 # Setup build
 cd ${TOPDIR}
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.71-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.80-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 
 # Set default defconfig
@@ -365,7 +365,7 @@ cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/over
 
 make mrproper
 make re4son_pi1_defconfig
-make modules_prepare
+
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled

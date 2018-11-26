@@ -54,6 +54,12 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
+# Set kernel version here, to make it faster to upgrade to newer versions.
+# Version number comes from https://github.com/nethunteros/rpi-kernel/releases
+# All we need are the numbers.
+kernrelease=v4.14.80
+rpikernelver=20181124-191322
+
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
 #export http_proxy="http://localhost:3142/"
@@ -172,8 +178,8 @@ EOF
 chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Let's try out binky's package for the rpi kernel and headers.
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel_20181013-234548_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_20181013-234548_armhf.deb
-wget https://github.com/nethunteros/rpi-kernel/releases/download/v4.14.71-re4son/raspberrypi-kernel-headers_20181013-234548_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/${kernrelease}-re4son/raspberrypi-kernel_${rpikernelver}_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel_${rpikernelver}_armhf.deb
+wget https://github.com/nethunteros/rpi-kernel/releases/download/${kernrelease}-re4son/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb -O "${basedir}"/kali-${architecture}/root/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -202,7 +208,7 @@ apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
 # Install the kernel packages
-dpkg -i /root/raspberrypi-kernel_20181013-234548_armhf.deb /root/raspberrypi-kernel-headers_20181013-234548_armhf.deb
+dpkg -i /root/raspberrypi-kernel_${rpikernelver}_armhf.deb /root/raspberrypi-kernel-headers_${rpikernelver}_armhf.deb
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
