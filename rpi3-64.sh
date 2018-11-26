@@ -303,7 +303,7 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-$
 
 # Kernel section. If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://github.com/re4son/re4son-raspberrypi-linux -b rpi-4.14.71-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://github.com/re4son/re4son-raspberrypi-linux -b rpi-4.14.80-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
 # Fix sdcards not working.
