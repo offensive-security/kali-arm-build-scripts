@@ -260,7 +260,6 @@ make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot
 make mrproper
 cp ../odroidu.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

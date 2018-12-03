@@ -209,7 +209,6 @@ rm -rf rpi-firmware
 cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/kernel.img
 make mrproper
 cp ../odroid-w.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

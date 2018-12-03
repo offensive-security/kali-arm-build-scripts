@@ -268,7 +268,6 @@ cp arch/arm/boot/zImage "${basedir}"/kali-$architecture/boot/zImage-cm-fx6
 cp arch/arm/boot/dts/imx6q-sbc-fx6m.dtb "${basedir}"/kali-${architecture}/boot/imx6q-sbc-fx6m.dtb
 make mrproper
 cp ../utilite-3.10.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

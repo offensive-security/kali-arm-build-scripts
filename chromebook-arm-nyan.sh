@@ -388,7 +388,6 @@ cd "${basedir}"/kali-${architecture}/usr/src/kernel
 # modules_prepare so that users can more easily build kernel modules...
 make WIFIVERSION="-3.8"  mrproper
 cp ../nyan.config .config
-make WIFIVERSION="-3.8" modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

@@ -232,7 +232,6 @@ EOF
 #cp arch/arm/boot/dts/imx6q-hummingboard.dtb "${basedir}"/kali-${architecture}/
 #make mrproper
 #cp ../cubox-i.config .config
-#make modules_prepare
 #cd "${basedir}"
 
 # Fix up the symlink for building external modules

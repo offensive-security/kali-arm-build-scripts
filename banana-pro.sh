@@ -272,7 +272,6 @@ make firmware_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/
 make mrproper
 cp ../lemaker.config .config
-make modules_prepare
 
 # Fix up the symlink for building external modules
 # kernver is used so we don't need to keep track of what the current compiled

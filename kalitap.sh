@@ -220,7 +220,6 @@ cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/
 cp arch/arm/boot/dts/catchwire*.dtb "${basedir}"/kali-${architecture}/boot/
 make mrproper
 cp ../kalitap.config .config
-make modules_prepare
 cd "${basedir}"
 
 cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab

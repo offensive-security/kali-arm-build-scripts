@@ -454,7 +454,6 @@ vbutil_kernel --arch arm --pack "${basedir}"/kernel.bin --keyblock /usr/share/vb
 cd "${basedir}"/kali-${architecture}/usr/src/kernel/
 make mrproper
 cp ../exynos.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

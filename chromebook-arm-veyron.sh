@@ -588,7 +588,6 @@ vbutil_kernel --arch arm --pack "${basedir}"/kernel.bin --keyblock /usr/share/vb
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 make WIFIVERSION="-3.8" mrproper
 cp "${basedir}"/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
-make WIFIVERSION="-3.8" modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

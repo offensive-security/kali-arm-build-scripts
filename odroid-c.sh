@@ -218,7 +218,6 @@ cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/
 cp arch/arm/boot/dts/meson8b_odroidc.dtb "${basedir}"/kali-${architecture}/boot/
 make mrproper
 cp ../odroidc.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

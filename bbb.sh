@@ -255,7 +255,6 @@ make INSTALL_MOD_PATH="${basedir}"/kali-${architecture} modules_install
 make INSTALL_MOD_PATH="${basedir}"/kali-${architecture} firmware_install
 make mrproper
 make bb.org_defconfig
-make modules_prepare
 cd "${basedir}"
 
 # Create uEnv.txt file

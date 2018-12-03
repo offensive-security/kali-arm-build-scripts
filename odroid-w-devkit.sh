@@ -213,7 +213,6 @@ cp arch/arm/boot/dts/bcm*.dtb "${basedir}"/kali-${architecture}/boot/
 cp arch/arm/boot/dts/overlays/*overlay*.dtb "${basedir}"/kali-${architecture}/boot/overlays/
 make mrproper
 cp ../rpi-4.1.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

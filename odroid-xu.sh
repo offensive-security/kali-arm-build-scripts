@@ -290,7 +290,6 @@ cd "${basedir}"
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
 make mrproper
 cp ../xu.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

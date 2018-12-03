@@ -292,7 +292,6 @@ cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/over
 
 make mrproper
 make re4son_pi1_defconfig
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
