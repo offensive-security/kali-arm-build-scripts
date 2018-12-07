@@ -111,7 +111,7 @@ iface lo inet loopback
 EOF
 
 cat << EOF > kali-${architecture}/etc/resolv.conf
-nameserver 1.1.1.1
+nameserver 8.8.8.8
 EOF
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
