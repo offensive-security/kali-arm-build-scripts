@@ -457,7 +457,7 @@ EOF
 cd "${basedir}"
 git clone https://chromium.googlesource.com/chromiumos/third_party/coreboot
 cd "${basedir}"/coreboot
-git checkout e3d7e9341c5626a8f6f4bf91e4b44cfdc02ba8b6
+git checkout fb840ee4195f9c365375e8914e243ce2f5e4f7bf
 make -C src/soc/nvidia/tegra124/lp0 GCC_PREFIX=arm-linux-gnueabihf-
 mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/tegra12x/
 cp src/soc/nvidia/tegra124/lp0/tegra_lp0_resume.fw "${basedir}"/kali-${architecture}/lib/firmware/tegra12x/
