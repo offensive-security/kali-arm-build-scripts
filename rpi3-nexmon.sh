@@ -316,6 +316,11 @@ cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
 dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
 EOF
 
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
+deb http://http.kali.org/kali kali-rolling main non-free contrib
+deb-src http://http.kali.org/kali kali-rolling main non-free contrib
+EOF
+
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
 cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
