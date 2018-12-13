@@ -330,6 +330,8 @@ cd ${TOPDIR}
 # RPI Firmware
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
+# copy over Pi specific libs (video core) and binaries (dtoverlay,dtparam ...)
+cp -rf rpi-firmware/opt/* "${basedir}"/kali-${architecture}/opt/
 rm -rf rpi-firmware
 
 # Setup build
