@@ -456,6 +456,8 @@ EOF
 touch "${basedir}"/root/boot/ssh
 
 sync
+# sleep for 10 seconds, to let the cache settle after sync.
+sleep 10
 umount -l ${bootp}
 umount -l ${rootp}
 kpartx -dv ${loopdevice}
