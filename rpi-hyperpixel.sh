@@ -198,7 +198,11 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
+# This looks weird, but we do it twice because every so often, there's a failure to download from the mirror
+# So to workaround it, we attempt to install them twice.
 apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -285,6 +289,8 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-$
 # them in this section.
 git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
 cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
+# copy over Pi specific libs (video core) and binaries (dtoverlay,dtparam ...)
+cp -rf rpi-firmware/opt/* "${basedir}"/kali-${architecture}/opt/
 rm -rf rpi-firmware
 git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.80-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel

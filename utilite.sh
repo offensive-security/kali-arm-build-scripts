@@ -44,7 +44,7 @@ fi
 unset CROSS_COMPILE
 
 # Package installations for various sections. 
-# This will build a minimal XFCE Kali system with the top 10 tools.
+# This will build a minimal XFCE Kali system.
 # This is the section to edit if you would like to add more packages.
 # See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can
 # use. You can also install packages, using just the package name, but keep in
@@ -53,12 +53,12 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
-desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
-tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
-services="apache2 openssh-server"
-#extras="bash-completion command-not-found docker.io htop kali-linux-full firefox-esr pv xfce4-goodies xfce4-terminal wpasupplicant"
-extras="firefox-esr xfce4-terminal wpasupplicant"
+base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
+services="apache2 atftpd openssh-server openvpn tightvncserver"
+extras="bluez bluez-firmware firefox-esr i2c-tools triggerhappy wpasupplicant xfce4-terminal xfonts-terminus"
+
 
 packages="${arm} ${base} ${services} ${extras}"
 architecture="armhf"
@@ -171,7 +171,11 @@ apt-get -y install locales console-common less nano git
 echo "root:toor" | chpasswd
 rm -f /etc/udev/rules.d/70-persistent-net.rules
 export DEBIAN_FRONTEND=noninteractive
+# This looks weird, but we do it twice because every so often, there's a failure to download from the mirror
+# So to workaround it, we attempt to install them twice.
 apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${packages} || apt-get --yes --fix-broken install
+apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
@@ -268,7 +272,6 @@ cp arch/arm/boot/zImage "${basedir}"/kali-$architecture/boot/zImage-cm-fx6
 cp arch/arm/boot/dts/imx6q-sbc-fx6m.dtb "${basedir}"/kali-${architecture}/boot/imx6q-sbc-fx6m.dtb
 make mrproper
 cp ../utilite-3.10.config .config
-make modules_prepare
 cd "${basedir}"
 
 # Fix up the symlink for building external modules

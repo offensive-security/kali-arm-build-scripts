@@ -17,8 +17,8 @@ basedir=`pwd`/rpi3-nexmon-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi3-nexmon}
-# Size of image in megabytes (Default is 4500=4.5GB)
-size=4500
+# Size of image in megabytes (Default is 5000=5GB)
+size=5000
 # Suite to use.  
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -316,6 +316,11 @@ cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
 dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
 EOF
 
+cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
+deb http://http.kali.org/kali kali-rolling main non-free contrib
+deb-src http://http.kali.org/kali kali-rolling main non-free contrib
+EOF
+
 # systemd doesn't seem to be generating the fstab properly for some people, so
 # let's create one.
 cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
@@ -451,6 +456,8 @@ EOF
 touch "${basedir}"/root/boot/ssh
 
 sync
+# sleep for 10 seconds, to let the cache settle after sync.
+sleep 10
 umount -l ${bootp}
 umount -l ${rootp}
 kpartx -dv ${loopdevice}
