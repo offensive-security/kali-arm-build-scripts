@@ -21,7 +21,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-cubox}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -248,7 +248,7 @@ fi
 
 if itest.s \$root_device -ne ?; then
   setenv bootargs "console=ttyS0,115200n8 vmalloc=448M video=dovefb:lcd0:1920x1080-32@60-edid clcd.lcd0_enable=1 clcd.lcd1_enable=0 root=\${root_device} rootfstype=ext4 rw net.ifnames=0"
-  setenv loadimage "\${fstype}load \${device_name} \${unit_no}:\${partition} 0x00200000 \${directory}\${image_name}" 
+  setenv loadimage "\${fstype}load \${device_name} \${unit_no}:\${partition} 0x00200000 \${directory}\${image_name}"
   \$loadimage && bootm 0x00200000
 
   echo "!! Unable to load \${directory}\${image_name} from \${device_name} \${unit_no}:\${partition} !!"

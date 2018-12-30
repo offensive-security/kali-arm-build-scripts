@@ -22,7 +22,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-rpi2}
 # Size of image in megabytes (Default is 4000=4GB)
 size=4000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -341,7 +341,7 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
 # Re4son's rpi-tft configurator
-wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config 
+wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 
 rm -rf "${basedir}"/root/root/{fakeuname.c,buildnexmon.sh,libfakeuname.so,raspberrypi-kernel*.deb}

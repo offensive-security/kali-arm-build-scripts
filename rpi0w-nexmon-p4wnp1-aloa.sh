@@ -26,7 +26,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-rpi0w-nexmon-p4wnp1-aloa}
 # Size of image in megabytes (Default is 4500=4.5GB)
 size=6000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -381,7 +381,7 @@ cd "${basedir}"/kali-${architecture}/usr/src/kernel
 
 # Note: Compiling the kernel in /usr/src/kernel of the target file system is problematic, as the binaries of the compiling host architecture
 # get deployed to the /usr/src/kernel/scripts subfolder (in this case linux-x64 binaries), which is symlinked to /usr/src/build later on.
-# This would f.e. hinder rebuilding single modules, like nexmon's brcmfmac driver, on the Pi itself (online compilation). 
+# This would f.e. hinder rebuilding single modules, like nexmon's brcmfmac driver, on the Pi itself (online compilation).
 # The cause:building of modules relies on the pre-built binaries in /usr/src/build folder. But the helper binaries are compiled with the
 # HOST toolchain and not with the crosscompiler toolchain (f.e. /usr/src/kernel/script/basic/fixdep would end up as x64 binary, as this helper
 # is not compiled with the CROSS toolchain). As those scripts are used druing module build, it wouldn't work to build on the pi, later on,

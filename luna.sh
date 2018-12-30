@@ -19,7 +19,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-luna}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -217,21 +217,21 @@ ln -s /usr/src/kernel build
 ln -s /usr/src/kernel source
 cd "${basedir}"
 
-#u-boot LUNA specific overrides: 
+#u-boot LUNA specific overrides:
 cat << EOF > "${basedir}"/kali-${architecture}/boot/uEnv.txt
 fdtfile=am335x-luna.dtb
 kernel_file=zImage
 initrd_file=uInitrd
- 
+
 loadzimage=load mmc \${mmcdev}:\${mmcpart} \${loadaddr} \${kernel_file}
 loadinitrd=load mmc \${mmcdev}:\${mmcpart} 0x81000000 \${initrd_file}; setenv initrd_size \${filesize}
 loadfdt=load mmc \${mmcdev}:\${mmcpart} \${fdtaddr} /dtbs/\${fdtfile}
- 
+
 console=ttyO0,115200n8
 mmcroot=/dev/mmcblk0p2 ro
 mmcrootfstype=ext4 rootwait fixrtc net.ifnames=0
 mmcargs=setenv bootargs console=\${console} root=\${mmcroot} rootfstype=\${mmcrootfstype} \${optargs}
- 
+
 #zImage:
 uenvcmd=run loadzimage; run loadfdt; run mmcargs; bootz \${loadaddr} - \${fdtaddr}
 EOF

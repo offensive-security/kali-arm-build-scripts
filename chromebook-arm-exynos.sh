@@ -19,7 +19,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-exynos}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -241,7 +241,7 @@ make dtbs
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/kernel-exynos.its
 /dts-v1/;
- 
+
 / {
     description = "Chrome OS kernel image with one or more FDT blobs";
     images {
