@@ -19,7 +19,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-rpi3-nexmon-hyperpixel}
 # Size of image in megabytes (Default is 4000=4GB)
 size=4000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build

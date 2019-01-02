@@ -22,7 +22,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-riot}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -42,7 +42,7 @@ fi
 # get cross compiled.
 unset CROSS_COMPILE
 
-# Package installations for various sections. 
+# Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
 # See http://www.kali.org/new/kali-linux-metapackages/ for meta packages you can

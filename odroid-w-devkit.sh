@@ -5,7 +5,7 @@ set -e
 # A trusted Kali Linux image created by Offensive Security - http://www.offensive-security.com
 
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root" 
+   echo "This script must be run as root"
    exit 1
 fi
 
@@ -22,7 +22,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-owdk}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build

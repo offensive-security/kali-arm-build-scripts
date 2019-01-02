@@ -19,7 +19,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-bbb}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -266,27 +266,27 @@ cat << EOF > "${basedir}"/kali-${architecture}/boot/uEnv.txt
 #u-boot eMMC specific overrides; Angstrom Distribution (BeagleBone Black) 2013-06-20
 kernel_file=zImage
 initrd_file=uInitrd
- 
+
 loadzimage=load mmc \${mmcdev}:\${mmcpart} \${loadaddr} \${kernel_file}
 loadinitrd=load mmc \${mmcdev}:\${mmcpart} 0x81000000 \${initrd_file}; setenv initrd_size \${filesize}
 loadfdt=load mmc \${mmcdev}:\${mmcpart} \${fdtaddr} /dtbs/\${fdtfile}
 #
- 
+
 console=ttyO0,115200n8
 mmcroot=/dev/mmcblk0p2 rw net.ifnames=0
 mmcrootfstype=ext4 rootwait fixrtc
- 
+
 ##To disable HDMI/eMMC...
 #optargs=capemgr.disable_partno=BB-BONELT-HDMI,BB-BONELT-HDMIN,BB-BONE-EMMC-2G
- 
+
 ##3.1MP Camera Cape
 #optargs=capemgr.disable_partno=BB-BONE-EMMC-2G
- 
+
 mmcargs=setenv bootargs console=\${console} root=\${mmcroot} rootfstype=\${mmcrootfstype} \${optargs}
- 
+
 #zImage:
 uenvcmd=run loadzimage; run loadfdt; run mmcargs; bootz \${loadaddr} - \${fdtaddr}
- 
+
 #zImage + uInitrd: where uInitrd has to be generated on the running system.
 #boot_fdt=run loadzimage; run loadinitrd; run loadfdt
 #uenvcmd=run boot_fdt; run mmcargs; bootz \${loadaddr} 0x81000000:\${initrd_size} \${fdtaddr}

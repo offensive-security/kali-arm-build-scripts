@@ -22,7 +22,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-odroidc2}
 # Size of image in megabytes (Default is 4500=4.5GB)
 size=4500
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -451,11 +451,11 @@ ODROIDC2-UBOOT-CONFIG
 
 # Custom modeline!
 # To use custom modeline you need to disable all the below resolutions
-# and setup your own! 
-# For more information check our wiki: 
+# and setup your own!
+# For more information check our wiki:
 # http://odroid.com/dokuwiki/doku.php?id=en:c2_hdmi_autosetting
 # Example below:
-# setenv m "custombuilt" 
+# setenv m "custombuilt"
 # setenv modeline "1920,1200,154000,74040,60,1920,1968,2000,2080,1200,1202,1208,1235,1,0,1"
 
 # 480 Lines (720x480)
@@ -496,7 +496,7 @@ setenv m "1080p60hz" # Progressive 60Hz
 # setenv m "800x480p60hz"
 # setenv m "800x600p60hz"
 # setenv m "1024x600p60hz"
-# setenv m "1024x768p60hz"  
+# setenv m "1024x768p60hz"
 # setenv m "1280x800p60hz"
 # setenv m "1280x1024p60hz"
 # setenv m "1360x768p60hz"
@@ -533,7 +533,7 @@ setenv condev "console=ttyS0,115200n8 console=tty0"   # on both
 
 # Meson Timer
 # 1 - Meson Timer
-# 0 - Arch Timer 
+# 0 - Arch Timer
 # Using meson_timer improves the video playback however it breaks KVM (virtualization).
 # Using arch timer allows KVM/Virtualization to work however you'll experience poor video
 setenv mesontimer "1"
@@ -546,7 +546,7 @@ setenv nographics "0"
 # CPU Frequency / Cores control
 ###########################################
 ### WARNING!!! WARNING!!! WARNING!!!
-# Before changing anything here please read the wiki entry: 
+# Before changing anything here please read the wiki entry:
 # http://odroid.com/dokuwiki/doku.php?id=en:c2_set_cpu_freq
 #
 # MAX CPU's

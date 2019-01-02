@@ -22,7 +22,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-odroidxu3}
 # Size of image in megabytes (Default is 7000=7GB)
 size=7000
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -282,7 +282,7 @@ setenv bootrootfs "console=tty1 console=ttySAC2,115200n8 root=/dev/mmcblk0p2 roo
 # Uncomment the following if you do NOT use an initrd
 setenv bootcmd "fatload mmc 0:1 0x40008000 zImage; fatload mmc 0:1 0x42000000 uInitrd; fatload mmc 0:1 0x44000000 exynos5422-odroidxu3.dtb; bootz 0x40008000 - 0x44000000"
 
-# --- Screen Configuration for HDMI --- # 
+# --- Screen Configuration for HDMI --- #
 # ---------------------------------------
 # Uncomment only ONE line! Leave all commented for automatic selection.
 # Uncomment only the setenv line!

@@ -22,7 +22,7 @@ hostname=${2:-kali}
 imagename=${3:-kali-linux-$1-odroidc2-mainline}
 # Size of image in megabytes (Default is 5500=5.5GB)
 size=5500
-# Suite to use.  
+# Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
@@ -469,8 +469,8 @@ cd "${basedir}"/bootloader/u-boot/
 make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- odroid-c2_defconfig
 make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu-
 
-# Now the real fun... keeping track of file locations isn't fun, and i should probably move them to 
-# one single directory, but since we're not keeping these things around afterwards, it's fine to 
+# Now the real fun... keeping track of file locations isn't fun, and i should probably move them to
+# one single directory, but since we're not keeping these things around afterwards, it's fine to
 # leave them where they are.
 # See:
 # https://forum.odroid.com/viewtopic.php?t=26833
