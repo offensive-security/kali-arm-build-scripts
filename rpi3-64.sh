@@ -17,8 +17,8 @@ basedir=`pwd`/rpi3-nexmon-64-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi3-nexmon-64}
-# Size of image in megabytes (Default is 5000=5GB)
-size=5000
+# Size of image in megabytes (Default is 5500=5.5GB)
+size=5500
 # Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
