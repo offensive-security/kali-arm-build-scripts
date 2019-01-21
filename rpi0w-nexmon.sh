@@ -315,6 +315,10 @@ fi
 # Enable login over serial
 echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-${architecture}/etc/inittab
 
+# Whitelist /dev/ttyGS0 so that users can login over the gadget serial device if they enable it
+# https://github.com/offensive-security/kali-arm-build-scripts/issues/151
+echo "ttyGS0" >> "${basedir}"/kali-${architecture}/etc/securetty
+
 cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
 deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
