@@ -313,7 +313,8 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat ${bootp}
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
+# Disable 64bit on ext4 because the u-boot from 2010 is too old.
+mkfs.ext4 -O ^64bit -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p "${basedir}"/root
