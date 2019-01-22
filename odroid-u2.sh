@@ -201,16 +201,6 @@ EOF
 # boot, the ODROID-U2/U3 will generate a random mac address.
 touch "${basedir}"/kali-${architecture}/etc/smsc95xx_mac_addr
 
-# Start X on the ODROID U2.
-cp "${basedir}"/kali-${architecture}/etc/skel/.profile "${basedir}"/kali-${architecture}/root/.bash_profile
-
-cat << EOF >> "${basedir}"/kali-${architecture}/root/.bash_profile
-
-if [ -z "\$DISPLAY" ] && [ \$(tty) = /dev/ttySAC1 ]; then
-startx
-fi
-EOF
-
 cat << EOF > "${basedir}"/kali-${architecture}/etc/X11/xorg.conf
 # X.Org X server configuration file for xfree86-video-mali
 Section "Device"
