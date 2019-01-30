@@ -17,8 +17,8 @@ basedir=`pwd`/rpi3-nexmon-64-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi3-nexmon-64-lite}
-# Size of image in megabytes (Default is 5000=5GB)
-size=5000
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 # Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -183,11 +183,6 @@ iw dev ${interface} del
 EOF
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/monstop
 
-# Hacks in place until we get a fixed firefox.
-#wget 'http://security.debian.org/debian-security/pool/updates/main/f/firefox-esr/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb' -O "${basedir}"/kali-${architecture}/root/'firefox-esr_60.3.0esr-1~deb9u1_arm64.deb'
-#wget http://ftp.us.debian.org/debian/pool/main/libe/libevent/libevent-2.0-5_2.0.21-stable-3_arm64.deb -O "${basedir}"/kali-${architecture}/root/libevent-2.0-5_2.0.21-stable-3_arm64.deb
-#wget http://ftp.us.debian.org/debian/pool/main/libv/libvpx/libvpx4_1.6.1-3+deb9u1_arm64.deb -O "${basedir}"/kali-${architecture}/root/libvpx4_1.6.1-3+deb9u1_arm64.deb
-
 # Bluetooth enabling
 mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d
 cp "${basedir}"/../misc/pi-bluetooth/99-com.rules "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-com.rules
@@ -224,8 +219,11 @@ apt-get --yes --allow-change-held-packages autoremove
 # xserver-xorg-input-synaptics packages installed above!)
 apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 
-# Lets upgrade firefox, libvpx4 and libevent.
-#apt install --yes --allow-downgrades --allow-change-held-packages /root/libvpx4_1.6.1-3+deb9u1_arm64.deb /root/libevent-2.0-5_2.0.21-stable-3_arm64.deb /root/firefox-esr_60.3.0esr-1~deb9u1_arm64.deb
+# Install the kernel packages
+echo "deb http://http.re4son-kernel.com/re4son kali-pi main" > /etc/apt/sources.list.d/re4son.list
+wget -O - https://re4son-kernel.com/keys/http/archive-key.asc | apt-key add -
+apt-get update
+apt-get install --yes --allow-change-held-packages kalipi-kernel kalipi-bootloader kalipi-re4son-firmware kalipi-kernel-headers
 
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
@@ -300,49 +298,6 @@ echo "T0:23:respawn:/sbin/agetty -L ttyAMA0 115200 vt100" >> "${basedir}"/kali-$
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-git clone --depth 1 https://github.com/re4son/re4son-raspberrypi-linux -b rpi-4.14.80-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
-cd "${basedir}"/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
-# Fix sdcards not working.
-# Comment out for now - manually applying seems to want to reverse it so lets not do that.
-#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/issue-4973.patch
-touch .scmversion
-export ARCH=arm64
-export CROSS_COMPILE=aarch64-linux-gnu-
-cp "${basedir}"/../kernel-configs/rpi3-64bit.config "${basedir}"/kali-${architecture}/usr/src/kernel/.config
-make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}/
-git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
-rm -rf rpi-firmware
-# ARGH.  Device tree support requires we run this *sigh*
-perl scripts/mkknlimg --dtok arch/arm64/boot/Image "${basedir}"/kali-${architecture}/boot/kernel8.img
-#cp arch/arm64/boot/Image ${basedir}/bootp/kernel8.img
-cp arch/arm64/boot/dts/broadcom/*.dtb "${basedir}"/kali-${architecture}/boot/
-mkdir -p "${basedir}"/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/*.dtbo "${basedir}"/kali-${architecture}/boot/overlays/
-make mrproper
-cp "${basedir}"/../kernel-configs/rpi3-64bit.config "${basedir}"/kali-${architecture}/usr/src/kernel/.config
-cp "${basedir}"/../kernel-configs/rpi3-64bit.config "${basedir}"/kali-${architecture}/usr/src/rpi3-64bit.config
-# Don't make prepare or make modules_prepare because it ends up building amd64 binaries
-# and external modules fail.
-cd ${basedir}
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
-cd "${basedir}"/kali-${architecture}/lib/modules/$kernver
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd ${basedir}
-
-
-# Create cmdline.txt file
 cd "${basedir}"
 
 cat << EOF > "${basedir}"/kali-${architecture}/etc/apt/sources.list
@@ -350,6 +305,7 @@ deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
+# Create cmdline.txt file
 cat << EOF > "${basedir}"/kali-${architecture}/boot/cmdline.txt
 dwc_otg.fiq_fix_enable=2 console=ttyAMA0,115200 kgdboc=ttyAMA0,115200 console=tty1 root=/dev/mmcblk0p2 rootfstype=ext4 rootwait rootflags=noload net.ifnames=0
 EOF
@@ -361,9 +317,6 @@ cat << EOF > "${basedir}"/kali-${architecture}/etc/fstab
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot           vfat    defaults          0       2
 /dev/mmcblk0p2  /               ext4    defaults,noatime  0       1
-# This is a bit of a hack because of using Debian's raspi3-firmware package.
-# Not using this just yet in the arm64 version.
-#tmpfs     /boot/firmware  tmpfs rw            0       0
 EOF
 
 # Copy a default config, with everything commented out so people find it when
@@ -393,7 +346,7 @@ arm_64bit=1
 # RPi3 Compute Module dtb file
 #device_tree=bcm2710-rpi-cm3.dtb
 # 64bit kernel is called kernel8 (armv8a)
-kernel=kernel8.img
+kernel=kernel8-alt.img
 EOF
 
 cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
@@ -402,58 +355,11 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 # Set a REGDOMAIN.  This needs to be done or wireless doesn't work correctly on the RPi 3B+
 sed -i -e 's/REGDOM.*/REGDOMAIN=00/g' "${basedir}"/kali-${architecture}/etc/default/crda
 
-# Build nexmon firmware outside the build system, if we can.
-cd "${basedir}"
-git clone https://github.com/seemoo-lab/nexmon.git "${basedir}"/nexmon --depth 1
-cd "${basedir}"/nexmon
-# Disable statistics
-touch DISABLE_STATISTICS
-source setup_env.sh
-ls -lah /usr/lib/x86_64-linux-gnu/libl.a
-ls -lah /usr/lib/x86_64-linux-gnu/libfl.a
-make
-cd buildtools/isl-0.10
-CC=$CCgcc
-./configure
-make
-sed -i -e 's/all:.*/all: $(RAM_FILE)/g' ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/Makefile
-sed -i -e 's/all:.*/all: $(RAM_FILE)/g' ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/Makefile
-cd ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon
-# Make sure we use the cross compiler to build the firmware.
-# We use the x86 cross compiler because we're building on amd64
-unset CROSS_COMPILE
-#export CROSS_COMPILE=${NEXMON_ROOT}/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-x86/bin/arm-none-eabi-
-make clean
-# We do this so we don't have to install the ancient isl version into /usr/local/lib on systems.
-LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make ARCH=arm CC=${NEXMON_ROOT}/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-x86/bin/arm-none-eabi-
-cd ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon
-make clean
-LD_LIBRARY_PATH=${NEXMON_ROOT}/buildtools/isl-0.10/.libs make ARCH=arm CC=${NEXMON_ROOT}/buildtools/gcc-arm-none-eabi-5_4-2016q2-linux-x86/bin/arm-none-eabi-
-# RPi0w->3B firmware
-mkdir -p "${basedir}"/kali-${architecture}/lib/firmware/brcm
-cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.nexmon.bin
-cp ${NEXMON_ROOT}/patches/bcm43430a1/7_45_41_46/nexmon/brcmfmac43430-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.txt -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.txt
-# RPi3B+ firmware
-cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.nexmon.bin
-cp ${NEXMON_ROOT}/patches/bcm43455c0/7_45_154/nexmon/brcmfmac43455-sdio.bin "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.txt -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.txt
-# Make a backup copy of the rpi firmware in case people don't want to use the nexmon firmware.
-# The firmware used on the RPi is not the same firmware that is in the firmware-brcm package which is why we do this.
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43430-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43430-sdio.rpi.bin
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.bin -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.rpi.bin
-# This is required for any wifi to work on the RPi 3B+
-wget https://raw.githubusercontent.com/RPi-Distro/firmware-nonfree/master/brcm/brcmfmac43455-sdio.clm_blob -O "${basedir}"/kali-${architecture}/lib/firmware/brcm/brcmfmac43455-sdio.clm_blob
-
 cd "${basedir}"
 
 # Re4son's rpi-tft configurator
 wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
-
-echo "Running du to see how big kali-${architecture} is"
-du -sh "${basedir}"/kali-${architecture}
-echo "the above is how big the sdcard needs to be"
 
 # Some maths here... it's not magic, we just want the block size a certain way
 # so that partitions line up in a way that's more optimal.
