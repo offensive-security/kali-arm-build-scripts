@@ -20,8 +20,8 @@ basedir=`pwd`/rpi-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-rpi}
-# Size of image in megabytes (Default is 5000=5GB)
-size=5000
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 # Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
@@ -199,6 +199,12 @@ apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-ge
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
 
+# Install the kernel packages
+echo "deb http://http.re4son-kernel.com/re4son kali-pi main" > /etc/apt/sources.list.d/re4son.list
+wget -O - https://re4son-kernel.com/keys/http/archive-key.asc | apt-key add -
+apt-get update
+apt-get install --yes --allow-change-held-packages kalipi-kernel kalipi-bootloader kalipi-re4son-firmware kalipi-kernel-headers
+
 # Because copying in authorized_keys is hard for people to do, let's make the
 # image insecure and enable root login with a password.
 
@@ -271,44 +277,6 @@ deb http://http.kali.org/kali kali-rolling main non-free contrib
 deb-src http://http.kali.org/kali kali-rolling main non-free contrib
 EOF
 
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-git clone --depth 1 https://github.com/raspberrypi/firmware.git rpi-firmware
-cp -rf rpi-firmware/boot/* "${basedir}"/kali-${architecture}/boot/
-# copy over Pi specific libs (video core) and binaries (dtoverlay,dtparam ...)
-cp -rf rpi-firmware/opt/* "${basedir}"/kali-${architecture}/opt/
-rm -rf rpi-firmware
-git clone --depth 1 https://github.com/nethunteros/re4son-raspberrypi-linux.git -b rpi-4.14.80-re4son "${basedir}"/kali-${architecture}/usr/src/kernel
-cd "${basedir}"/kali-${architecture}/usr/src/kernel
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabi-
-make re4son_pi1_defconfig
-
-# Build kernel
-make -j $(grep -c processor /proc/cpuinfo)
-make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
-
-# Copy kernel to boot
-perl scripts/mkknlimg --dtok arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/kernel.img
-cp arch/arm/boot/dts/*.dtb "${basedir}"/kali-${architecture}/boot/
-cp arch/arm/boot/dts/overlays/*.dtb* "${basedir}"/kali-${architecture}/boot/overlays/
-cp arch/arm/boot/dts/overlays/README "${basedir}"/kali-${architecture}/boot/overlays/
-
-make mrproper
-make re4son_pi1_defconfig
-cd "${basedir}"
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
-cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
 cd "${basedir}"
 
 # Create cmdline.txt file
@@ -344,10 +312,6 @@ cp "${basedir}"/../misc/config.txt "${basedir}"/kali-${architecture}/boot/config
 
 cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
 chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
-
-echo "Running du to see how big kali-${architecture} is"
-du -sh "${basedir}"/kali-${architecture}
-echo "the above is how big the sdcard needs to be"
 
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
