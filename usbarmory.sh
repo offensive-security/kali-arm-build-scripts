@@ -357,19 +357,21 @@ export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabihf-
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/kali-wifi-injection-4.14.patch
 patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/usbarmory_linux-4.14.config -O .config
+#wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/usbarmory_linux-4.14.config -O .config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-i2c.dts -O arch/arm/boot/dts/imx53-usbarmory-i2c.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-scc2.dts -O arch/arm/boot/dts/imx53-usbarmory-scc2.dts
+cp "${basedir}"/../kernel-configs/usbarmory-4.14.config "${basedir}"/kali-${architecture}/usr/src/kernel/.config
+cp "${basedir}"/../kernel-configs/usbarmory-4.14.config "${basedir}"/kali-${architecture}/usr/src/usbarmory-4.14.config
 make LOADADDR=0x70008000 -j $(grep -c processor /proc/cpuinfo) uImage modules imx53-usbarmory-gpio.dtb imx53-usbarmory-i2c.dtb imx53-usbarmory-spi.dtb imx53-usbarmory.dtb imx53-usbarmory-host.dtb imx53-usbarmory-scc2.dtb
 make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cp arch/arm/boot/zImage "${basedir}"/kali-${architecture}/boot/
 cp arch/arm/boot/dts/imx53-usbarmory*.dtb "${basedir}"/kali-${architecture}/boot/
 make mrproper
 # Since these aren't integrated into the kernel yet, mrproper removes them.
-wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/usbarmory_linux-4.14.config -O .config
+cp "${basedir}"/../kernel-configs/usbarmory-4.14.config "${basedir}"/kali-${architecture}/usr/src/kernel/.config
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-host.dts -O arch/arm/boot/dts/imx53-usbarmory-host.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-gpio.dts -O arch/arm/boot/dts/imx53-usbarmory-gpio.dts
 wget https://raw.githubusercontent.com/inversepath/usbarmory/master/software/kernel_conf/mark-one/imx53-usbarmory-spi.dts -O arch/arm/boot/dts/imx53-usbarmory-spi.dts
