@@ -20,8 +20,8 @@ basedir=`pwd`/odroidc2-$1
 hostname=${2:-kali}
 # Custom image file name variable - MUST NOT include .img at the end.
 imagename=${3:-kali-linux-$1-odroidc2}
-# Size of image in megabytes (Default is 4500=4.5GB)
-size=4500
+# Size of image in megabytes (Default is 7000=7GB)
+size=7000
 # Suite to use.
 # Valid options are:
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
