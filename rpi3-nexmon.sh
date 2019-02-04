@@ -43,6 +43,7 @@ architecture="armhf"
 # After generating the rootfs, we set the sources.list to the default settings.
 mirror=http.kali.org
 
+mkdir -p "${basedir}"
 cd "${basedir}"
 
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
