@@ -31,7 +31,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
-desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lxdm slim network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
 services="apache2 atftpd openssh-server openvpn tightvncserver"
 extras="bluez bluez-firmware firefox-esr i2c-tools python-configobj python-pip python-requests python-rpi.gpio python-smbus triggerhappy wpasupplicant xfce4-terminal xfonts-terminus"
@@ -46,10 +46,6 @@ mirror=http.kali.org
 # Set this to use an http proxy, like apt-cacher-ng, and uncomment further down
 # to unset it.
 #export http_proxy="http://localhost:3142/"
-
-mkdir -p "${basedir}"
-echo "The basedir thinks it is: "${basedir}""
-cd "${basedir}"
 
 # create the rootfs - not much to modify here, except maybe throw in some more packages if you want.
 debootstrap --foreign --keyring=/usr/share/keyrings/kali-archive-keyring.gpg --include=kali-archive-keyring --arch ${architecture} ${suite} kali-${architecture} http://${mirror}/kali
@@ -245,6 +241,11 @@ systemctl enable copy-user-wpasupplicant
 
 # Enable... enabling ssh by putting ssh or ssh.txt file in /boot
 systemctl enable enable-ssh
+
+# Attempt to set slim as the default login manager
+echo "/usr/bin/slim" > /etc/X11/default-display-manager
+# And set the theme to be the default theme instead of debian-softwaves
+sed -i -e 's/debian_softwave.*/default/' /etc/slim.conf
 
 # Copy over the default bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
