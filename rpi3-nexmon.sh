@@ -246,9 +246,10 @@ systemctl enable copy-user-wpasupplicant
 systemctl enable enable-ssh
 
 # Attempt to set slim as the default login manager
+dpkg-reconfigure -f noninteractive slim
 echo "/usr/bin/slim" > /etc/X11/default-display-manager
 # And set the theme to be the default theme instead of debian-softwaves
-sed -i -e 's/debian_softwave.*/default/' /etc/slim.conf
+sed -i -e 's/debian_soft.*/default/' /etc/slim.conf
 
 # Copy over the default bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
