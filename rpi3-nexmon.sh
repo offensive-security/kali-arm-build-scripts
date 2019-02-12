@@ -130,7 +130,7 @@ Description=shared-mime-info update hack
 Before=regenerate_ssh_host_keys.service
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/update-mime-database  /usr/share/mime/
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
 ExecStartPost=/bin/systemctl disable smi-hack
 
 [Install]
