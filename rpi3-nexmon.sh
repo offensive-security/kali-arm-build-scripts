@@ -31,7 +31,7 @@ machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
 base="apt-transport-https apt-utils console-setup e2fsprogs firmware-linux firmware-realtek firmware-atheros firmware-libertas ifupdown initramfs-tools iw kali-defaults man-db mlocate netcat-traditional net-tools parted psmisc rfkill screen snmpd snmp sudo tftp tmux unrar usbutils vim wget zerofree"
-desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lxdm slim network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
+desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev xserver-xorg-input-evdev xserver-xorg-input-synaptics"
 tools="aircrack-ng crunch cewl dnsrecon dnsutils ethtool exploitdb hydra john libnfc-bin medusa metasploit-framework mfoc ncrack nmap passing-the-hash proxychains recon-ng sqlmap tcpdump theharvester tor tshark usbutils whois windows-binaries winexe wpscan wireshark"
 services="apache2 atftpd openssh-server openvpn tightvncserver"
 extras="bluez bluez-firmware firefox-esr i2c-tools python-configobj python-pip python-requests python-rpi.gpio python-smbus triggerhappy wpasupplicant xfce4-terminal xfonts-terminus"
@@ -271,12 +271,6 @@ systemctl enable copy-user-wpasupplicant
 # Enable... enabling ssh by putting ssh or ssh.txt file in /boot
 systemctl enable enable-ssh
 
-# Attempt to set slim as the default login manager
-dpkg-reconfigure -f noninteractive slim
-echo "/usr/bin/slim" > /etc/X11/default-display-manager
-# And set the theme to be the default theme instead of debian-softwaves
-sed -i -e 's/debian_soft.*/default/' /etc/slim.conf
-
 # Copy over the default bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
 
@@ -377,10 +371,6 @@ cd "${basedir}"
 # Re4son's rpi-tft configurator
 wget https://raw.githubusercontent.com/Re4son/RPi-Tweaks/master/kalipi-tft-config/kalipi-tft-config -O "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
 chmod 755 "${basedir}"/kali-${architecture}/usr/bin/kalipi-tft-config
-
-echo "Running du to see how big kali-${architecture} is"
-du -sh "${basedir}"/kali-${architecture}
-echo "the above is how big the sdcard needs to be"
 
 # Some maths here... it's not magic, we just want the block size a certain way
 # so that partitions line up in a way that's more optimal.
