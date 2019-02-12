@@ -119,8 +119,8 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-mkdir -p kali-${architecture}/lib/systemd/system/
-cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/usr/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -133,7 +133,7 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 
 cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
 [Unit]

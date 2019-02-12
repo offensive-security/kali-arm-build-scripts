@@ -112,8 +112,8 @@ cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
-mkdir -p kali-${architecture}/lib/systemd/system/
-cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/usr/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -126,7 +126,21 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+[Unit]
+Description=shared-mime-info update hack
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
+ExecStartPost=/bin/systemctl disable smi-hack
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
 
 export MALLOC_CHECK_=0 # workaround for LP: #520465
 export LC_ALL=C
@@ -168,6 +182,17 @@ apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-ge
 apt-get --yes --allow-change-held-packages install ${desktop} ${tools} || apt-get --yes --fix-broken install
 apt-get --yes --allow-change-held-packages dist-upgrade
 apt-get --yes --allow-change-held-packages autoremove
+
+# systemd 240 is broke on arm so we enable re4son's repository and downgrade to 239
+echo "deb http://http.re4son-kernel.com/re4son kali-pi main" > /etc/apt/sources.list.d/re4son.list
+wget -O - https://re4son-kernel.com/keys/http/archive-key.asc | apt-key add -
+apt-get update
+apt-get --yes --allow-downgrades install systemd=239-12~bpo9+1 libsystemd0=239-12~bpo9+1 libnss-systemd=239-12~bpo9+1 libpam-systemd=239-12~bpo9+1 libcryptsetup4
+apt-mark hold systemd libsystemd0 libnss-systemd libpam-systemd
+
+# Regenerated the shared-mime-info database on the first boot
+# since it fails to do so properly in a chroot.
+systemctl enable smi-hack
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
@@ -359,7 +384,7 @@ rootp=${device}p2
 
 # Create file systems
 mkfs.vfat ${bootp}
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum ${rootp}
+mkfs.ext4 -O ^64bit -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p "${basedir}"/root

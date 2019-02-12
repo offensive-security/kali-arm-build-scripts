@@ -166,8 +166,8 @@ iw dev ${interface} del
 EOF
 chmod 755 kali-${architecture}/usr/bin/monstop
 
-mkdir -p kali-${architecture}/lib/systemd/system/
-cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/usr/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -180,9 +180,23 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+[Unit]
+Description=shared-mime-info update hack
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
+ExecStartPost=/bin/systemctl disable smi-hack
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -193,9 +207,9 @@ ExecStartPost=/bin/systemctl disable rpiwiggle
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+cat << EOF > "${basedir}"/kali-${architecture}/usr/lib/systemd/system/enable-ssh.service
 [Unit]
 Description=Turn on SSH if /boot/ssh is present
 ConditionPathExistsGlob=/boot/ssh{,.txt}
@@ -208,11 +222,11 @@ ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+chmod 644 "${basedir}"/kali-${architecture}/usr/lib/systemd/system/enable-ssh.service
 
 # Bluetooth enabling
-mkdir -p kali-${architecture}/lib/udev/rules.d/
-cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
+mkdir -p kali-${architecture}/usr/lib/udev/rules.d/
+cp "${basedir}"/../misc/pi-bluetooth/50-bluetooth-hci-auto-poweron.rules kali-${architecture}/usr/lib/udev/rules.d/50-bluetooth-hci-auto-poweron.rules
 cp "${basedir}"/../misc/pi-bluetooth/pi-bluetooth+re4son_2.2_all.deb kali-${architecture}/root/pi-bluetooth+re4son_2.2_all.deb
 
 # Copy a default config, with everything commented out so people find it when

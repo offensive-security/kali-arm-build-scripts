@@ -99,8 +99,8 @@ cat << EOF > kali-${architecture}/etc/resolv.conf
 nameserver 8.8.8.8
 EOF
 
-mkdir -p kali-${architecture}/lib/systemd/system/
-cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/usr/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -114,9 +114,23 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 WantedBy=multi-user.target
 EOF
 
-chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+[Unit]
+Description=shared-mime-info update hack
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
+ExecStartPost=/bin/systemctl disable smi-hack
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+
+cat << EOF > "${basedir}"/kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -128,9 +142,9 @@ ExecStartPost=/bin/systemctl disable rpiwiggle
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 "${basedir}"/kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+cat << EOF > "${basedir}"/kali-${architecture}/usr/lib/systemd/system/enable-ssh.service
 [Unit]
 Description=Turn on SSH if /boot/ssh is present
 ConditionPathExistsGlob=/boot/ssh{,.txt}
@@ -143,9 +157,9 @@ ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+chmod 644 "${basedir}"/kali-${architecture}/usr/lib/systemd/system/enable-ssh.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+cat << EOF > "${basedir}"/kali-${architecture}/usr/lib/systemd/system/copy-user-wpasupplicant.service
 [Unit]
 Description=Copy user wpa_supplicant.conf
 ConditionPathExists=/boot/wpa_supplicant.conf
@@ -160,11 +174,11 @@ ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+chmod 644 "${basedir}"/kali-${architecture}/usr/lib/systemd/system/copy-user-wpasupplicant.service
 
 # Download the hyperpixel's service files here so we can enable them in the third stage with the rest of the services
-wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-touch.service -O kali-${architecture}/lib/systemd/system/hyperpixel-touch.service
-wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-init.service -O kali-${architecture}/lib/systemd/system/hyperpixel-init.service
+wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-touch.service -O kali-${architecture}/usr/lib/systemd/system/hyperpixel-touch.service
+wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/lib/systemd/system/hyperpixel-init.service -O kali-${architecture}/usr/lib/systemd/system/hyperpixel-init.service
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/bin/hyperpixel-init -O kali-${architecture}/usr/bin/hyperpixel-init
 chmod 755 kali-${architecture}/usr/bin/hyperpixel-init
 wget https://raw.githubusercontent.com/pimoroni/hyperpixel/master/requirements/usr/bin/hyperpixel-touch -O kali-${architecture}/usr/bin/hyperpixel-touch
@@ -200,8 +214,8 @@ chmod 755 "${basedir}"/kali-${architecture}/usr/bin/monstop
 # Bluetooth enabling
 mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d
 cp "${basedir}"/../misc/pi-bluetooth/99-com.rules "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-com.rules
-mkdir -p "${basedir}"/kali-${architecture}/lib/systemd/system/
-cp "${basedir}"/../misc/pi-bluetooth/hciuart.service "${basedir}"/kali-${architecture}/lib/systemd/system/hciuart.service
+mkdir -p "${basedir}"/kali-${architecture}/usr/lib/systemd/system/
+cp "${basedir}"/../misc/pi-bluetooth/hciuart.service "${basedir}"/kali-${architecture}/usr/lib/systemd/system/hciuart.service
 mkdir -p "${basedir}"/kali-${architecture}/usr/bin
 cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/usr/bin/btuart
 # Ensure btuart is executable
@@ -248,6 +262,10 @@ apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
+# Regenerated the shared-mime-info database on the first boot
+# since it fails to do so properly in a chroot.
+systemctl enable smi-hack
+
 systemctl enable rpiwiggle
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
@@ -269,7 +287,7 @@ systemctl enable hyperpixel-touch
 cp  /etc/skel/.bashrc /root/.bashrc
 
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
-sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/usr/lib/systemd/system/networking.service"
 
 # Try and make the console a bit nicer
 # Set the terminus font for a bit nicer display.

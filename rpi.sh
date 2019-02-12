@@ -111,8 +111,8 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-mkdir -p kali-${architecture}/lib/systemd/system/
-cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/usr/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -125,9 +125,23 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+[Unit]
+Description=shared-mime-info update hack
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
+ExecStartPost=/bin/systemctl disable smi-hack
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -138,9 +152,9 @@ ExecStartPost=/bin/systemctl disable rpiwiggle
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+cat << EOF > "${basedir}"/kali-${architecture}/usr/lib/systemd/system/enable-ssh.service
 [Unit]
 Description=Turn on SSH if /boot/ssh is present
 ConditionPathExistsGlob=/boot/ssh{,.txt}
@@ -153,9 +167,9 @@ ExecStart=/bin/sh -c "update-rc.d ssh enable && invoke-rc.d ssh start && rm -f /
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/enable-ssh.service
+chmod 644 "${basedir}"/kali-${architecture}/usr/lib/systemd/system/enable-ssh.service
 
-cat << EOF > "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+cat << EOF > "${basedir}"/kali-${architecture}/usr/lib/systemd/system/copy-user-wpasupplicant.service
 [Unit]
 Description=Copy user wpa_supplicant.conf
 ConditionPathExists=/boot/wpa_supplicant.conf
@@ -170,7 +184,7 @@ ExecStartPost=/bin/chmod 600 /etc/wpa_supplicant/wpa_supplicant.conf
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 "${basedir}"/kali-${architecture}/lib/systemd/system/copy-user-wpasupplicant.service
+chmod 644 "${basedir}"/kali-${architecture}/usr/lib/systemd/system/copy-user-wpasupplicant.service
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash

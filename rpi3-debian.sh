@@ -107,8 +107,21 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-
 chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
+
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+[Unit]
+Description=shared-mime-info update hack
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
+ExecStartPost=/bin/systemctl disable smi-hack
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
 
 cat << EOF > kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 [Unit]
@@ -186,8 +199,8 @@ chmod 755 "${basedir}"/kali-${architecture}/usr/bin/monstop
 # Bluetooth enabling
 mkdir -p "${basedir}"/kali-${architecture}/etc/udev/rules.d
 cp "${basedir}"/../misc/pi-bluetooth/99-com.rules "${basedir}"/kali-${architecture}/etc/udev/rules.d/99-com.rules
-mkdir -p "${basedir}"/kali-${architecture}/lib/systemd/system/
-cp "${basedir}"/../misc/pi-bluetooth/hciuart.service "${basedir}"/kali-${architecture}/lib/systemd/system/hciuart.service
+mkdir -p "${basedir}"/kali-${architecture}/usr/lib/systemd/system/
+cp "${basedir}"/../misc/pi-bluetooth/hciuart.service "${basedir}"/kali-${architecture}/usr/lib/systemd/system/hciuart.service
 mkdir -p "${basedir}"/kali-${architecture}/usr/bin
 cp "${basedir}"/../misc/pi-bluetooth/btuart "${basedir}"/kali-${architecture}/usr/bin/btuart
 # Ensure btuart is executable
@@ -232,6 +245,10 @@ apt-get --yes --allow-change-held-packages purge xserver-xorg-input-libinput
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
+# Regenerated the shared-mime-info database on the first boot
+# since it fails to do so properly in a chroot.
+systemctl enable smi-hack
+
 systemctl enable rpiwiggle
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
@@ -254,7 +271,7 @@ sed -i -e 's/FONTFACE=.*/FONTFACE="Terminus"/' /etc/default/console-setup
 sed -i -e 's/FONTSIZE=.*/FONTSIZE="6x12"/' /etc/default/console-setup
 
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
-sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/usr/lib/systemd/system/networking.service"
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
 dpkg-divert --remove --rename /usr/sbin/invoke-rc.d

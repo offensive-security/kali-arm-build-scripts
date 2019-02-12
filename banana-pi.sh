@@ -132,8 +132,8 @@ console-common console-data/keymap/policy select Select keymap from full list
 console-common console-data/keymap/full select en-latin1-nodeadkeys
 EOF
 
-mkdir -p kali-${architecture}/lib/systemd/system/
-cat << 'EOF' > kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+mkdir -p kali-${architecture}/usr/lib/systemd/system/
+cat << 'EOF' > kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 [Unit]
 Description=Regenerate SSH host keys
 Before=ssh.service
@@ -146,9 +146,23 @@ ExecStartPost=/bin/sh -c "for i in /etc/ssh/ssh_host_*_key*; do actualsize=$(wc 
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/regenerate_ssh_host_keys.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/regenerate_ssh_host_keys.service
 
-cat << EOF > kali-${architecture}/lib/systemd/system/rpiwiggle.service
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+[Unit]
+Description=shared-mime-info update hack
+Before=regenerate_ssh_host_keys.service
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
+ExecStartPost=/bin/systemctl disable smi-hack
+
+[Install]
+WantedBy=multi-user.target
+EOF
+chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
+
+cat << EOF > kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 [Unit]
 Description=Resize filesystem
 Before=regenerate_ssh_host_keys.service
@@ -160,7 +174,7 @@ ExecStartPost=/sbin/reboot
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 kali-${architecture}/lib/systemd/system/rpiwiggle.service
+chmod 644 kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -192,12 +206,23 @@ apt-get --yes --allow-change-held-packages autoremove
 
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
-# Resize filesystem on first boot
-systemctl enable rpiwiggle
+# systemd 240 is broke on arm so we enable re4son's repository and downgrade to 239
+echo "deb http://http.re4son-kernel.com/re4son kali-pi main" > /etc/apt/sources.list.d/re4son.list
+wget -O - https://re4son-kernel.com/keys/http/archive-key.asc | apt-key add -
+apt-get update
+apt-get --yes --allow-downgrades install systemd=239-12~bpo9+1 libsystemd0=239-12~bpo9+1 libnss-systemd=239-12~bpo9+1 libpam-systemd=239-12~bpo9+1 libcryptsetup4
+apt-mark hold systemd libsystemd0 libnss-systemd libpam-systemd
+
+# Regenerated the shared-mime-info database on the first boot
+# since it fails to do so properly in a chroot.
+systemctl enable smi-hack
 
 # Generate SSH host keys on first run
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
+
+# Resize filesystem on first boot
+systemctl enable rpiwiggle
 
 # Copy bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
