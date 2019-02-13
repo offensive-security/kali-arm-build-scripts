@@ -52,7 +52,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek u-boot-imx linux-image-armmp"
+base="apt-utils e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek u-boot-imx linux-image-armmp u-boot-menu"
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -148,6 +148,12 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
 
+# Set up u-boot-menu to append the kernel cmdline stuff
+mkdir -p kali-${architecture}/etc/default/
+cat << 'EOF' > kali-${architecture}/etc/default/u-boot
+U_BOOT_PARAMETERS="root=/dev/mmcblk1p1 rootfstype=ext4 video=mxcfb0:dev=hdmi,1920x1080M@60,if=RGB24,bpp=32 console=ttymxc0,115200n8 console=tty1 consoleblank=0 rw rootwait"
+EOF
+
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 set -e
@@ -234,14 +240,6 @@ EOF
 
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
-
-
-# Create the extlinux.conf file so that the system will boot
-mkdir -p "${basedir}"/kali-${architecture}/boot/extlinux
-cat << EOF > "${basedir}"/kali-${architecture}/boot/extlinux/extlinux.conf
-
-EOF
-
 
 cd "${basedir}"
 
