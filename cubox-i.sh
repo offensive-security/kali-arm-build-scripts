@@ -258,6 +258,9 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
+# Ensure we don't have root=/dev/sda3 in the extlinux.conf which comes from running u-boot-menu in a cross chroot.
+sed -i -e 's/root=\/dev\/sda[0-9]//g' "${basedir}"/kali-${architecture}/boot/extlinux/extlinux.conf
+
 echo "Creating image file for ${imagename}.img"
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
