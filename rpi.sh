@@ -225,6 +225,11 @@ apt-get install --yes --allow-change-held-packages kalipi-kernel kalipi-bootload
 echo "Making the image insecure"
 sed -i -e 's/^#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
 
+# systemd 240 is utterly broken on armhf and armel, so we pull in the older versions
+# using re4son's repo, and then mark it so we don't let users upgrade to the broken version.
+apt-get --yes --allow-downgrades install systemd=239-12~bpo9+1 libsystemd0=239-12~bpo9+1 libnss-systemd=239-12~bpo9+1 libpam-systemd=239-12~bpo9+1 libcryptsetup4
+apt-mark hold systemd libsystemd0 libnss-systemd libpam-systemd
+
 # Resize FS on first run (hopefully)
 systemctl enable rpiwiggle
 
