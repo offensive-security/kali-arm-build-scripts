@@ -24,7 +24,7 @@ size=7000
 # kali-rolling, kali-dev, kali-bleeding-edge, kali-dev-only, kali-experimental, kali-last-snapshot
 # A release is done against kali-last-snapshot, but if you're building your own, you'll probably want to build
 # kali-rolling.
-suite=kali-rolling
+suite=kali-last-snapshot
 
 # Generate a random machine name to be used.
 machine=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 16 | head -n 1)
@@ -241,36 +241,24 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# The kernel doesn't like GCC 8, so we use an older cross compiler.
-# Really need to look into getting the mainline kernel working :(
 cd "${basedir}"
-git clone https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 # Kernel section.  If you want to use a custom kernel, or configuration, replace
 # them in this section.
-git clone --depth 1 https://chromium.googlesource.com/chromiumos/third_party/kernel -b release-${kernel_release} "${basedir}"/kali-${architecture}/usr/src/kernel
+git clone --depth 1 https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git -b linux-4.19.y "${basedir}"/kali-${architecture}/usr/src/kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
-cp "${basedir}"/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
+cp "${basedir}"/../kernel-configs/veyron-4.19.config .config
 cp .config "${basedir}"/kali-${architecture}/usr/src/veyron.config
 export ARCH=arm
 # Edit the CROSS_COMPILE variable as needed.
-export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
+export CROSS_COMPILE=arm-linux-gnueabihf-
 # This allows us to patch the kernel without it adding -dirty to the kernel version.
 touch .scmversion
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211-3.8.patch
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0002-mwifiex-do-not-create-AP-and-P2P-interfaces-upon-dri.patch
-# Commented out as it causes issues, but if you want to use the usb port as a
-# serial port, you can uncomment this and build an image with it enabled.
-#patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0003-UPSTREAM-soc-rockchip-add-handler-for-usb-uart-funct.patch
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0004-fix-brcmfmac-oops-and-race-condition.patch
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/0001-Update-carl9170-in-wireless-3.8-for-3.14-s-changes.patch
-# Backported patch to support building the kernel with GCC newer than 5.
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/3711edaf01a01818f2aed9f21efe29b9818134b9.patch
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/615829a03dc729e78372d40d95ba40e2ad51783b.patch
-make WIFIVERSION="-3.8" oldconfig || die "Kernel config options added"
-make WIFIVERSION="-3.8" -j$(grep -c processor /proc/cpuinfo)
-make WIFIVERSION="-3.8" dtbs
-make WIFIVERSION="-3.8" modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/veyron/4.19/kali-wifi-injection.patch
+patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/veyron/4.19/wireless-carl9170-Enable-sniffer-mode-promisc-flag-t.patch
+make -j$(grep -c processor /proc/cpuinfo)
+make dtbs
+make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
 cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/kernel-veyron.its
 /dts-v1/;
 
@@ -288,8 +276,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             entry = <0>;
         };
         fdt@1{
-            description = "rk3288-brain-rev0.dtb";
-            data = /incbin/("dts/rk3288-brain-rev0.dtb");
+            description = "rk3288-veyron-brain.dtb";
+            data = /incbin/("dts/rk3288-veyron-brain.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -298,8 +286,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             };
         };
         fdt@2{
-            description = "rk3288-danger-rev0.dtb";
-            data = /incbin/("dts/rk3288-danger-rev0.dtb");
+            description = "rk3288-veyron-jaq.dtb";
+            data = /incbin/("dts/rk3288-veyron-jaq.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -308,8 +296,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             };
         };
         fdt@3{
-            description = "rk3288-danger-rev1.dtb";
-            data = /incbin/("dts/rk3288-danger-rev1.dtb");
+            description = "rk3288-veyron-jerry.dtb";
+            data = /incbin/("dts/rk3288-veyron-jerry.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -318,8 +306,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             };
         };
         fdt@4{
-            description = "rk3288-emile-rev0.dtb";
-            data = /incbin/("dts/rk3288-emile-rev0.dtb");
+            description = "rk3288-veyron-mickey.dtb";
+            data = /incbin/("dts/rk3288-veyron-mickey.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -328,8 +316,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             };
         };
         fdt@5{
-            description = "rk3288-evb-act8846.dtb";
-            data = /incbin/("dts/rk3288-evb-act8846.dtb");
+            description = "rk3288-veyron-minnie.dtb";
+            data = /incbin/("dts/rk3288-veyron-minnie.dtb");
             type = "flat_dt";
             arch = "arm";
             compression = "none";
@@ -338,8 +326,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
             };
         };
         fdt@6{
-	    description = "rk3288-evb-rk808.dtb";
-	    data = /incbin/("dts/rk3288-evb-rk808.dtb");
+	    description = "rk3288-veyron-pinky.dtb";
+	    data = /incbin/("dts/rk3288-veyron-pinky.dtb");
 	    type = "flat_dt";
 	    arch = "arm";
 	    compression = "none";
@@ -348,8 +336,8 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
 	    };
 	};
         fdt@7{
-	    description = "rk3288-fievel-rev0.dtb";
-	    data = /incbin/("dts/rk3288-fievel-rev0.dtb");
+	    description = "rk3288-veyron-speedy.dtb";
+	    data = /incbin/("dts/rk3288-veyron-speedy.dtb");
 	    type = "flat_dt";
 	    arch = "arm";
 	    compression = "none";
@@ -357,157 +345,6 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
 		algo = "sha1";
 	    };
 	};
-        fdt@8{
-	    description = "rk3288-gus-rev1.dtb";
-	    data = /incbin/("dts/rk3288-gus-rev1.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@9{
-	    description = "rk3288-jaq-rev1.dtb";
-	    data = /incbin/("dts/rk3288-jaq-rev1.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@10{
-	    description = "rk3288-jerry-rev10.dtb";
-	    data = /incbin/("dts/rk3288-jerry-rev10.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@11{
-	    description = "rk3288-jerry-rev2.dtb";
-	    data = /incbin/("dts/rk3288-jerry-rev2.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@12{
-	    description = "rk3288-jerry-rev3.dtb";
-	    data = /incbin/("dts/rk3288-jerry-rev3.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@13{
-	    description = "rk3288-mickey-rev0.dtb";
-	    data = /incbin/("dts/rk3288-mickey-rev0.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@14{
-	    description = "rk3288-mighty-rev1.dtb";
-	    data = /incbin/("dts/rk3288-mighty-rev1.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@15{
-	    description = "rk3288-minnie-rev0.dtb";
-	    data = /incbin/("dts/rk3288-minnie-rev0.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@16{
-	    description = "rk3288-nicky-rev0.dtb";
-	    data = /incbin/("dts/rk3288-nicky-rev0.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@17{
-	    description = "rk3288-rialto-rev0.dtb";
-	    data = /incbin/("dts/rk3288-rialto-rev0.dtb");
-	    type = "flat_dt";
-	    arch = "arm";
-	    compression = "none";
-	    hash@1{
-		algo = "sha1";
-	    };
-	};
-        fdt@18{
-        description = "rk3288-rialto-rev3.dtb";
-        data = /incbin/("dts/rk3288-rialto-rev3.dtb");
-        type = "flat_dt";
-        arch = "arm";
-        compression = "none";
-        hash@1{
-        algo = "sha1";
-        };
-    };
-        fdt@19{
-            description = "rk3288-speedy.dtb";
-            data = /incbin/("dts/rk3288-speedy.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@20{
-            description = "rk3288-speedy-rev1.dtb";
-            data = /incbin/("dts/rk3288-speedy-rev1.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@21{
-            description = "rk3288-thea-rev0.dtb";
-            data = /incbin/("dts/rk3288-thea-rev0.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-        fdt@22{
-            description = "rk3288-tiger-rev0.dtb";
-            data = /incbin/("dts/rk3288-tiger-rev0.dtb");
-            type = "flat_dt";
-            arch = "arm";
-            compression = "none";
-            hash@1{
-                algo = "sha1";
-            };
-        };
-
     };
     configurations {
         default = "conf@1";
@@ -539,66 +376,6 @@ cat << __EOF__ > "${basedir}"/kali-${architecture}/usr/src/kernel/arch/arm/boot/
 	        kernel = "kernel@1";
 	        fdt = "fdt@7";
 	    };
-	    conf@8{
-	        kernel = "kernel@1";
-	        fdt = "fdt@8";
-	    };
-	    conf@9{
-	        kernel = "kernel@1";
-	        fdt = "fdt@9";
-	    };
-	    conf@10{
-	        kernel = "kernel@1";
-	        fdt = "fdt@10";
-	    };
-	    conf@11{
-	        kernel = "kernel@1";
-	        fdt = "fdt@11";
-	    };
-	    conf@12{
-	        kernel = "kernel@1";
-	        fdt = "fdt@12";
-	    };
-	    conf@13{
-	        kernel = "kernel@1:";
-	        fdt = "fdt@13";
-	    };
-	    conf@14{
-	        kernel = "kernel@1";
-	        fdt = "fdt@14";
-	    };
-	    conf@15{
-	        kernel = "kernel@1";
-	        fdt = "fdt@15";
-	    };
-	    conf@16{
-	        kernel = "kernel@1";
-	        fdt = "fdt@16";
-	    };
-	    conf@17{
-	        kernel = "kernel@1";
-	        fdt = "fdt@17";
-	    };
-        conf@18{
-            kernel = "kernel@1";
-            fdt = "fdt@18";
-        };
-        conf@19{
-            kernel = "kernel@1";
-            fdt = "fdt@19";
-        };
-        conf@20{
-            kernel = "kernel@1";
-            fdt = "fdt@20";
-        };
-        conf@21{
-            kernel = "kernel@1";
-            fdt = "fdt@21";
-        };
-        conf@22{
-            kernel = "kernel@1";
-            fdt = "fdt@22";
-        };
     };
 };
 __EOF__
@@ -614,8 +391,8 @@ dd if=/dev/zero of=bootloader.bin bs=512 count=1
 
 vbutil_kernel --arch arm --pack "${basedir}"/kernel.bin --keyblock /usr/share/vboot/devkeys/kernel.keyblock --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk --version 1 --config cmdline --bootloader bootloader.bin --vmlinuz veyron-kernel
 cd "${basedir}"/kali-${architecture}/usr/src/kernel
-make WIFIVERSION="-3.8" mrproper
-cp "${basedir}"/../kernel-configs/chromebook-3.14_wireless-3.8.config .config
+make mrproper
+cp "${basedir}"/../kernel-configs/veyron-4.19.config .config
 cd "${basedir}"
 
 # Fix up the symlink for building external modules
@@ -2491,7 +2268,7 @@ device="/dev/mapper/${device}"
 bootp=${device}p1
 rootp=${device}p2
 
-mkfs.ext4 -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
+mkfs.ext4 -O ^64bit -O ^flex_bg -O ^metadata_csum -L rootfs ${rootp}
 
 mkdir -p "${basedir}"/root
 mount ${rootp} "${basedir}"/root
