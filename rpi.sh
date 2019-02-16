@@ -251,7 +251,8 @@ systemctl enable enable-ssh
 cp  /etc/skel/.bashrc /root/.bashrc
 
 # Fix startup time from 5 minutes to 15 secs on raise interface wlan0
-sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=15/g' "/lib/systemd/system/networking.service"
+# On RPi, if it's set to 15, then ethernet doesn't start, so we increase it to 25
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=25/g' "/usr/lib/systemd/system/networking.service"
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
