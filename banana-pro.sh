@@ -40,17 +40,6 @@ fi
 # get cross compiled.
 unset CROSS_COMPILE
 
-# If libfdt-dev is installed, u-boot will fail to compile due to the fdt headers
-# being different than the ones the build system expects, so we uninstall libfdt
-# and at the end of the script we will reinstall it.
-
-if [[ $(dpkg-query -W -f='${Status}' libfdt-dev 2>/dev/null | grep -c "ok installed") -eq 1 ]];
-then
-    echo "Removing libfdt-dev because it causes issues with the build"
-    apt-get --yes purge libfdt-dev
-    libfdtdev=1
-fi
-
 # Package installations for various sections.
 # This will build a minimal XFCE Kali system with the top 10 tools.
 # This is the section to edit if you would like to add more packages.
@@ -61,7 +50,7 @@ fi
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="apt-utils e2fsprogs ifupdown initramfs-tools kali-defaults parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek linux-image-armmp u-boot-menu u-boot-sunxi"
 desktop="kali-defaults fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -161,19 +150,11 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
 
-cat << EOF > kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
-[Unit]
-Description=Resize filesystem
-Before=regenerate_ssh_host_keys.service
-[Service]
-Type=oneshot
-ExecStart=/root/scripts/rpi-wiggle.sh
-ExecStartPost=/bin/systemctl disable rpiwiggle
-ExecStartPost=/sbin/reboot
-[Install]
-WantedBy=multi-user.target
+# Set up u-boot-menu to append the kernel cmdline stuff
+mkdir -p kali-${architecture}/etc/default/
+cat << 'EOF' > kali-${architecture}/etc/default/u-boot
+U_BOOT_PARAMETERS="console=ttyS0,115200 console=tty1 root=/dev/mmcblk0p1 rootwait panic=10 rw rootfstype=ext4 net.ifnames=0"
 EOF
-chmod 644 kali-${architecture}/usr/lib/systemd/system/rpiwiggle.service
 
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
@@ -220,11 +201,11 @@ systemctl enable smi-hack
 systemctl enable regenerate_ssh_host_keys
 systemctl enable ssh
 
-# Resize filesystem on first boot
-systemctl enable rpiwiggle
-
 # Copy bashrc
 cp  /etc/skel/.bashrc /root/.bashrc
+
+# Fix startup time from 5 minutes to 25 secs on raising interfaces
+sed -i 's/^TimeoutStartSec=5min/TimeoutStartSec=25/g' "/usr/lib/systemd/system/networking.service"
 
 rm -f /usr/sbin/policy-rc.d
 rm -f /usr/sbin/invoke-rc.d
@@ -272,86 +253,34 @@ echo "ap6210" >> "${basedir}"/kali-${architecture}/etc/modules-load.d/modules.co
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Kernel section.  If you want to us ea custom kernel, or configuration, replace
-# them in this section.
-# Get, compile and install kernel
-git clone --depth 1 https://github.com/LeMaker/u-boot-bananapi
-git clone --depth 1 https://github.com/LeMaker/linux-sunxi -b lemaker-3.4 "${basedir}"/kali-${architecture}/usr/src/kernel
-git clone --depth 1 https://github.com/linux-sunxi/sunxi-tools
-git clone --depth 1 https://github.com/LeMaker/sunxi-boards
-
-# Clone a cross compiler to use instead of the Kali one due to kernel age.
-git clone --depth 1 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
-
-cd "${basedir}"/sunxi-tools
-make fex2bin
-./fex2bin "${basedir}"/sunxi-boards/sys_config/a20/BananaPro.fex "${basedir}"/kali-${architecture}/boot/script.bin
-
-cd "${basedir}"/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE="${basedir}"/gcc-arm-linux-gnueabihf-4.7/bin/arm-linux-gnueabihf-
-cp "${basedir}"/../kernel-configs/lemaker.config .config
-cp "${basedir}"/../kernel-configs/lemaker.config "${basedir}"/kali-${architecture}/usr/src/lemaker.config
-make -j $(grep -c processor /proc/cpuinfo) uImage modules
-make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
-make firmware_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot/
-make mrproper
-cp ../lemaker.config .config
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
-cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd "${basedir}"
-
-# Create boot.txt file
-cat << EOF > "${basedir}"/kali-${architecture}/boot/boot.cmd
-setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait panic=10 \${extra} rw rootfstype=ext4 net.ifnames=0
-fatload mmc 0 0x43000000 script.bin
-fatload mmc 0 0x48000000 uImage
-bootm 0x48000000
-EOF
-
-# Create u-boot boot script image
-mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.cmd "${basedir}"/kali-${architecture}/boot/boot.scr
-
 cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
 chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
+# Build system will insert it's root filesystem into the extlinux.conf file so
+# we sed it out, this only affects build time, not upgrading the kernel on the
+# device itself.
+sed -i -e 's/append.*/append console=ttyS0,115200 console=tty1 root=\/dev\/mmcblk0p1 rootwait panic=10 rw rootfstype=ext4 net.ifnames=0/g' "${basedir}"/kali-${architecture}/boot/extlinux/extlinux.conf
+
 # Create the disk and partition it
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
-parted ${imagename}.img --script -- mkpart primary fat32 2048s 264191s
-parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
+parted ${imagename}.img --script -- mkpart primary ext4 2048s 100%
 
 # Set the partition variables
 loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
+rootp=${device}p1
 
-# Create file systems
-mkfs.vfat ${bootp}
+# Create file system
 mkfs.ext4 -O ^64bit -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p "${basedir}"/root
 mount ${rootp} "${basedir}"/root
-mkdir -p "${basedir}"/root/boot
-mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -363,26 +292,14 @@ rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
-umount ${bootp}
 umount ${rootp}
 kpartx -dv ${loopdevice}
 
-cd "${basedir}"/u-boot-bananapi/
-# Build u-boot
-make distclean
-make BananaPro_config
-make -j $(grep -c processor /proc/cpuinfo)
-
-dd if=u-boot-sunxi-with-spl.bin of=${loopdevice} bs=1024 seek=8
+dd if="${basedir}"/kali-${architecture}/usr/lib/u-boot/Bananapro/u-boot-sunxi-with-spl.bin of=${loopdevice} bs=1024 seek=8
 
 cd "${basedir}"
 
 losetup -d ${loopdevice}
-
-if [[ "$libfdtdev" -eq "1" ]]; then
-    echo "Installing libfdt-dev because it was installed before image build"
-    apt-get --yes install libfdt-dev;
-fi
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
 MACHINE_TYPE=`uname -m`
