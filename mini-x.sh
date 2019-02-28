@@ -50,7 +50,7 @@ unset CROSS_COMPILE
 # image, keep that in mind.
 
 arm="abootimg cgpt fake-hwclock ntpdate u-boot-tools vboot-utils vboot-kernel-utils"
-base="apt-utils kali-defaults e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek"
+base="apt-utils e2fsprogs ifupdown initramfs-tools kali-defaults kali-menu linux-image-armmp parted sudo usbutils firmware-linux firmware-atheros firmware-libertas firmware-realtek u-boot-menu u-boot-sunxi"
 desktop="kali-menu fonts-croscore fonts-crosextra-caladea fonts-crosextra-carlito gnome-theme-kali gtk3-engines-xfce kali-desktop-xfce kali-root-login lightdm network-manager network-manager-gnome xfce4 xserver-xorg-video-fbdev"
 tools="aircrack-ng ethtool hydra john libnfc-bin mfoc nmap passing-the-hash sqlmap usbutils winexe wireshark"
 services="apache2 openssh-server"
@@ -146,6 +146,12 @@ WantedBy=multi-user.target
 EOF
 chmod 644 kali-${architecture}/usr/lib/systemd/system/smi-hack.service
 
+# Set up u-boot-menu to append the kernel cmdline stuff
+mkdir -p kali-${architecture}/etc/default/
+cat << 'EOF' > kali-${architecture}/etc/default/u-boot
+U_BOOT_PARAMETERS="console=ttyS0,115200 console=tty1 root=/dev/mmcblk0p1 rootwait panic=10 ${extra} rw rootfstype=ext4 net.ifnames=0"
+EOF
+
 cat << EOF > kali-${architecture}/third-stage
 #!/bin/bash
 set -e
@@ -229,62 +235,6 @@ EOF
 # Uncomment this if you use apt-cacher-ng otherwise git clones will fail.
 #unset http_proxy
 
-# Kernel section. If you want to use a custom kernel, or configuration, replace
-# them in this section.
-git clone --depth 1 https://github.com/linux-sunxi/u-boot-sunxi
-git clone --depth 1 https://github.com/linux-sunxi/linux-sunxi -b stage/sunxi-3.4 "${basedir}"/kali-${architecture}/usr/src/kernel
-git clone --depth 1 https://github.com/linux-sunxi/sunxi-tools
-git clone --depth 1 https://github.com/linux-sunxi/sunxi-boards
-
-cd "${basedir}"/sunxi-tools
-make fex2bin
-./fex2bin "${basedir}"/sunxi-boards/sys_config/a10/mini-x.fex "${basedir}"/kali-${architecture}/boot/script.bin
-
-cd "${basedir}"/kali-${architecture}/usr/src/kernel
-git rev-parse HEAD > "${basedir}"/kali-${architecture}/usr/src/kernel-at-commit
-patch -p1 --no-backup-if-mismatch < "${basedir}"/../patches/mac80211.patch
-touch .scmversion
-export ARCH=arm
-export CROSS_COMPILE=arm-linux-gnueabihf-
-cp "${basedir}"/../kernel-configs/sun4i.config .config
-cp "${basedir}"/../kernel-configs/sun4i.config "${basedir}"/kali-${architecture}/usr/src/sun4i.config
-make -j $(grep -c processor /proc/cpuinfo) uImage modules
-make modules_install INSTALL_MOD_PATH="${basedir}"/kali-${architecture}
-cp arch/arm/boot/uImage "${basedir}"/kali-${architecture}/boot
-make mrproper
-cp ../sun4i.config .config
-cd "${basedir}"
-
-# Fix up the symlink for building external modules
-# kernver is used so we don't need to keep track of what the current compiled
-# version is
-kernver=$(ls "${basedir}"/kali-${architecture}/lib/modules/)
-cd "${basedir}"/kali-${architecture}/lib/modules/${kernver}
-rm build
-rm source
-ln -s /usr/src/kernel build
-ln -s /usr/src/kernel source
-cd "${basedir}"
-
-# Create boot.txt file
-cat << EOF > "${basedir}"/kali-${architecture}/boot/boot.cmd
-setenv bootargs console=ttyS0,115200 root=/dev/mmcblk0p2 rootwait panic=10 \${extra} net.ifnames=0 rw rootfstypes=ext4
-fatload mmc 0 0x43000000 script.bin
-fatload mmc 0 0x48000000 uImage
-bootm 0x48000000
-EOF
-
-# Create u-boot boot script image
-mkimage -A arm -T script -C none -d "${basedir}"/kali-${architecture}/boot/boot.cmd "${basedir}"/kali-${architecture}/boot/boot.scr
-
-cd "${basedir}"/u-boot-sunxi/
-# Build u-boot
-make distclean
-make Mini-X_config
-make -j $(grep -c processor /proc/cpuinfo)
-
-dd if=u-boot-sunxi-with-spl.bin of=${loopdevice} bs=1024 seek=8
-
 cd "${basedir}"
 
 cp "${basedir}"/../misc/zram "${basedir}"/kali-${architecture}/etc/init.d/zram
@@ -292,30 +242,30 @@ chmod 755 "${basedir}"/kali-${architecture}/etc/init.d/zram
 
 sed -i -e 's/^#PermitRootLogin.*/PermitRootLogin yes/' "${basedir}"/kali-${architecture}/etc/ssh/sshd_config
 
+# Build system will insert it's root filesystem into the extlinux.conf file so
+# we sed it out, this only affects build time, not upgrading the kernel on the
+# device itself.
+sed -i -e 's/append.*/append console=ttyS0,115200 console=tty1 root=\/dev\/mmcblk0p1 rootwait panic=10 rw rootfstype=ext4 net.ifnames=0/g' "${basedir}"/kali-${architecture}/boot/extlinux/extlinux.conf
+
 # Create the disk and partition it
 echo "Creating image file ${imagename}.img"
 dd if=/dev/zero of="${basedir}"/${imagename}.img bs=1M count=${size}
 parted ${imagename}.img --script -- mklabel msdos
-parted ${imagename}.img --script -- mkpart primary fat32 2048s 264191s
-parted ${imagename}.img --script -- mkpart primary ext4 264192s 100%
+parted ${imagename}.img --script -- mkpart primary ext4 2048s 100%
 
 # Set the partition variables
 loopdevice=`losetup -f --show "${basedir}"/${imagename}.img`
 device=`kpartx -va ${loopdevice} | sed 's/.*\(loop[0-9]\+\)p.*/\1/g' | head -1`
 sleep 5
 device="/dev/mapper/${device}"
-bootp=${device}p1
-rootp=${device}p2
+rootp=${device}p1
 
 # Create file systems
-mkfs.vfat ${bootp}
 mkfs.ext4 -O ^64bit -O ^flex_bg -O ^metadata_csum ${rootp}
 
 # Create the dirs for the partitions and mount them
 mkdir -p "${basedir}"/root
 mount ${rootp} "${basedir}"/root
-mkdir -p "${basedir}"/root/boot
-mount ${bootp} "${basedir}"/root/boot
 
 # We do this down here to get rid of the build system's resolv.conf after running through the build.
 cat << EOF > kali-${architecture}/etc/resolv.conf
@@ -330,6 +280,10 @@ sync
 umount ${bootp}
 umount ${rootp}
 kpartx -dv ${loopdevice}
+
+# Write bootloader to imagefile
+dd if="${basedir}"/kali-${architecture}/usr/lib/u-boot/Mini-X/u-boot-sunxi-with-spl.bin of=${loopdevice} bs=1024 seek=8
+
 losetup -d ${loopdevice}
 
 # Don't pixz on 32bit, there isn't enough memory to compress the images.
