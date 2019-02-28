@@ -277,7 +277,6 @@ rsync -HPavz -q "${basedir}"/kali-${architecture}/ "${basedir}"/root/
 
 # Unmount partitions
 sync
-umount ${bootp}
 umount ${rootp}
 kpartx -dv ${loopdevice}
 
