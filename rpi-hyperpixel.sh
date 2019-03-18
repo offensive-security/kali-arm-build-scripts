@@ -233,13 +233,6 @@ systemctl enable rpiwiggle
 # Enable copying of user wpa_supplicant.conf file
 systemctl enable copy-user-wpasupplicant
 
-# systemd 240 is broke on arm so we enable re4son's repository and downgrade to 239
-echo "deb http://http.re4son-kernel.com/re4son kali-pi main" > /etc/apt/sources.list.d/re4son.list
-wget -O - https://re4son-kernel.com/keys/http/archive-key.asc | apt-key add -
-apt-get update
-apt-get --yes --allow-downgrades install systemd=239-12~bpo9+1 libsystemd0=239-12~bpo9+1 libnss-systemd=239-12~bpo9+1 libpam-systemd=239-12~bpo9+1 libcryptsetup4
-apt-mark hold systemd libsystemd0 libnss-systemd libpam-systemd
-
 # Regenerated the shared-mime-info database on the first boot
 # since it fails to do so properly in a chroot.
 systemctl enable smi-hack
