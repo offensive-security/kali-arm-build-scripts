@@ -2,14 +2,17 @@ Kali-ARM-Build-Scripts
 ======================
 
 Offensive Security Kali Linux ARM build scripts are used to build our official Kali Linux ARM images which can be found at http://www.kali.org/downloads/
+
     •	These scripts have been tested on a Kali Linux 32- and 64-bits installations, after making sure that all the dependencies have been installed.
     •	Do run the build-deps.sh script first which installs all required dependencies.
     •	The cross compilers from our github account is necessary.
     
 For armel images (RPi), use:
 https://github.com/offensive-security/gcc-arm-eabi-linaro-4.6.2
+
 For armhf images, use:
 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
+
 For arm64 images (ODROID-C2), use:
 https://releases.linaro.org/archive/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
 
