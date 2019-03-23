@@ -8,12 +8,15 @@ Offensive Security Kali Linux ARM build scripts are used to build our official K
     •	The cross compilers from our github account is necessary.
     
 For armel images (RPi), use:
+
 https://github.com/offensive-security/gcc-arm-eabi-linaro-4.6.2
 
 For armhf images, use:
+
 https://github.com/offensive-security/gcc-arm-linux-gnueabihf-4.7
 
 For arm64 images (ODROID-C2), use:
+
 https://releases.linaro.org/archive/14.09/components/toolchain/binaries/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux.tar.xz
 
 
