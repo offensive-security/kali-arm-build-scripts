@@ -130,7 +130,8 @@ Description=shared-mime-info update hack
 Before=regenerate_ssh_host_keys.service
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'env DEBIAN_FRONTEND="noninteractive"dpkg-reconfigure ca-certificates'
+Environment=DEBIAN_FRONTEND=noninteractive
+ExecStart=/bin/sh -c "dpkg-reconfigure ca-certificates"
 ExecStart=/bin/sh -c "dpkg-reconfigure shared-mime-info"
 ExecStartPost=/bin/systemctl disable smi-hack
 
