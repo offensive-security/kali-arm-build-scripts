@@ -1,5 +1,0 @@
-*[0-9]*/
-*.log
-kali-armhf/
-.DS_Store
-*.img.xz
